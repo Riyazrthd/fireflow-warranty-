@@ -95,6 +95,7 @@
                 closedDate: isResolved ? closedDateVal : r.closed_date,
                 remarks: r.remarks,
                 resolvedAt: r.resolved_at,
+                delayReason: r.delay_reason,
                 timestamp: r.created_at
             };
         };
@@ -291,9 +292,9 @@
 
             const steps = [
                 { label: 'Complaint Logged', sub: `${complaint.mode||'Customer Portal'} · ${formatDate(complaint.dateReceived)}`, done: true, active: false, icon: 'file-text', color: 'indigo' },
-                { label: 'Under Review', sub: complaint.status!=='Open' ? 'Being reviewed by engineering team' : 'Awaiting assignment', done: complaint.status!=='Open', active: complaint.status==='Open', icon: 'search', color: 'blue' },
-                { label: 'Engineer Assigned', sub: trackerClosedBy ? `Assigned to: ${trackerClosedBy}` : 'Pending assignment', done: !!trackerClosedBy, active: !trackerClosedBy && complaint.status!=='Open', icon: 'user-check', color: 'amber' },
-                { label: 'Case Resolved', sub: complaint.status==='Resolved' ? `Closed on ${formatDate(trackerClosedDate)} · ${complaint.diagnosis||''}` : 'Pending resolution', done: complaint.status==='Resolved', active: false, icon: 'check-circle', color: 'emerald' },
+                { label: 'Under Review', sub: (complaint.status!=='Open' || !!trackerClosedBy) ? 'Being reviewed by engineering team' : 'Awaiting assignment', done: complaint.status!=='Open' || !!trackerClosedBy, active: complaint.status==='Open' && !trackerClosedBy, icon: 'search', color: 'blue' },
+                { label: 'Engineer Assigned', sub: trackerClosedBy ? (complaint.status === 'Resolved' ? `Assigned to: ${trackerClosedBy}` : `Assigned to: ${trackerClosedBy} (Scheduled Visit: ${formatDate(trackerClosedDate)})${complaint.delayReason ? ` · ⚠️ Rescheduled: ${complaint.delayReason}` : ''}`) : 'Pending assignment', done: !!trackerClosedBy, active: false, icon: 'user-check', color: 'amber' },
+                { label: 'Case Resolved', sub: complaint.status==='Resolved' ? `Closed on ${formatDate(trackerClosedDate)} · ${complaint.diagnosis||''}` : (complaint.delayReason ? `Awaiting service visit (Delayed: ${complaint.delayReason})` : (trackerClosedBy ? 'Awaiting service visit & diagnosis' : 'Pending resolution')), done: complaint.status==='Resolved', active: complaint.status==='Open' && !!trackerClosedBy, icon: 'check-circle', color: 'emerald' },
             ];
 
             const colorMap = { indigo:'border-indigo-400 bg-indigo-50 text-indigo-600', blue:'border-blue-400 bg-blue-50 text-blue-600', amber:'border-amber-400 bg-amber-50 text-amber-600', emerald:'border-emerald-400 bg-emerald-50 text-emerald-600' };
@@ -674,6 +675,8 @@
             const [showComplaintModal, setShowComplaintModal] = useState(false);
             const [showFeedbackModal, setShowFeedbackModal] = useState(null);
             const [showCloseModal, setShowCloseModal] = useState(null);
+            const [showAssignModal, setShowAssignModal] = useState(null);
+            const [assignData, setAssignData] = useState({ closedBy: '', closedDate: new Date().toISOString().split('T')[0], delayReason: '' });
             const [showCategoryModal, setShowCategoryModal] = useState(false);
             const [showViewComplaintsModal, setShowViewComplaintsModal] = useState(null);
             const [deleteStep, setDeleteStep] = useState(null);
@@ -795,21 +798,34 @@
                                     payload.closed_date = c.closedDate;
                                     payload.remarks = c.remarks;
                                     payload.resolved_at = c.resolvedAt || new Date().toISOString();
+                                    payload.delay_reason = c.delayReason;
+                                } else if (c.closedBy) {
+                                    payload.closed_by = c.closedBy;
+                                    payload.closed_date = c.closedDate;
+                                    payload.delay_reason = c.delayReason;
                                 }
                                 const { data: ins } = await sb.from('complaints').insert(payload).select().single();
                                 if (ins) dbCmps.push(mapComplaint(ins));
                             } catch(err) {}
                         }
 
-                        // B. Handle local resolutions of existing DB complaints
+                        // B. Handle local resolutions or assignments of existing DB complaints
                         for (const c of localCmps.filter(lc => !String(lc.id).startsWith('LOCAL-'))) {
                             const dbMatch = dbCmps.find(dc => dc.id === c.id);
-                            if (dbMatch && c.status === 'Resolved' && dbMatch.status === 'Open') {
-                                try {
-                                    const upP = { status: 'Resolved', diagnosis: c.diagnosis, closed_by: c.closedBy, closed_date: c.closedDate, remarks: c.remarks, resolved_at: c.resolvedAt || new Date().toISOString() };
-                                    await sb.from('complaints').update(upP).eq('id', c.id);
-                                    dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, remarks: c.remarks } : item);
-                                } catch(err) {}
+                            if (dbMatch) {
+                                if (c.status === 'Resolved' && dbMatch.status === 'Open') {
+                                    try {
+                                        const upP = { status: 'Resolved', diagnosis: c.diagnosis, closed_by: c.closedBy, closed_date: c.closedDate, remarks: c.remarks, resolved_at: c.resolvedAt || new Date().toISOString(), delay_reason: c.delayReason };
+                                        await sb.from('complaints').update(upP).eq('id', c.id);
+                                        dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, remarks: c.remarks, delayReason: c.delayReason } : item);
+                                    } catch(err) {}
+                                } else if (c.status === 'Open' && (c.closedBy !== dbMatch.closedBy || c.closedDate !== dbMatch.closedDate || c.delayReason !== dbMatch.delayReason)) {
+                                    try {
+                                        const upP = { closed_by: c.closedBy, closed_date: c.closedDate, delay_reason: c.delayReason };
+                                        await sb.from('complaints').update(upP).eq('id', c.id);
+                                        dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, delayReason: c.delayReason } : item);
+                                    } catch(err) {}
+                                }
                             }
                         }
 
@@ -1047,6 +1063,11 @@
                     <p class="text-xs font-bold italic text-slate-600 whitespace-pre-line leading-relaxed mb-3">"${complaint.remarks}"</p>
                 ` : '';
                 
+                const delayReasonHtml = complaint.delayReason ? `
+                    <p class="text-xs font-semibold text-amber-700 uppercase text-[9px] mt-3">Delay / Rescheduling Notes</p>
+                    <p class="text-xs font-bold italic text-slate-600 leading-relaxed mb-3">"${complaint.delayReason}"</p>
+                ` : '';
+                
                 const closedByVal = (complaint.closedBy && complaint.closedBy !== 'N/A') ? complaint.closedBy : 'Service Engineer';
                 const reportClosedDateVal = (complaint.closedDate && complaint.closedDate !== 'N/A') ? complaint.closedDate : ((complaint.resolvedAt ? complaint.resolvedAt.split('T')[0] : null) || complaint.dateReceived || new Date().toISOString().split('T')[0]);
                 const ticketDuration = calculateLifeCount(complaint.dateReceived);
@@ -1156,6 +1177,7 @@
                                         </div>
                                         <p class="text-xs font-semibold text-emerald-700 uppercase text-[9px]">Fix Applied / Diagnosis</p>
                                         <p class="text-xs font-bold text-slate-800 whitespace-pre-line leading-relaxed mb-3">${diagnosisVal}</p>
+                                        ${delayReasonHtml}
                                         ${remarksHtml}
                                         <div class="grid grid-cols-2 gap-4 border-t border-emerald-100 pt-3 text-[10px] font-bold text-emerald-800 uppercase">
                                             <p>Service Engineer: <span class="font-black text-slate-800">${closedByVal}</span></p>
@@ -1527,6 +1549,22 @@
                                                             {c.remarks && <p className="italic text-slate-400 border-t border-slate-100 pt-2">Notes: {c.remarks}</p>}
                                                         </div>
                                                     )}
+                                                    {c.status==='Open' && c.closedBy && (
+                                                        <div className="p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100 mb-4 text-[10px] font-bold text-slate-500 uppercase space-y-2">
+                                                            <div className="flex justify-between items-center border-b border-indigo-100 pb-1 mb-1">
+                                                                <p className="text-indigo-600 font-black tracking-widest">Planned Visit & Manpower</p>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <p>Engineer: <span className="text-slate-800 font-black tracking-tight">{c.closedBy}</span></p>
+                                                                <p>Target Date: <span className="text-slate-800 font-black tracking-tight">{formatDate(c.closedDate)}</span></p>
+                                                            </div>
+                                                            {c.delayReason && (
+                                                                <p className="text-amber-600 font-extrabold border-t border-indigo-100/50 pt-2 flex items-center gap-1">
+                                                                    <Icon name="alert-triangle" size={12}/> Rescheduled: <span className="text-slate-800 font-bold lowercase normal-case italic">"{c.delayReason}"</span>
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                     <div className="flex gap-6 text-[9px] font-black text-slate-400 uppercase tracking-widest border-t border-slate-50 pt-3 flex-wrap">
                                                         <span className="flex items-center gap-1.5"><Icon name="truck" size={10}/>PO: {trk?.poNo||'N/A'} | {cust?.name}</span>
                                                         <span className="flex items-center gap-1.5"><Icon name="send" size={10}/>{c.mode||'Admin'}</span>
@@ -1534,7 +1572,22 @@
                                                         <span className="flex items-center gap-1.5"><Icon name="clock" size={10}/>{calculateLifeCount(c.dateReceived)}d old</span>
                                                     </div>
                                                 </div>
-                                                {c.status==='Open' && <button onClick={()=>setShowCloseModal(c)} className="bg-emerald-600 text-white px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 shadow-xl flex-shrink-0">Resolve Case</button>}
+                                                {c.status==='Open' && (
+                                                    <div className="flex gap-2 shrink-0">
+                                                        <button onClick={()=>{
+                                                            setAssignData({ closedBy: c.closedBy || '', closedDate: c.closedDate || new Date().toISOString().split('T')[0], delayReason: c.delayReason || '' });
+                                                            setShowAssignModal(c);
+                                                        }} className="border-2 border-indigo-200 text-indigo-700 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center gap-1.5 shadow-sm">
+                                                            <Icon name={c.closedBy ? "user-check" : "user-plus"} size={12}/> {c.closedBy ? "Reassign / Update" : "Assign Case"}
+                                                        </button>
+                                                        <button onClick={()=>{
+                                                            setCloseData({ diagnosis: c.diagnosis || '', closedBy: c.closedBy || '', closedDate: new Date().toISOString().split('T')[0], remarks: c.remarks || '' });
+                                                            setShowCloseModal(c);
+                                                        }} className="bg-emerald-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 shadow-xl">
+                                                            Resolve Case
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>;
                                     })}
@@ -1766,10 +1819,79 @@
                                 setComplaints(prev=>prev.map(c=>c.id===showCloseModal.id?{...c,...upP,closedBy:closeData.closedBy,closedDate:closeData.closedDate,remarks:closeData.remarks}:c));
                                 setShowCloseModal(null); setCloseData({diagnosis:'',closedBy:'',closedDate:new Date().toISOString().split('T')[0],remarks:''});
                             }} className="space-y-4">
+                                {showCloseModal.closedBy && (
+                                    <div className="p-3.5 bg-indigo-50 border border-indigo-100 rounded-2xl text-[10px] font-bold text-indigo-800 uppercase space-y-1">
+                                        <p className="text-indigo-400 font-black tracking-widest flex items-center gap-1"><Icon name="user-check" size={12}/> Planned Assignment Reference</p>
+                                        <p className="text-indigo-900 font-extrabold normal-case text-xs">
+                                            Engineer: <span className="font-black uppercase">{showCloseModal.closedBy}</span> · Target Date: <span className="font-black">{formatDate(showCloseModal.closedDate)}</span>
+                                        </p>
+                                        {showCloseModal.delayReason && (
+                                            <p className="text-amber-600 font-extrabold text-[10px] flex items-center gap-1 border-t border-indigo-100/50 pt-1 mt-1">
+                                                <Icon name="alert-triangle" size={12}/> Reschedule Reason: <span className="text-slate-700 font-semibold normal-case italic">"{showCloseModal.delayReason}"</span>
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                                 <div className="space-y-1"><label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Diagnosis / Fix Applied *</label><textarea className="w-full border rounded-xl p-3 text-sm min-h-[140px] outline-none focus:ring-2 focus:ring-emerald-500" value={closeData.diagnosis} onChange={e=>setCloseData({...closeData,diagnosis:e.target.value})} required placeholder="Describe the root cause and repair performed..."/></div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="Engineer Name" value={closeData.closedBy} onChange={v=>setCloseData({...closeData,closedBy:v})} required/><Input label="Close Date" type="date" value={closeData.closedDate} onChange={v=>setCloseData({...closeData,closedDate:v})} required/></div>
                                 <div className="space-y-1"><label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Additional Notes</label><textarea className="w-full border rounded-xl p-3 text-sm min-h-[80px] outline-none focus:ring-2 focus:ring-emerald-500" value={closeData.remarks} onChange={e=>setCloseData({...closeData,remarks:e.target.value})} placeholder="Any follow-up advice, parts replaced, etc."/></div>
                                 <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl mt-2 tracking-widest hover:bg-emerald-700">Close Ticket</button>
+                            </form>
+                        </Modal>
+                    )}
+
+                    {showAssignModal && (
+                        <Modal title={showAssignModal.closedBy ? `Reschedule / Update Assignment: ${showAssignModal.complaintId}` : `Assign Engineer: ${showAssignModal.complaintId}`} onClose={()=>{ setShowAssignModal(null); setAssignData({ closedBy: '', closedDate: new Date().toISOString().split('T')[0], delayReason: '' }); }}>
+                            <form onSubmit={async e=>{
+                                e.preventDefault();
+                                const upP = {
+                                    closed_by: assignData.closedBy,
+                                    closed_date: assignData.closedDate,
+                                    delay_reason: assignData.delayReason || null
+                                };
+                                const sb = window.SupabaseClient;
+                                if (user && sb && !String(showAssignModal.id).startsWith('LOCAL')) {
+                                    try {
+                                        const { error } = await sb.from('complaints').update(upP).eq('id', showAssignModal.id);
+                                        if (error) console.error("Supabase assign complaint error:", error);
+                                    } catch(er) {
+                                        console.error("Supabase assign complaint exception:", er);
+                                    }
+                                }
+                                setComplaints(prev => prev.map(c => c.id === showAssignModal.id ? { ...c, ...upP, closedBy: assignData.closedBy, closedDate: assignData.closedDate, delayReason: assignData.delayReason } : c));
+                                setShowAssignModal(null);
+                                setAssignData({ closedBy: '', closedDate: new Date().toISOString().split('T')[0], delayReason: '' });
+                            }} className="space-y-4">
+                                {showAssignModal.closedBy && (
+                                    <div className="p-3.5 bg-slate-50 border rounded-2xl text-[10px] font-bold text-slate-500 uppercase space-y-1">
+                                        <p className="text-slate-400 font-black tracking-widest">Previous Assignment</p>
+                                        <p className="text-slate-700 font-extrabold normal-case text-xs">Assigned to <span className="font-black uppercase">{showAssignModal.closedBy}</span> for <span className="font-black">{formatDate(showAssignModal.closedDate)}</span></p>
+                                    </div>
+                                )}
+                                
+                                {showAssignModal.closedDate && assignData.closedDate !== showAssignModal.closedDate && (
+                                    <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-[10px] font-bold text-amber-800 flex items-start gap-2.5">
+                                        <Icon name="alert-triangle" size={16} className="text-amber-600 shrink-0 mt-0.5"/>
+                                        <div>
+                                            <p className="font-black uppercase tracking-widest text-[9px] mb-1">⚠️ Rescheduling Target Date</p>
+                                            <p className="normal-case font-bold text-[11px] leading-relaxed">The target date is being adjusted from {formatDate(showAssignModal.closedDate)} to {formatDate(assignData.closedDate)}. A delay reason is required to save this update.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input label="Assign Engineer / Manpower *" value={assignData.closedBy} onChange={v=>setAssignData({...assignData,closedBy:v})} required/>
+                                    <Input label="Target Visit Date *" type="date" value={assignData.closedDate} onChange={v=>setAssignData({...assignData,closedDate:v})} required/>
+                                </div>
+
+                                {showAssignModal.closedBy && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Delay / Reschedule Reason {showAssignModal.closedDate && assignData.closedDate !== showAssignModal.closedDate ? ' *' : ' (Optional)'}</label>
+                                        <textarea value={assignData.delayReason} onChange={e=>setAssignData({...assignData, delayReason:e.target.value})} required={showAssignModal.closedDate && assignData.closedDate !== showAssignModal.closedDate} placeholder="Describe the reason for team/date adjustment..." className="w-full border rounded-xl p-3 text-sm min-h-[80px] outline-none focus:ring-2 focus:ring-indigo-500"/>
+                                    </div>
+                                )}
+
+                                <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl mt-2 tracking-widest hover:bg-indigo-700">Save Assignment</button>
                             </form>
                         </Modal>
                     )}
