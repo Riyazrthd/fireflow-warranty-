@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FireFlow - Technical Warranty Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use production builds for better compatibility with Recharts UMD -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Recharts UMD requires prop-types to be globally available -->
+    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .modal-animate { animation: zoomIn 0.2s ease-out; }
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        * { scrollbar-width: thin; scrollbar-color: #94a3b8 #f1f5f9; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        textarea { overflow-y: auto !important; }
+        select.scroll-select { max-height: 12rem; overflow-y: auto; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        const SUPABASE_URL = 'https://zlyvxfkykpjacezfcqum.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_N2uPN5ERE3K1rTgsB0_j4g_YjRyncjN';
+        window.SupabaseClient = null;
+        try { window.SupabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY); } catch (err) { console.error("Supabase init error:", err); }
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+        
+        const { 
+            ResponsiveContainer, ComposedChart, Bar, Line, Area, XAxis, YAxis, 
+            CartesianGrid, Tooltip, Legend, Cell
+        } = window.Recharts || {};
+
+        const DEFAULT_CATEGORIES = [
+            "Chassis/Engine Issue",
+            "Water Pump/Pump System",
+            "PTO/Driveline",
+            "Electrical/Siren/Lights",
+            "Body Work/Locker/Tank",
+            "Foam System/Proportioner",
+            "Monitor/Nozzles"
+        ];
+
+        // --- MAPPING UTILS ---
+        const mapCustomer = (r) => ({ id: r.id, name: r.name, address: r.address, contactPerson: r.contact_person, phone: r.phone, email: r.email, timestamp: r.created_at });
+        const mapTruck = (r) => ({ 
+            id: r.id, customerId: r.customer_id, poNo: r.po_no, tenderType: r.tender_type, pumpMake: r.pump_make, pumpLpm: r.pump_lpm, pumpSrNo: r.pump_sr_no, 
+            foamCapacity: r.foam_capacity, waterCapacity: r.water_capacity, chassisMake: r.chassis_make, modelNo: r.model_no, deliveryDate: r.delivery_date, 
+            warrantyMonths: r.warranty_months, insurancePolicyNo: r.insurance_policy_no, insuranceCompany: r.insurance_company, insuranceExpiryDate: r.insurance_expiry_date,
+            timestamp: r.created_at 
+        });
+        const mapComplaint = (r) => ({ id: r.id, truckId: r.truck_id, complaintId: r.complaint_id, category: r.category, description: r.description, dateReceived: r.date_received, mode: r.mode, reportedBy: r.reported_by, status: r.status, diagnosis: r.diagnosis, closedBy: r.closed_by, closedDate: r.closed_date, remarks: r.remarks, resolvedAt: r.resolved_at, timestamp: r.created_at });
+        const mapFeedback = (r) => ({ id: r.id, customerId: r.customer_id, feedbackText: r.feedback_text, feedbackDate: r.feedback_date, personName: r.person_name, contactNumber: r.contact_number, mode: r.mode, timestamp: r.created_at });
+
+        // --- CORE COMPONENTS ---
+        const Icon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        };
+
+        const Badge = ({ children, color = 'blue' }) => {
+            const colors = {
+                blue: 'bg-blue-100 text-blue-800 border-blue-200',
+                green: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                red: 'bg-rose-100 text-rose-800 border-rose-200',
+                yellow: 'bg-amber-100 text-amber-800 border-amber-200',
+                gray: 'bg-slate-100 text-slate-800 border-slate-200',
+                indigo: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+            };
+            return <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${colors[color] || colors.blue}`}>{children}</span>;
+        };
+
+        const Input = ({ label, value, onChange, type = "text", placeholder = "", required = false }) => (
+            <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">{label}</label>
+                <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required}
+                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-300" />
+            </div>
+        );
+
+        const Modal = ({ title, children, onClose }) => (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden modal-animate flex flex-col border border-slate-200">
+                    <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h3 className="font-black text-slate-900 uppercase tracking-tight">{title}</h3>
+                        <button onClick={onClose} className="text-slate-400 hover:text-slate-900 text-2xl font-light focus:outline-none">&times;</button>
+                    </div>
+                    <div className="p-6 overflow-y-auto flex-1 min-h-0">{children}</div>
+                </div>
+            </div>
+        );
+
+        const SearchableSelect = ({ label, options, value, onChange, getOptionLabel, getOptionValue, placeholder = "Type to search...", disabled = false, required = false }) => {
+            const [open, setOpen] = useState(false);
+            const [search, setSearch] = useState('');
+            const containerRef = useRef(null);
+            const selected = options.find(o => getOptionValue(o) === value);
+            const displayLabel = selected ? getOptionLabel(selected) : '';
+            const filtered = options.filter(o => getOptionLabel(o).toLowerCase().includes((search || displayLabel || '').toLowerCase()));
+            
+            useEffect(() => {
+                const handle = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false); };
+                document.addEventListener('mousedown', handle);
+                return () => document.removeEventListener('mousedown', handle);
+            }, []);
+
+            return (
+                <div className="space-y-1 relative" ref={containerRef}>
+                    <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">{label}</label>
+                    <input type="text" readOnly={open} value={open ? search : displayLabel} onChange={e => { setSearch(e.target.value); if (!open) setOpen(true); }} onFocus={() => setOpen(true)} placeholder={placeholder} disabled={disabled} required={required && !value}
+                        className="w-full border border-slate-200 rounded-xl p-3 text-sm bg-white outline-none focus:ring-2 focus:ring-rose-500 transition-all placeholder:text-slate-400" />
+                    {open && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto scroll-select">
+                            {filtered.length === 0 ? <div className="p-3 text-sm text-slate-400">No matches</div> : filtered.map((opt, i) => (
+                                <button key={i} type="button" onClick={() => { onChange(getOptionValue(opt)); setOpen(false); setSearch(''); }}
+                                    className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-rose-50 border-b border-slate-50 last:border-0 first:rounded-t-xl last:rounded-b-xl transition-colors">
+                                    {getOptionLabel(opt)}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const calculateDaysRemaining = (expiryDate) => {
+            if (!expiryDate) return 0;
+            const expiry = new Date(expiryDate);
+            expiry.setHours(23, 59, 59, 999);
+            const today = new Date();
+            return Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        };
+
+        const calculateWarrantyExpiry = (deliveryDate, months) => {
+            if (!deliveryDate) return null;
+            const d = new Date(deliveryDate);
+            d.setMonth(d.getMonth() + parseInt(months || 0));
+            return d.toISOString().split('T')[0];
+        };
+
+        const calculateLifeCount = (dateReceived) => {
+            if (!dateReceived) return 0;
+            const received = new Date(dateReceived);
+            const today = new Date();
+            const diffTime = Math.abs(today - received);
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        };
+
+        const formatDate = (dateStr) => {
+            if (!dateStr) return "N/A";
+            return new Date(dateStr).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+        };
+
+        const AnalyticsTooltip = ({ active, payload, label }) => {
+            if (active && payload && payload.length) {
+                return (
+                    <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-slate-100 outline-none">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b pb-1">{label}</p>
+                        <div className="space-y-1.5">
+                            {payload.map((entry, index) => (
+                                <div key={index} className="flex items-center justify-between gap-6">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.payload.fill || entry.color }}></div>
+                                        <span className="text-[11px] font-bold text-slate-600 uppercase">{entry.name}:</span>
+                                    </div>
+                                    <span className="text-xs font-black text-slate-900">{entry.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+            return null;
+        };
+
+        // --- DASHBOARD CHARTS ---
+        const ComplaintTrendAnalytics = ({ complaints = [], range = 6 }) => {
+            const chartData = useMemo(() => {
+                if (!complaints.length) return [];
+                const monthlyMap = {};
+                const now = new Date();
+                for (let i = 0; i < range; i++) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const monthKey = d.toISOString().slice(0, 7);
+                    monthlyMap[monthKey] = { month: monthKey, monthDisplay: d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }), received: 0, closed: 0 };
+                }
+                complaints.forEach((c) => {
+                    const recMonth = c.dateReceived?.slice(0, 7);
+                    const closedMonth = c.closedDate?.slice(0, 7);
+                    if (monthlyMap[recMonth]) monthlyMap[recMonth].received += 1;
+                    if (c.status === "Resolved" && monthlyMap[closedMonth]) monthlyMap[closedMonth].closed += 1;
+                });
+                return Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month)).map(item => ({ ...item, trend: parseFloat(((item.received + item.closed) / 2).toFixed(1)) }));
+            }, [complaints, range]);
+
+            return (
+                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col h-[320px]">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600"><Icon name="trending-up" size={18} /></div>
+                        <div><h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Support Volume</h3><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Activity Index</p></div>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={chartData} margin={{ top: 20, right: 10, left: -25, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="trendReceived" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#fb7185" stopOpacity={0.8}/><stop offset="95%" stopColor="#fb7185" stopOpacity={0.1}/></linearGradient>
+                                    <linearGradient id="trendClosed" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/><stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/></linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="monthDisplay" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 800, fill: '#94a3b8' }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 800, fill: '#94a3b8' }} />
+                                <Tooltip cursor={{ fill: '#f8fafc', radius: 10 }} content={<AnalyticsTooltip />} />
+                                <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '15px', fontSize: '9px', fontWeight: '900', textTransform: 'uppercase' }} />
+                                <Bar name="Open" dataKey="received" fill="url(#trendReceived)" radius={[6, 6, 0, 0]} barSize={10}>
+                                    <window.Recharts.LabelList dataKey="received" position="top" style={{ fontSize: '9px', fontWeight: 900, fill: '#fb7185' }} formatter={v => v > 0 ? v : ''} />
+                                </Bar>
+                                <Bar name="Closed" dataKey="closed" fill="url(#trendClosed)" radius={[6, 6, 0, 0]} barSize={10}>
+                                    <window.Recharts.LabelList dataKey="closed" position="top" style={{ fontSize: '9px', fontWeight: 900, fill: '#10b981' }} formatter={v => v > 0 ? v : ''} />
+                                </Bar>
+                                <Line name="Avg" type="monotone" dataKey="trend" stroke="#6366f1" strokeWidth={3} dot={{ r: 3, fill: '#fff', stroke: '#6366f1', strokeWidth: 2 }} animationDuration={1500} />
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            );
+        };
+
+        const ComplaintCategoryAnalytics = ({ complaints = [], range = 6 }) => {
+            const categoryData = useMemo(() => {
+                if (!complaints.length) return [];
+                const now = new Date();
+                const limitDate = new Date(now.getFullYear(), now.getMonth() - range, 1);
+                const counts = {};
+                complaints.forEach(c => {
+                    const recDate = new Date(c.dateReceived);
+                    if (recDate >= limitDate) { counts[c.category] = (counts[c.category] || 0) + 1; }
+                });
+                return Object.entries(counts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+            }, [complaints, range]);
+
+            return (
+                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col h-[320px]">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600"><Icon name="pie-chart" size={18} /></div>
+                        <div><h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Category Distribution</h3><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Issue Hotspots</p></div>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                        {categoryData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={categoryData} layout="vertical" margin={{ top: 0, right: 30, left: 45, bottom: 0 }}>
+                                    <defs><linearGradient id="catGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#f59e0b" stopOpacity={0.1}/><stop offset="100%" stopColor="#f59e0b" stopOpacity={0.9}/></linearGradient></defs>
+                                    <XAxis type="number" hide />
+                                    <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={110} tick={{ fontSize: 8, fontWeight: 800, fill: '#64748b', textTransform: 'uppercase' }} />
+                                    <Tooltip cursor={{ fill: '#fffbeb', radius: 10 }} content={<AnalyticsTooltip />} />
+                                    <Bar name="Count" dataKey="value" fill="url(#catGradient)" radius={[0, 6, 6, 0]} barSize={12}>
+                                        <window.Recharts.LabelList dataKey="value" position="right" style={{ fontSize: '9px', fontWeight: 900, fill: '#f59e0b' }} formatter={v => v > 0 ? v : ''} />
+                                    </Bar>
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-widest gap-2"><Icon name="database-zap" size={24} /><span>No Data</span></div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [analyticsRange, setAnalyticsRange] = useState(6);
+            const [expiryDays, setExpiryDays] = useState(30);
+            
+            // Filters State
+            const [compSearch, setCompSearch] = useState('');
+            const [compStatus, setCompStatus] = useState('All');
+            const [compCat, setCompCat] = useState('All');
+            const [compDate, setCompDate] = useState('');
+
+            // Core Data
+            const [customers, setCustomers] = useState(() => JSON.parse(localStorage.getItem('ff_cust') || '[]'));
+            const [trucks, setTrucks] = useState(() => JSON.parse(localStorage.getItem('ff_trks') || '[]'));
+            const [complaints, setComplaints] = useState(() => JSON.parse(localStorage.getItem('ff_cmps') || '[]'));
+            const [feedbacks, setFeedbacks] = useState(() => JSON.parse(localStorage.getItem('ff_fb') || '[]'));
+            const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem('ff_cats') || JSON.stringify(DEFAULT_CATEGORIES)));
+            
+            // Modal States
+            const [showCustomerModal, setShowCustomerModal] = useState(false);
+            const [showTruckModal, setShowTruckModal] = useState(false);
+            const [showComplaintModal, setShowComplaintModal] = useState(false);
+            const [showFeedbackModal, setShowFeedbackModal] = useState(null);
+            const [showCloseModal, setShowCloseModal] = useState(null);
+            const [showCategoryModal, setShowCategoryModal] = useState(false);
+            const [showViewComplaintsModal, setShowViewComplaintsModal] = useState(null);
+            const [deleteStep, setDeleteStep] = useState(null);
+
+            const [editingCustomer, setEditingCustomer] = useState(null);
+            const [editingTruck, setEditingTruck] = useState(null);
+
+            const [newCust, setNewCust] = useState({ name: '', address: '', contactPerson: '', phone: '', email: '' });
+            const [newTrk, setNewTrk] = useState({ 
+                customerId: '', poNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '', foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '', deliveryDate: '', warrantyMonths: 12,
+                insurancePolicyNo: '', insuranceCompany: '', insuranceExpiryDate: '' 
+            });
+            const [newCat, setNewCat] = useState('');
+            const [newFb, setNewFb] = useState({ feedbackText: '', feedbackDate: new Date().toISOString().split('T')[0], mode: 'Telephonic', personName: '', contactNumber: '' });
+            
+            const [selectedCompCust, setSelectedCompCust] = useState('');
+            const [newComp, setNewComp] = useState({ truckId: '', category: '', description: '', dateReceived: new Date().toISOString().split('T')[0], mode: 'Mail', reportedBy: '' });
+            const [editComp, setEditComp] = useState(null);
+            const [closeData, setCloseData] = useState({ diagnosis: '', closedBy: '', closedDate: new Date().toISOString().split('T')[0], remarks: '' });
+
+            useEffect(() => {
+                localStorage.setItem('ff_cust', JSON.stringify(customers));
+                localStorage.setItem('ff_trks', JSON.stringify(trucks));
+                localStorage.setItem('ff_cmps', JSON.stringify(complaints));
+                localStorage.setItem('ff_fb', JSON.stringify(feedbacks));
+                localStorage.setItem('ff_cats', JSON.stringify(categories));
+            }, [customers, trucks, complaints, feedbacks, categories]);
+
+            useEffect(() => {
+                const sb = window.SupabaseClient;
+                if (!sb) { setLoading(false); return; }
+                setUser({ connected: true });
+                const fetchAll = async () => {
+                    try {
+                        const [custRes, trkRes, compRes, catRes, fbRes] = await Promise.all([
+                            sb.from('customers').select('*'),
+                            sb.from('trucks').select('*'),
+                            sb.from('complaints').select('*'),
+                            sb.from('categories').select('name'),
+                            sb.from('feedbacks').select('*')
+                        ]);
+                        if (custRes.data) setCustomers(custRes.data.map(mapCustomer));
+                        if (trkRes.data) setTrucks(trkRes.data.map(mapTruck));
+                        if (compRes.data) setComplaints(compRes.data.map(mapComplaint));
+                        if (catRes.data?.length > 0) setCategories(catRes.data.map(c => c.name));
+                        if (fbRes.data) setFeedbacks(fbRes.data.map(mapFeedback));
+                    } catch (e) {
+                        console.error("Database connection partially failed. Falling back to local data.", e);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                fetchAll();
+            }, []);
+
+            const activeUnits = useMemo(() => trucks.filter(t => {
+                const expiry = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                return calculateDaysRemaining(expiry) > 0;
+            }), [trucks]);
+
+            const expiringSoon = useMemo(() => activeUnits.filter(t => {
+                const expiry = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                const d = calculateDaysRemaining(expiry);
+                return d > 0 && d <= parseInt(expiryDays || 0);
+            }).sort((a,b) => {
+                const expA = calculateWarrantyExpiry(a.deliveryDate, a.warrantyMonths);
+                const expB = calculateWarrantyExpiry(b.deliveryDate, b.warrantyMonths);
+                return calculateDaysRemaining(expA) - calculateDaysRemaining(expB);
+            }), [activeUnits, expiryDays]);
+
+            const customersInWarranty = useMemo(() => {
+                const customerIdsInWarranty = new Set(activeUnits.map(t => t.customerId));
+                return customers.filter(c => customerIdsInWarranty.has(c.id));
+            }, [customers, activeUnits]);
+
+            const filteredComplaintsList = useMemo(() => {
+                return complaints.filter(c => {
+                    const trk = trucks.find(t => t.id === c.truckId);
+                    const cust = customers.find(cus => cus.id === trk?.customerId);
+                    const orgName = (cust?.name || '').toLowerCase();
+                    const compId = (c.complaintId || '').toLowerCase();
+                    const searchTerm = compSearch.toLowerCase();
+                    const matchesSearch = !compSearch || orgName.includes(searchTerm) || compId.includes(searchTerm);
+                    const matchesStatus = compStatus === 'All' || c.status === compStatus;
+                    const matchesCat = compCat === 'All' || c.category === compCat;
+                    const matchesDate = !compDate || c.dateReceived === compDate;
+                    return matchesSearch && matchesStatus && matchesCat && matchesDate;
+                }).sort((a,b) => {
+                    const dateA = new Date(a.timestamp || 0).getTime();
+                    const dateB = new Date(b.timestamp || 0).getTime();
+                    return dateB - dateA;
+                });
+            }, [complaints, trucks, customers, compSearch, compStatus, compCat, compDate]);
+
+            const updateRecord = async (type, id, data, setter, modalSetter, resetData) => {
+                const sb = window.SupabaseClient;
+                if (!sb || !user) {
+                    setter(prev => prev.map(item => item.id === id ? { ...item, ...data } : item));
+                    if (modalSetter) modalSetter(false);
+                    if (resetData) resetData();
+                    return;
+                }
+                try {
+                    let payload = {};
+                    if (type === 'customers') payload = { name: data.name, address: data.address, contact_person: data.contactPerson, phone: data.phone, email: data.email };
+                    else if (type === 'trucks') payload = { 
+                        customer_id: data.customerId, po_no: data.poNo, tender_type: data.tenderType, pump_make: data.pumpMake, pump_lpm: data.pumpLpm, pump_sr_no: data.pumpSrNo, foam_capacity: data.foamCapacity, water_capacity: data.waterCapacity, chassis_make: data.chassisMake, model_no: data.modelNo, delivery_date: data.deliveryDate, warranty_months: parseInt(data.warrantyMonths) || 12,
+                        insurance_policy_no: data.insurancePolicyNo, insurance_company: data.insuranceCompany, insurance_expiry_date: data.insuranceExpiryDate
+                    };
+                    else if (type === 'complaints') payload = { truck_id: data.truckId, category: data.category, description: data.description, date_received: data.dateReceived, mode: data.mode || 'Mail', reported_by: data.reportedBy };
+                    else if (type === 'feedbacks') payload = { customer_id: data.customerId, feedback_text: data.feedbackText, feedback_date: data.feedbackDate, person_name: data.personName, contact_number: data.contactNumber, mode: data.mode };
+                    
+                    const { data: updated, error } = await sb.from(type).update(payload).eq('id', id).select().single();
+                    if (!error && updated) {
+                        const mapped = type === 'customers' ? mapCustomer(updated) : (type === 'trucks' ? mapTruck(updated) : (type === 'complaints' ? mapComplaint(updated) : mapFeedback(updated)));
+                        setter(prev => prev.map(item => item.id === id ? mapped : item));
+                    }
+                } catch (err) { console.error('Update error:', err); }
+                if (modalSetter) modalSetter(false);
+                if (resetData) resetData();
+            };
+
+            const saveRecord = async (type, data, setter, modalSetter, resetData, editingId = null) => {
+                if (editingId) return updateRecord(type, editingId, data, setter, modalSetter, resetData);
+                const sb = window.SupabaseClient;
+                if (!sb || !user) {
+                    setter(prev => [{ id: 'LOCAL-' + Date.now(), ...data, timestamp: new Date().toISOString() }, ...prev]);
+                    if (modalSetter) modalSetter(typeof modalSetter === 'function' ? false : null);
+                    if (resetData) resetData();
+                    return;
+                }
+                try {
+                    let payload = {};
+                    if (type === 'customers') payload = { name: data.name, address: data.address, contact_person: data.contactPerson, phone: data.phone, email: data.email };
+                    else if (type === 'trucks') payload = { 
+                        customer_id: data.customerId, po_no: data.poNo, tender_type: data.tenderType, pump_make: data.pumpMake, pump_lpm: data.pumpLpm, pump_sr_no: data.pumpSrNo, foam_capacity: data.foamCapacity, water_capacity: data.waterCapacity, chassis_make: data.chassisMake, model_no: data.modelNo, delivery_date: data.deliveryDate, warranty_months: parseInt(data.warrantyMonths) || 12,
+                        insurance_policy_no: data.insurancePolicyNo, insurance_company: data.insuranceCompany, insurance_expiry_date: data.insuranceExpiryDate
+                    };
+                    else if (type === 'complaints') payload = { truck_id: data.truckId, complaint_id: data.complaintId, category: data.category, description: data.description, date_received: data.dateReceived, mode: data.mode || 'Mail', reported_by: data.reportedBy, status: data.status || 'Open' };
+                    else if (type === 'feedbacks') payload = { customer_id: data.customerId, feedback_text: data.feedbackText, feedback_date: data.feedbackDate, person_name: data.personName, contact_number: data.contactNumber, mode: data.mode };
+                    
+                    const { data: inserted, error } = await sb.from(type).insert(payload).select().single();
+                    if (!error && inserted) {
+                        const mapped = type === 'customers' ? mapCustomer(inserted) : (type === 'trucks' ? mapTruck(inserted) : (type === 'complaints' ? mapComplaint(inserted) : mapFeedback(inserted)));
+                        setter(prev => [mapped, ...prev]);
+                    } else {
+                        setter(prev => [{ id: 'LOCAL-' + Date.now(), ...data, timestamp: new Date().toISOString() }, ...prev]);
+                    }
+                } catch (err) { 
+                    setter(prev => [{ id: 'LOCAL-' + Date.now(), ...data, timestamp: new Date().toISOString() }, ...prev]); 
+                }
+                if (modalSetter) modalSetter(typeof modalSetter === 'function' ? false : null);
+                if (resetData) resetData();
+            };
+
+            const handleAddCategory = async () => {
+                const trimmed = newCat.trim();
+                if (!trimmed || categories.includes(trimmed)) return;
+                setCategories(prev => [...prev, trimmed]);
+                const sb = window.SupabaseClient;
+                if (user && sb) {
+                    try { await sb.from('categories').insert({ name: trimmed }); } catch (e) { }
+                }
+                setNewCat('');
+            };
+
+            const handleRemoveCategory = async (catToRemove) => {
+                setCategories(prev => prev.filter(c => c !== catToRemove));
+                const sb = window.SupabaseClient;
+                if (user && sb) {
+                    try { await sb.from('categories').delete().eq('name', catToRemove); } catch (e) { }
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
+                    <aside className="w-full md:w-60 bg-slate-900 text-white p-6 flex flex-col border-r border-slate-800">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="bg-red-600 p-2 rounded-xl shadow-lg shadow-red-500/20"><Icon name="truck" size={18} /></div>
+                            <span className="font-black text-lg tracking-tighter uppercase">FireFlow</span>
+                        </div>
+                        <nav className="space-y-1 flex-1 overflow-y-auto min-h-0">
+                            {[
+                                { id: 'dashboard', icon: 'layout-grid', label: 'Dashboard' },
+                                { id: 'customers', icon: 'users', label: 'Customers' },
+                                { id: 'trucks', icon: 'shield-check', label: 'Fire Tenders' },
+                                { id: 'complaints', icon: 'alert-circle', label: 'Complaints' },
+                                { id: 'feedback', icon: 'star', label: 'Reviews' }
+                            ].map(item => (
+                                <button key={item.id} onClick={() => setActiveTab(item.id)}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all capitalize ${
+                                        activeTab === item.id ? 'bg-red-600 shadow-lg text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    }`}>
+                                    <Icon name={item.icon} size={16} />
+                                    {item.label}
+                                </button>
+                            ))}
+                        </nav>
+                        <div className="pt-4 mt-4 border-t border-white/10">
+                             <button onClick={() => setShowCategoryModal(true)} className="w-full flex items-center gap-3 px-4 py-2 text-[9px] font-black text-slate-400 hover:text-white uppercase tracking-widest transition-colors">
+                                <Icon name="settings" size={12} /> Categories
+                             </button>
+                        </div>
+                    </aside>
+
+                    <main className="flex-1 p-4 md:p-6 overflow-y-auto h-screen">
+                        <header className="mb-4 flex justify-between items-center">
+                            <h1 className="text-xl font-black text-slate-900 capitalize tracking-tight">{activeTab === 'trucks' ? 'Fleet Inventory' : (activeTab === 'feedback' ? 'Feedback Reviews' : activeTab)}</h1>
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-white border rounded-xl shadow-sm">
+                                <div className={`w-2 h-2 rounded-full ${user ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></div>
+                                <span className="text-[10px] font-black text-slate-500 uppercase">{user ? 'Live Connection' : 'Local Mode'}</span>
+                            </div>
+                        </header>
+
+                        {activeTab === 'dashboard' && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {[ 
+                                        { l: 'Clients', v: customers.length, c: 'text-blue-600' }, 
+                                        { l: 'Live Warranty', v: activeUnits.length, c: 'text-emerald-600' }, 
+                                        { l: 'Open Support', v: complaints.filter(c => c.status === 'Open').length, c: 'text-rose-600' }, 
+                                        { l: 'Total Fleet', v: trucks.length, c: 'text-slate-600' } 
+                                    ].map((s, i) => (
+                                        <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center hover:border-blue-300 transition-colors">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{s.l}</p>
+                                            <p className={`text-2xl font-black ${s.c}`}>{s.v}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <ComplaintTrendAnalytics complaints={complaints} range={analyticsRange} />
+                                    <ComplaintCategoryAnalytics complaints={complaints} range={analyticsRange} />
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                    <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm h-[320px] flex flex-col">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="font-black text-slate-900 text-[11px] uppercase flex items-center gap-2"><Icon name="clock" size={14} className="text-amber-500" /> Warranty Expiry</h3>
+                                            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+                                                <input type="number" value={expiryDays} onChange={e => setExpiryDays(e.target.value)} className="w-8 bg-transparent text-[10px] font-black text-slate-700 outline-none text-center" />
+                                                <span className="text-[8px] font-black text-slate-400 uppercase">Days</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
+                                            {expiringSoon.map(t => {
+                                                const exp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                                                const dRem = calculateDaysRemaining(exp);
+                                                return (
+                                                    <div key={t.id} className="p-3 bg-slate-50 rounded-xl border hover:bg-white hover:shadow-sm transition-all border-slate-100">
+                                                        <div className="flex justify-between items-start mb-0.5">
+                                                            <p className="text-[9px] font-black text-blue-600 uppercase">PO: {t.poNo || 'N/A'}</p>
+                                                            <span className={`text-[9px] font-black uppercase ${dRem < 30 ? 'text-rose-600' : 'text-amber-600'}`}>{dRem}d</span>
+                                                        </div>
+                                                        <p className="text-[10px] font-black text-slate-800 uppercase truncate">{t.tenderType}</p>
+                                                        <p className="text-[8px] text-slate-400 font-bold uppercase truncate">{customers.find(c => c.id === t.customerId)?.name}</p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="lg:col-span-2 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col h-[320px]">
+                                        <h3 className="font-black text-slate-900 text-[11px] mb-4 uppercase flex items-center gap-2"><Icon name="alert-circle" size={14} className="text-rose-500" /> Active Support Queue</h3>
+                                        <div className="flex-1 min-h-0 overflow-y-auto pr-1 overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead className="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest sticky top-0 z-10 border-b">
+                                                    <tr><th className="px-3 py-3">Ticket</th><th className="px-3 py-3">Customer</th><th className="px-3 py-3 text-center">Life</th><th className="px-3 py-3 text-right">Status</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-50">
+                                                    {complaints.filter(c => c.status === 'Open').map(c => {
+                                                        const trk = trucks.find(t => t.id === c.truckId);
+                                                        const cust = customers.find(cus => cus.id === trk?.customerId);
+                                                        const lifeCount = calculateLifeCount(c.dateReceived);
+                                                        return (
+                                                            <tr key={c.id} className="hover:bg-rose-50/20 transition-colors">
+                                                                <td className="px-3 py-3"><p className="text-[10px] font-black text-slate-800 uppercase">{c.complaintId}</p><p className="text-[8px] text-rose-500 font-bold uppercase truncate max-w-[100px]">{c.category}</p></td>
+                                                                <td className="px-3 py-3"><p className="text-[10px] font-bold text-slate-600 uppercase truncate max-w-[140px]">{cust?.name || 'Unknown'}</p></td>
+                                                                <td className="px-3 py-3 text-center"><span className="text-rose-600 text-[10px] font-black">{lifeCount}d</span></td>
+                                                                <td className="px-3 py-3 text-right"><Badge color="red">Pending</Badge></td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'customers' && (
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center"><h2 className="text-lg font-black text-slate-900 uppercase">Directory</h2><button onClick={() => { setEditingCustomer(null); setNewCust({ name: '', address: '', contactPerson: '', phone: '', email: '' }); setShowCustomerModal(true); }} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[11px] font-black shadow-xl uppercase tracking-widest"><Icon name="plus" size={14} className="inline mr-1"/>Register</button></div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">{customers.map(c => (
+                                    <div key={c.id} className="bg-white p-6 rounded-3xl border shadow-sm relative hover:border-red-200 transition-all">
+                                        <div className="absolute top-6 right-6 flex gap-2"><button onClick={() => { setEditingCustomer(c); setNewCust({...c}); setShowCustomerModal(true); }} className="text-slate-400 hover:text-blue-600 p-1"><Icon name="pencil" size={16} /></button><button onClick={() => setDeleteStep({ type: 'customer', data: c, step: 1 })} className="text-slate-400 hover:text-rose-600 p-1"><Icon name="trash-2" size={16} /></button></div>
+                                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center mb-4 text-slate-400"><Icon name="building-2" size={20} /></div>
+                                        <h4 className="font-black text-slate-900 mb-1 uppercase tracking-tight">{c.name}</h4><p className="text-[10px] text-slate-400 font-bold mb-6 italic truncate">{c.address}</p>
+                                        <div className="space-y-2 text-[11px] font-bold text-slate-500 uppercase"><p className="flex items-center gap-2"><Icon name="user" size={12} /> {c.contactPerson}</p><p className="flex items-center gap-2"><Icon name="phone" size={12} /> {c.phone}</p><p className="flex items-center gap-2"><Icon name="mail" size={12} /> {c.email}</p></div>
+                                    </div>
+                                ))}</div>
+                            </div>
+                        )}
+
+                        {activeTab === 'trucks' && (
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center"><h2 className="text-lg font-black text-slate-900 uppercase">Inventory</h2><button onClick={() => { setEditingTruck(null); setNewTrk({ customerId: '', poNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '', foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '', deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '', insuranceExpiryDate: '' }); setShowTruckModal(true); }} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[11px] font-black shadow-xl uppercase tracking-widest">Add Delivery</button></div>
+                                <div className="bg-white rounded-3xl border overflow-hidden shadow-sm">
+                                    <table className="w-full text-left table-fixed">
+                                        <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">
+                                            <tr><th className="px-4 py-4 w-[25%]">PO / Vehicle</th><th className="px-4 py-4 w-[20%]">Pump</th><th className="px-4 py-4 w-[20%] text-center">Insurance</th><th className="px-4 py-4 w-[15%] text-center">Warranty</th><th className="px-4 py-4 w-[20%] text-right">Action</th></tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50 text-[11px]">
+                                            {trucks.map(t => { 
+                                                const warrantyExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                                                const wRem = calculateDaysRemaining(warrantyExp);
+                                                const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
+                                                return (
+                                                    <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                                                        <td className="px-4 py-4"><p className="font-black text-blue-600 uppercase mb-0.5">PO: {t.poNo || 'N/A'}</p><p className="font-black text-slate-900 uppercase truncate">{t.tenderType}</p><p className="text-[9px] text-slate-400 font-bold uppercase truncate">{customers.find(c => c.id === t.customerId)?.name}</p></td>
+                                                        <td className="px-4 py-4"><p className="font-black text-slate-800 uppercase">{t.pumpMake}</p><p className="text-[9px] text-slate-400 font-bold uppercase">{t.pumpLpm} LPM</p></td>
+                                                        <td className="px-4 py-4 text-center"><p className="font-black text-slate-800 uppercase truncate">{t.insuranceCompany || 'N/A'}</p><span className={`px-2 py-0.5 rounded-full font-black text-[9px] inline-block mt-1 ${iRem > 30 ? 'bg-indigo-50 text-indigo-600' : 'bg-rose-50 text-rose-600'}`}>{iRem > 0 ? `${iRem}d` : 'EXP'}</span></td>
+                                                        <td className="px-4 py-4 text-center"><Badge color={wRem > 0 ? (wRem < 60 ? 'yellow' : 'green') : 'red'}>{wRem > 0 ? `${wRem}d` : 'EXP'}</Badge></td>
+                                                        <td className="px-4 py-4 text-right"><div className="flex items-center justify-end gap-2"><button onClick={() => setShowViewComplaintsModal({ customerId: t.customerId, orgName: customers.find(c => c.id === t.customerId)?.name || 'Org' })} className="text-slate-400 hover:text-indigo-600 p-1"><Icon name="history" size={14} /></button><button onClick={() => { setEditingTruck(t); setNewTrk({ ...t }); setShowTruckModal(true); }} className="text-slate-400 hover:text-blue-600 p-1"><Icon name="pencil" size={14} /></button><button onClick={() => setDeleteStep({ type: 'tender', data: t, step: 1 })} className="text-slate-300 hover:text-rose-600 p-1"><Icon name="trash-2" size={14} /></button></div></td>
+                                                    </tr>
+                                                );})}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'complaints' && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center"><h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">History</h2><button onClick={() => { setSelectedCompCust(''); setShowComplaintModal(true); }} className="bg-rose-600 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-xl hover:bg-rose-700 transition-all uppercase tracking-widest">Raise Ticket</button></div>
+                                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                                    <div className="flex items-center gap-2 mb-2"><Icon name="filter" size={16} className="text-slate-400"/><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filters</span></div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase">Search ID / Client</label><div className="relative"><input type="text" placeholder="Search..." value={compSearch} onChange={e => setCompSearch(e.target.value)} className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-rose-500 transition-all" /><div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="search" size={14} /></div></div></div>
+                                        <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase">Status</label><select value={compStatus} onChange={e => setCompStatus(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-rose-500 appearance-none cursor-pointer"><option value="All">All Statuses</option><option value="Open">Open Tickets</option><option value="Resolved">Resolved Cases</option></select></div>
+                                        <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase">Category</label><select value={compCat} onChange={e => setCompCat(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-rose-500 appearance-none cursor-pointer"><option value="All">All Categories</option>{categories.map((c, i) => <option key={i} value={c}>{c}</option>)}</select></div>
+                                        <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase">Date</label><div className="flex gap-2"><input type="date" value={compDate} onChange={e => setCompDate(e.target.value)} className="flex-1 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none" />{(compSearch || compStatus !== 'All' || compCat !== 'All' || compDate) && (<button onClick={() => { setCompSearch(''); setCompStatus('All'); setCompCat('All'); setCompDate(''); }} className="p-2 bg-slate-100 text-slate-400 hover:text-rose-600 rounded-xl transition-colors"><Icon name="x-circle" size={20} /></button>)}</div></div>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    {filteredComplaintsList.map(c => {
+                                        const trk = trucks.find(t => t.id === c.truckId);
+                                        const cust = customers.find(cus => cus.id === trk?.customerId);
+                                        return (
+                                            <div key={c.id} className="bg-white p-6 rounded-3xl border shadow-sm relative group hover:border-slate-300 transition-all">
+                                                <div className="absolute top-6 right-6 flex gap-2"><button onClick={() => setEditComp({ ...c, truckId: c.truckId, category: c.category, description: c.description, dateReceived: c.dateReceived || new Date().toISOString().split('T')[0], mode: c.mode || 'Mail', reportedBy: c.reportedBy || '' })} className="text-slate-400 hover:text-blue-600 p-1"><Icon name="pencil" size={16} /></button><button onClick={() => setDeleteStep({ type: 'complaint', data: c, step: 1 })} className="text-slate-400 hover:text-rose-600 p-1"><Icon name="trash-2" size={16} /></button></div>
+                                                <div className="flex items-start gap-6">
+                                                    <div className={`p-4 rounded-2xl shrink-0 ${c.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}><Icon name={c.status === 'Resolved' ? "check-circle" : "alert-circle"} size={24} /></div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-3 mb-2"><span className="text-base font-black tracking-tighter uppercase text-slate-800">{c.complaintId}</span><Badge color={c.status === 'Resolved' ? 'green' : 'red'}>{c.status}</Badge><span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg border uppercase tracking-widest">{c.category}</span></div>
+                                                        <p className="text-xs font-bold text-slate-600 mb-4 leading-relaxed max-w-4xl">{c.description}</p>
+                                                        {c.status === 'Resolved' && (
+                                                            <div className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 mb-4 text-[10px] font-bold text-slate-500 uppercase space-y-2">
+                                                                <p className="text-emerald-600 font-black tracking-widest border-b border-slate-200 pb-1 mb-1">Resolution Summary</p>
+                                                                <div className="grid grid-cols-2 gap-4"><p>Diagnosis: <span className="text-slate-800 font-black tracking-tight">{c.diagnosis}</span></p><p>Closed By: <span className="text-slate-800 font-black tracking-tight">{c.closedBy} ({formatDate(c.closedDate)})</span></p></div>
+                                                                {c.remarks && <p className="italic text-slate-400 border-t border-slate-100 pt-2">Notes: {c.remarks}</p>}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex gap-6 text-[9px] font-black text-slate-400 uppercase tracking-widest border-t border-slate-50 pt-3"><span className="flex items-center gap-2"><Icon name="truck" size={10} /> PO: {trk?.poNo || 'N/A'} | Client: {cust?.name}</span><span className="flex items-center gap-2"><Icon name="send" size={10} /> {c.mode}</span><span className="flex items-center gap-2"><Icon name="calendar" size={10} /> {formatDate(c.dateReceived)}</span></div>
+                                                    </div>
+                                                    {c.status === 'Open' && <button onClick={() => setShowCloseModal(c)} className="bg-emerald-600 text-white px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 shadow-xl">Resolve Case</button>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'feedback' && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center"><h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Active Reviews</h2></div>
+                                <div className="bg-white rounded-3xl border shadow-sm overflow-hidden overflow-x-auto"><table className="w-full text-left min-w-[800px]"><thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b"><tr><th className="px-8 py-5">Client / Organization</th><th className="px-6 py-5">Primary Contact</th><th className="px-6 py-5">Feedback History</th><th className="px-8 py-5 text-right">Action</th></tr></thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {customersInWarranty.map(cust => {
+                                        const customerFeedbacks = feedbacks.filter(f => f.customerId === cust.id).sort((a,b) => new Date(b.feedbackDate) - new Date(a.feedbackDate));
+                                        return (
+                                            <tr key={cust.id} className="hover:bg-slate-50/30 transition-colors">
+                                                <td className="px-8 py-5"><p className="text-sm font-black text-slate-900 uppercase">{cust.name}</p><p className="text-[10px] text-slate-400 font-bold">{cust.email}</p></td>
+                                                <td className="px-6 py-5"><p className="text-[11px] font-black text-slate-700 uppercase">{cust.contactPerson}</p><p className="text-[10px] text-slate-400 font-bold">{cust.phone}</p></td>
+                                                <td className="px-6 py-5 min-w-[300px]"><div className="max-h-[160px] overflow-y-auto pr-2 space-y-2">{customerFeedbacks.length > 0 ? customerFeedbacks.map(fb => (<div key={fb.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100 group relative"><div className="flex justify-between items-start mb-1"><span className="text-[9px] font-black text-slate-400">{formatDate(fb.feedbackDate)}</span><div className="flex gap-2 items-center"><Badge color={fb.mode === 'Mail' ? 'blue' : 'gray'}>{fb.mode}</Badge><button onClick={() => setDeleteStep({ type: 'feedback', data: fb, step: 1 })} className="text-slate-300 hover:text-rose-600 transition-opacity opacity-0 group-hover:opacity-100"><Icon name="trash-2" size={12} /></button></div></div><p className="text-[10px] font-bold text-slate-600">"{fb.feedbackText}"</p><p className="text-[9px] font-black text-slate-800 uppercase mt-1">— {fb.personName} ({fb.contactNumber})</p></div>)) : <p className="text-[10px] font-bold text-slate-300 uppercase italic">No reviews logged</p>}</div></td>
+                                                <td className="px-8 py-5 text-right"><button onClick={() => setShowFeedbackModal(cust)} className="bg-indigo-600 text-white px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-500/20">Add Review</button></td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody></table></div>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Modals */}
+                    {showFeedbackModal && (
+                        <Modal title={`Log Feedback: ${showFeedbackModal.name}`} onClose={() => setShowFeedbackModal(null)}>
+                            <form onSubmit={(e) => { e.preventDefault(); saveRecord('feedbacks', { ...newFb, customerId: showFeedbackModal.id }, setFeedbacks, setShowFeedbackModal, () => setNewFb({ feedbackText: '', feedbackDate: new Date().toISOString().split('T')[0], mode: 'Telephonic', personName: '', contactNumber: '' })); }} className="space-y-4">
+                                <div className="space-y-1"><label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Feedback Description</label><textarea className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none min-h-[100px]" value={newFb.feedbackText} onChange={e => setNewFb({...newFb, feedbackText: e.target.value})} required placeholder="Observations..." /></div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input label="Date" type="date" value={newFb.feedbackDate} onChange={v => setNewFb({...newFb, feedbackDate: v})} required />
+                                    <div className="space-y-1"><label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Mode</label><select value={newFb.mode} onChange={e => setNewFb({...newFb, mode: e.target.value})} className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"><option>Telephonic</option><option>Mail</option></select></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input label="Person Name" value={newFb.personName} onChange={v => setNewFb({...newFb, personName: v})} required />
+                                    <Input label="Contact Number" value={newFb.contactNumber} onChange={v => setNewFb({...newFb, contactNumber: v})} required />
+                                </div>
+                                <button type="submit" className="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-black text-xs uppercase shadow-xl tracking-widest hover:bg-indigo-700 transition-all">Submit Feedback</button>
+                            </form>
+                        </Modal>
+                    )}
+
+                    {showTruckModal && (
+                        <Modal title={editingTruck ? "Edit Delivery" : "New Delivery"} onClose={() => setShowTruckModal(false)}>
+                            <form onSubmit={(e) => { e.preventDefault(); saveRecord('trucks', newTrk, setTrucks, setShowTruckModal, () => setNewTrk({ customerId: '', poNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '', foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '', deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '', insuranceExpiryDate: '' }), editingTruck?.id); }} className="space-y-4">
+                                <div className="space-y-1"><label className="text-[10px] font-black text-slate-500 uppercase">Client</label><select className="w-full border rounded-xl p-3 text-sm bg-white" size="5" value={newTrk.customerId} onChange={e => setNewTrk({...newTrk, customerId: e.target.value})} required>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                                <div className="grid grid-cols-2 gap-4"><Input label="PO Number" value={newTrk.poNo} onChange={v => setNewTrk({...newTrk, poNo: v})} required /><Input label="Tender Type" value={newTrk.tenderType} onChange={v => setNewTrk({...newTrk, tenderType: v})} required /></div>
+                                <div className="grid grid-cols-2 gap-4"><Input label="Pump Make" value={newTrk.pumpMake} onChange={v => setNewTrk({...newTrk, pumpMake: v})} required /><Input label="Delivery Date" type="date" value={newTrk.deliveryDate} onChange={v => setNewTrk({...newTrk, deliveryDate: v})} required /></div>
+                                <div className="grid grid-cols-2 gap-4"><Input label="Insurance Company" value={newTrk.insuranceCompany} onChange={v => setNewTrk({...newTrk, insuranceCompany: v})} required /><Input label="Insurance Expiry" type="date" value={newTrk.insuranceExpiryDate} onChange={v => setNewTrk({...newTrk, insuranceExpiryDate: v})} required /></div>
+                                <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl mt-2 tracking-widest">{editingTruck ? 'Update' : 'Confirm'}</button>
+                            </form>
+                        </Modal>
+                    )}
+
+                    {showViewComplaintsModal && (
+                        <Modal title={`History - ${showViewComplaintsModal.orgName}`} onClose={() => setShowViewComplaintsModal(null)}>
+                            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                                {complaints.filter(c => trucks.find(t => t.id === c.truckId)?.customerId === showViewComplaintsModal.customerId).length > 0 ? (
+                                    complaints.filter(c => trucks.find(t => t.id === c.truckId)?.customerId === showViewComplaintsModal.customerId).map(c => (
+                                        <div key={c.id} className="p-4 bg-slate-50 rounded-2xl border">
+                                            <div className="flex items-center gap-3 mb-2"><span className="text-sm font-black text-slate-800">{c.complaintId}</span><Badge color={c.status === 'Resolved' ? 'green' : 'red'}>{c.status}</Badge></div>
+                                            <p className="text-xs font-bold text-slate-600 mb-2 leading-relaxed">{c.description}</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase">{formatDate(c.dateReceived)} | {c.category}</p>
+                                        </div>
+                                    ))
+                                ) : (<div className="py-20 text-center opacity-30 text-[10px] font-black uppercase">No History</div>)}
+                            </div>
+                        </Modal>
+                    )}
+
+                    {showCustomerModal && (
+                        <Modal title={editingCustomer ? "Edit Client" : "Register Client"} onClose={() => setShowCustomerModal(false)}>
+                            <form onSubmit={(e) => { e.preventDefault(); saveRecord('customers', newCust, setCustomers, setShowCustomerModal, () => setNewCust({ name: '', address: '', contactPerson: '', phone: '', email: '' }), editingCustomer?.id); }} className="space-y-4">
+                                <Input label="Organization" value={newCust.name} onChange={v => setNewCust({...newCust, name: v})} required /><Input label="Address" value={newCust.address} onChange={v => setNewCust({...newCust, address: v})} required /><div className="grid grid-cols-2 gap-4"><Input label="Contact" value={newCust.contactPerson} onChange={v => setNewCust({...newCust, contactPerson: v})} required /><Input label="Phone" value={newCust.phone} onChange={v => setNewCust({...newCust, phone: v})} required /></div><Input label="Email" type="email" value={newCust.email} onChange={v => setNewCust({...newCust, email: v})} required /><button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl">Save</button>
+                            </form>
+                        </Modal>
+                    )}
+
+                    {showComplaintModal && (
+                        <Modal title="Raise Complaint" onClose={() => setShowComplaintModal(false)}>
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                const tender = trucks.find(t => t.id === newComp.truckId);
+                                const warrantyExp = calculateWarrantyExpiry(tender.deliveryDate, tender.warrantyMonths);
+                                const dRemaining = calculateDaysRemaining(warrantyExp);
+                                const statusShort = dRemaining > 0 ? 'IW' : 'OW';
+                                const genId = `${new Date().getDate().toString().padStart(2, '0')}${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${statusShort}-${Math.floor(1000 + Math.random() * 9000)}`;
+                                saveRecord('complaints', { ...newComp, complaintId: genId, status: 'Open' }, setComplaints, setShowComplaintModal, () => { setNewComp({ truckId: '', category: '', description: '', dateReceived: new Date().toISOString().split('T')[0], mode: 'Mail', reportedBy: '' }); setSelectedCompCust(''); });
+                            }} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4"><SearchableSelect label="Client" options={customers} value={selectedCompCust} onChange={v => setSelectedCompCust(v)} getOptionLabel={c => c.name} getOptionValue={c => c.id} required /><SearchableSelect label="Vehicle" options={trucks.filter(t => t.customerId === selectedCompCust)} value={newComp.truckId} onChange={v => setNewComp({...newComp, truckId: v})} getOptionLabel={t => `PO: ${t.poNo} - ${t.tenderType}`} getOptionValue={t => t.id} disabled={!selectedCompCust} required /></div>
+                                <select className="w-full border rounded-xl p-3 text-sm bg-white" value={newComp.category} onChange={e => setNewComp({...newComp, category: e.target.value})} required><option value="">Select Category...</option>{categories.map((cat, idx) => <option key={idx} value={cat}>{cat}</option>)}</select>
+                                <textarea className="w-full border rounded-xl p-3 text-sm min-h-[120px]" value={newComp.description} onChange={e => setNewComp({...newComp, description: e.target.value})} required placeholder="Description..." />
+                                <div className="grid grid-cols-2 gap-4"><select className="w-full border rounded-xl p-3 text-sm" value={newComp.mode} onChange={e => setNewComp({...newComp, mode: e.target.value})}><option>Mail</option><option>Telephone</option></select><Input label="Date" type="date" value={newComp.dateReceived} onChange={v => setNewComp({...newComp, dateReceived: v})} required /></div>
+                                <button type="submit" className="w-full bg-rose-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl mt-2 tracking-widest">Generate</button>
+                            </form>
+                        </Modal>
+                    )}
+
+                    {showCategoryModal && (
+                        <Modal title="Categories" onClose={() => setShowCategoryModal(false)}>
+                            <div className="space-y-4"><div className="flex gap-2"><div className="flex-1"><Input label="New" value={newCat} onChange={setNewCat} /></div><button onClick={handleAddCategory} className="mt-5 bg-slate-900 text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase hover:bg-black transition-all">Add</button></div><div className="space-y-2 border-t pt-4 max-h-60 overflow-y-auto">{categories.map((cat, idx) => (<div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border group"><span className="text-xs font-bold text-slate-700 uppercase">{cat}</span><button onClick={() => handleRemoveCategory(cat)} className="text-slate-300 hover:text-rose-600"><Icon name="trash-2" size={16} /></button></div>))}</div></div>
+                        </Modal>
+                    )}
+
+                    {showCloseModal && (
+                        <Modal title={`Resolve: ${showCloseModal.complaintId}`} onClose={() => setShowCloseModal(null)}>
+                            <form onSubmit={async (e) => { e.preventDefault(); const upP = { status: 'Resolved', diagnosis: closeData.diagnosis, closed_by: closeData.closedBy, closed_date: closeData.closedDate, remarks: closeData.remarks, resolved_at: new Date().toISOString() }; const sb = window.SupabaseClient; if (user && sb && !String(showCloseModal.id).startsWith('LOCAL')) { try { await sb.from('complaints').update(upP).eq('id', showCloseModal.id); } catch (er) { } } setComplaints(prev => prev.map(c => c.id === showCloseModal.id ? { ...c, ...upP } : c)); setShowCloseModal(null); setCloseData({ diagnosis: '', closedBy: '', closedDate: new Date().toISOString().split('T')[0], remarks: '' }); }} className="space-y-4">
+                                <textarea className="w-full border rounded-xl p-3 text-sm min-h-[140px]" value={closeData.diagnosis} onChange={e => setCloseData({...closeData, diagnosis: e.target.value})} required placeholder="Technician fix..." /><div className="grid grid-cols-2 gap-4"><Input label="Engineer" value={closeData.closedBy} onChange={v => setCloseData({...closeData, closedBy: v})} required /><Input label="Date" type="date" value={closeData.closedDate} onChange={v => setCloseData({...closeData, closedDate: v})} required /></div><button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl mt-2 tracking-widest">Close Ticket</button>
+                            </form>
+                        </Modal>
+                    )}
+
+                    {deleteStep && (
+                        <Modal title="Deletion" onClose={() => setDeleteStep(null)}>
+                            <div className="space-y-6"><div className="p-5 bg-rose-50 rounded-2xl border border-rose-100 flex items-start gap-4 text-rose-800"><div className="p-3 bg-rose-600 text-white rounded-xl shrink-0"><Icon name="alert-triangle" size={24} /></div><div><p className="font-black uppercase text-[10px] mb-2 tracking-widest">Warning</p><p className="text-xs font-bold leading-relaxed">{deleteStep.step === 1 ? `Remove this ${deleteStep.type}?` : "CRITICAL: Continue?"}</p></div></div><div className="flex gap-4"><button onClick={() => setDeleteStep(null)} className="flex-1 px-4 py-3.5 rounded-2xl bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest">Abort</button><button onClick={confirmDeletion} className="flex-1 px-4 py-3.5 rounded-2xl text-white text-[10px] font-black uppercase bg-rose-600 shadow-xl transition-all">{deleteStep.step === 1 ? "Confirm Step 1" : "Delete Record"}</button></div></div>
+                        </Modal>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
