@@ -735,7 +735,7 @@
                 localStorage.setItem('ff_cats', JSON.stringify(categories));
             }, [customers, trucks, complaints, feedbacks, categories]);
 
-            // Load from Supabase
+            // Load from Supabase with Smart Sync
             useEffect(() => {
                 const sb = window.SupabaseClient;
                 if (!sb) { setLoading(false); return; }
@@ -745,12 +745,101 @@
                         const [custRes, trkRes, compRes, catRes, fbRes] = await Promise.all([
                             sb.from('customers').select('*'), sb.from('trucks').select('*'), sb.from('complaints').select('*'), sb.from('categories').select('name'), sb.from('feedbacks').select('*')
                         ]);
-                        if (custRes.data) setCustomers(custRes.data.map(mapCustomer));
-                        if (trkRes.data) setTrucks(trkRes.data.map(mapTruck));
-                        if (compRes.data) setComplaints(compRes.data.map(mapComplaint));
+
+                        // Load local cache
+                        const localCust = JSON.parse(localStorage.getItem('ff_cust') || '[]');
+                        const localTrks = JSON.parse(localStorage.getItem('ff_trks') || '[]');
+                        const localCmps = JSON.parse(localStorage.getItem('ff_cmps') || '[]');
+                        const localFb = JSON.parse(localStorage.getItem('ff_fb') || '[]');
+
+                        let dbCust = custRes.data ? custRes.data.map(mapCustomer) : [];
+                        let dbTrks = trkRes.data ? trkRes.data.map(mapTruck) : [];
+                        let dbCmps = compRes.data ? compRes.data.map(mapComplaint) : [];
+                        let dbFb = fbRes.data ? fbRes.data.map(mapFeedback) : [];
+
+                        // ── Sync Customers ──
+                        const localOnlyCust = localCust.filter(lc => String(lc.id).startsWith('LOCAL-'));
+                        for (const c of localOnlyCust) {
+                            try {
+                                const { data: ins } = await sb.from('customers').insert({ name: c.name, address: c.address, contact_person: c.contactPerson, phone: c.phone, email: c.email }).select().single();
+                                if (ins) {
+                                    const mapped = mapCustomer(ins);
+                                    dbCust.push(mapped);
+                                    localTrks.forEach(t => { if (t.customerId === c.id) t.customerId = mapped.id; });
+                                }
+                            } catch(err) {}
+                        }
+
+                        // ── Sync Trucks ──
+                        const localOnlyTrks = localTrks.filter(lt => String(lt.id).startsWith('LOCAL-'));
+                        for (const t of localOnlyTrks) {
+                            try {
+                                const { data: ins } = await sb.from('trucks').insert({ customer_id: t.customerId, po_no: t.poNo, tender_type: t.tenderType, pump_make: t.pumpMake, pump_lpm: t.pumpLpm, pump_sr_no: t.pumpSrNo, foam_capacity: t.foamCapacity, water_capacity: t.waterCapacity, chassis_make: t.chassisMake, model_no: t.modelNo, delivery_date: t.deliveryDate, warranty_months: parseInt(t.warrantyMonths)||12, insurance_policy_no: t.insurancePolicyNo, insurance_company: t.insuranceCompany, insurance_expiry_date: t.insuranceExpiryDate }).select().single();
+                                if (ins) {
+                                    const mapped = mapTruck(ins);
+                                    dbTrks.push(mapped);
+                                    localCmps.forEach(comp => { if (comp.truckId === t.id) comp.truckId = mapped.id; });
+                                }
+                            } catch(err) {}
+                        }
+
+                        // ── Sync Complaints ──
+                        // A. Handle new local complaints
+                        const localOnlyCmps = localCmps.filter(lc => String(lc.id).startsWith('LOCAL-'));
+                        for (const c of localOnlyCmps) {
+                            try {
+                                const payload = { truck_id: c.truckId, complaint_id: c.complaintId, category: c.category, description: c.description, date_received: c.dateReceived, mode: c.mode||'Customer Portal', reported_by: c.reportedBy, status: c.status };
+                                if (c.status === 'Resolved') {
+                                    payload.diagnosis = c.diagnosis;
+                                    payload.closed_by = c.closedBy;
+                                    payload.closed_date = c.closedDate;
+                                    payload.remarks = c.remarks;
+                                    payload.resolved_at = c.resolvedAt || new Date().toISOString();
+                                }
+                                const { data: ins } = await sb.from('complaints').insert(payload).select().single();
+                                if (ins) dbCmps.push(mapComplaint(ins));
+                            } catch(err) {}
+                        }
+
+                        // B. Handle local resolutions of existing DB complaints
+                        for (const c of localCmps.filter(lc => !String(lc.id).startsWith('LOCAL-'))) {
+                            const dbMatch = dbCmps.find(dc => dc.id === c.id);
+                            if (dbMatch && c.status === 'Resolved' && dbMatch.status === 'Open') {
+                                try {
+                                    const upP = { status: 'Resolved', diagnosis: c.diagnosis, closed_by: c.closedBy, closed_date: c.closedDate, remarks: c.remarks, resolved_at: c.resolvedAt || new Date().toISOString() };
+                                    await sb.from('complaints').update(upP).eq('id', c.id);
+                                    dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, remarks: c.remarks } : item);
+                                } catch(err) {}
+                            }
+                        }
+
+                        // ── Sync Feedbacks (Reviews) ──
+                        const localOnlyFb = localFb.filter(lf => String(lf.id).startsWith('LOCAL-'));
+                        for (const f of localOnlyFb) {
+                            try {
+                                const payload = { customer_id: f.customerId, feedback_text: f.feedbackText, feedback_date: f.feedbackDate, person_name: f.personName, contact_number: f.contactNumber, mode: f.mode||'Customer Portal', rating: f.rating||5 };
+                                const { data: ins } = await sb.from('feedbacks').insert(payload).select().single();
+                                if (ins) dbFb.push(mapFeedback(ins));
+                            } catch(err) {}
+                        }
+
+                        setCustomers(dbCust);
+                        setTrucks(dbTrks);
+                        setComplaints(dbCmps);
+                        setFeedbacks(dbFb);
                         if (catRes.data?.length > 0) setCategories(catRes.data.map(c => c.name));
-                        if (fbRes.data) setFeedbacks(fbRes.data.map(mapFeedback));
-                    } catch(e) { console.error("DB fallback to local data", e); }
+
+                    } catch(e) {
+                        console.error("DB fallback to local data", e);
+                        const localCust = JSON.parse(localStorage.getItem('ff_cust') || '[]');
+                        const localTrks = JSON.parse(localStorage.getItem('ff_trks') || '[]');
+                        const localCmps = JSON.parse(localStorage.getItem('ff_cmps') || '[]');
+                        const localFb = JSON.parse(localStorage.getItem('ff_fb') || '[]');
+                        setCustomers(localCust);
+                        setTrucks(localTrks);
+                        setComplaints(localCmps);
+                        setFeedbacks(localFb);
+                    }
                     finally { setLoading(false); }
                 };
                 fetchAll();
@@ -1462,7 +1551,7 @@
                                     <table className="w-full text-left min-w-[800px]">
                                         <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b"><tr><th className="px-8 py-5">Client / Organization</th><th className="px-6 py-5">Primary Contact</th><th className="px-6 py-5">Feedback History</th><th className="px-8 py-5 text-right">Action</th></tr></thead>
                                         <tbody className="divide-y divide-slate-50">
-                                            {customersInWarranty.map(cust=>{
+                                            {customers.map(cust=>{
                                                 const cFbs=feedbacks.filter(f=>f.customerId===cust.id).sort((a,b)=>new Date(b.feedbackDate)-new Date(a.feedbackDate));
                                                 const avgRating = cFbs.length>0 ? (cFbs.reduce((s,f)=>s+(f.rating||5),0)/cFbs.length).toFixed(1) : null;
                                                 return <tr key={cust.id} className="hover:bg-slate-50/30 transition-colors">
@@ -1483,7 +1572,7 @@
                                             })}
                                         </tbody>
                                     </table>
-                                    {customersInWarranty.length===0 && <div className="py-16 text-center opacity-30"><Icon name="star" size={32} className="mx-auto mb-3"/><p className="text-[11px] font-black uppercase">No active warranty customers</p></div>}
+                                    {customers.length===0 && <div className="py-16 text-center opacity-30"><Icon name="star" size={32} className="mx-auto mb-3"/><p className="text-[11px] font-black uppercase">No registered customers</p></div>}
                                 </div>
                             </div>
                         )}
