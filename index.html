@@ -144,17 +144,20 @@
             const containerRef = useRef(null);
             const selected = options.find(o => getOptionValue(o) === value);
             const displayLabel = selected ? getOptionLabel(selected) : '';
-            const filtered = options.filter(o => getOptionLabel(o).toLowerCase().includes((search || displayLabel || '').toLowerCase()));
+            const filtered = options.filter(o => getOptionLabel(o).toLowerCase().includes(search.toLowerCase()));
             useEffect(() => {
-                const handle = e => { if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false); };
+                const handle = e => { if (containerRef.current && !containerRef.current.contains(e.target)) { setOpen(false); setSearch(''); } };
                 document.addEventListener('mousedown', handle);
                 return () => document.removeEventListener('mousedown', handle);
             }, []);
             return (
-                <div className="space-y-1 relative" ref={containerRef}>
+                <div className="space-y-1 relative flex-1 min-w-0" ref={containerRef}>
                     <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">{label}</label>
-                    <input type="text" readOnly={open} value={open ? search : displayLabel} onChange={e => { setSearch(e.target.value); if (!open) setOpen(true); }} onFocus={() => setOpen(true)} placeholder={placeholder} disabled={disabled} required={required && !value}
-                        className="w-full border border-slate-200 rounded-xl p-3 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-400" />
+                    <div className="relative">
+                        <input type="text" value={open ? search : displayLabel} onChange={e => { setSearch(e.target.value); if (!open) setOpen(true); }} onFocus={() => { setOpen(true); setSearch(''); }} placeholder={selected ? displayLabel : placeholder} disabled={disabled}
+                            className="w-full border border-slate-200 rounded-xl p-3 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-400" />
+                        <input tabIndex={-1} value={value || ''} onChange={() => {}} required={required} style={{ opacity: 0, width: 0, height: 0, position: 'absolute', bottom: 0, left: '50%', pointerEvents: 'none' }} />
+                    </div>
                     {open && (
                         <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto scroll-select">
                             {filtered.length === 0 ? <div className="p-3 text-sm text-slate-400">No matches</div> : filtered.map((opt, i) => (
@@ -350,7 +353,7 @@
         };
 
         // ── Customer Portal ──
-        const CustomerPortal = ({ trucks, customers, complaints, categories, setComplaints, feedbacks, setFeedbacks, user, initialPo = '' }) => {
+        const CustomerPortal = ({ trucks, customers, complaints, categories, setComplaints, feedbacks, setFeedbacks, user, initialPo = '', getQrImageUrl }) => {
             const [tab, setTab] = useState('lookup');
             const [lookupQuery, setLookupQuery] = useState(initialPo);
             const [foundTruck, setFoundTruck] = useState(null);
@@ -488,25 +491,40 @@
                                     <div className="slide-in-right space-y-4">
                                         {/* Vehicle Card */}
                                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
-                                            <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
-                                                <div>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vehicle Found</p>
-                                                    <h3 className="text-xl font-black text-slate-900 uppercase">{foundTruck.tenderType}</h3>
-                                                    <p className="text-[11px] font-bold text-indigo-600 mt-0.5">PO: {foundTruck.poNo} · {cust?.name||'Unknown'}</p>
-                                                </div>
-                                                <div className={`px-5 py-3 rounded-2xl text-center shadow-lg ${dRem>60?'status-badge-active':dRem>0?'status-badge-expiring':'status-badge-expired'}`}>
-                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-80">Warranty Status</p>
-                                                    <p className="text-xl font-black">{dRem>0?`${dRem}d`:dRem===0?'Today!':'Expired'}</p>
-                                                    <p className="text-[9px] font-bold opacity-80">{dRem>0?'Remaining':dRem<0?`${Math.abs(dRem)}d ago`:''}</p>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                                {[['Pump Make', foundTruck.pumpMake], ['Capacity', `${foundTruck.pumpLpm||'—'} LPM`], ['Chassis', foundTruck.chassisMake||'N/A'], ['Delivery', formatDate(foundTruck.deliveryDate)]].map(([l,v],i)=>(
-                                                    <div key={i} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-1">{l}</p>
-                                                        <p className="text-[11px] font-black text-slate-800">{v||'N/A'}</p>
+                                            <div className="flex flex-col md:flex-row gap-6">
+                                                <div className="flex-1 space-y-4">
+                                                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vehicle Found</p>
+                                                            <h3 className="text-xl font-black text-slate-900 uppercase">{foundTruck.tenderType}</h3>
+                                                            <p className="text-[11px] font-bold text-indigo-600 mt-0.5">PO: {foundTruck.poNo} · {cust?.name||'Unknown'}</p>
+                                                        </div>
+                                                        <div className={`px-5 py-3 rounded-2xl text-center shadow-lg ${dRem>60?'status-badge-active':dRem>0?'status-badge-expiring':'status-badge-expired'}`}>
+                                                            <p className="text-[9px] font-black uppercase tracking-widest opacity-80">Warranty Status</p>
+                                                            <p className="text-xl font-black">{dRem>0?`${dRem}d`:dRem===0?'Today!':'Expired'}</p>
+                                                            <p className="text-[9px] font-bold opacity-80">{dRem>0?'Remaining':dRem<0?`${Math.abs(dRem)}d ago`:''}</p>
+                                                        </div>
                                                     </div>
-                                                ))}
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {[['Pump Make', foundTruck.pumpMake], ['Capacity', `${foundTruck.pumpLpm||'—'} LPM`], ['Chassis', foundTruck.chassisMake||'N/A'], ['Delivery', formatDate(foundTruck.deliveryDate)]].map(([l,v],i)=>(
+                                                            <div key={i} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-1">{l}</p>
+                                                                <p className="text-[11px] font-black text-slate-800">{v||'N/A'}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {getQrImageUrl && (
+                                                    <div className="flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 shrink-0">
+                                                        <div className="bg-slate-900 rounded-2xl p-4 text-center text-white" style={{maxWidth:'180px'}}>
+                                                            <p className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-2">Scan for Support</p>
+                                                            <div className="bg-white rounded-lg p-1.5 inline-block">
+                                                                <img src={getQrImageUrl(foundTruck)} alt="Warranty QR Code" width="110" height="110" className="block" style={{imageRendering:'pixelated'}}/>
+                                                            </div>
+                                                            <p className="text-[8px] font-bold text-slate-300 mt-2">PO: {foundTruck.poNo}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="mt-5 pt-5 border-t border-slate-100">
                                                 <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -839,6 +857,21 @@
                             } catch(err) {}
                         }
 
+                        // Merge local cache insurance info if missing in DB
+                        dbTrks = dbTrks.map(dt => {
+                            const localMatch = localTrks.find(lt => lt.poNo === dt.poNo);
+                            if (localMatch) {
+                                return {
+                                    ...dt,
+                                    insurancePolicyNo: dt.insurancePolicyNo || localMatch.insurancePolicyNo,
+                                    insuranceCompany: dt.insuranceCompany || localMatch.insuranceCompany,
+                                    insuranceExpiryDate: dt.insuranceExpiryDate || localMatch.insuranceExpiryDate,
+                                    pumpSrNo: dt.pumpSrNo || localMatch.pumpSrNo
+                                };
+                            }
+                            return dt;
+                        });
+
                         setCustomers(dbCust);
                         setTrucks(dbTrks);
                         setComplaints(dbCmps);
@@ -956,12 +989,46 @@
                 try {
                     let payload = {};
                     if (type==='customers') payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email};
-                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm,pump_sr_no:data.pumpSrNo,foam_capacity:data.foamCapacity,water_capacity:data.waterCapacity,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo,insurance_company:data.insuranceCompany,insurance_expiry_date:data.insuranceExpiryDate};
-                    else if (type==='complaints') payload={truck_id:data.truckId,category:data.category,description:data.description,date_received:data.dateReceived,mode:data.mode||'Mail',reported_by:data.reportedBy};
-                    else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
-                    const { data: updated, error } = await sb.from(type).update(payload).eq('id',id).select().single();
-                    if (!error && updated) { const mapped = type==='customers'?mapCustomer(updated):type==='trucks'?mapTruck(updated):type==='complaints'?mapComplaint(updated):mapFeedback(updated); setter(prev=>prev.map(item=>item.id===id?mapped:item)); }
-                } catch(err) { console.error('Update error:', err); }
+                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null};
+                    else if (type==='complaints') payload={truck_id:data.truckId,category:data.category,description:data.description,date_received:data.dateReceived || null,mode:data.mode||'Mail',reported_by:data.reportedBy};
+                    else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate || null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
+                    
+                    let { data: updated, error } = await sb.from(type).update(payload).eq('id',id).select().single();
+                    if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                        console.warn("Retrying update without newer schema columns due to database version mismatch:", error.message);
+                        const fallbackPayload = { ...payload };
+                        delete fallbackPayload.insurance_policy_no;
+                        delete fallbackPayload.insurance_company;
+                        delete fallbackPayload.insurance_expiry_date;
+                        delete fallbackPayload.pump_sr_no;
+                        delete fallbackPayload.rating;
+                        const retry = await sb.from(type).update(fallbackPayload).eq('id',id).select().single();
+                        updated = retry.data;
+                        error = retry.error;
+                    }
+                    if (error) {
+                        console.error(`Supabase update error for ${type}:`, error);
+                        alert(`Database Error: ${error.message || 'Failed to update record'}`);
+                        return;
+                    }
+                    if (updated) {
+                        let mapped = type==='customers'?mapCustomer(updated):type==='trucks'?mapTruck(updated):type==='complaints'?mapComplaint(updated):mapFeedback(updated);
+                        if (type==='trucks') {
+                            mapped = {
+                                ...mapped,
+                                insurancePolicyNo: mapped.insurancePolicyNo || data.insurancePolicyNo,
+                                insuranceCompany: mapped.insuranceCompany || data.insuranceCompany,
+                                insuranceExpiryDate: mapped.insuranceExpiryDate || data.insuranceExpiryDate,
+                                pumpSrNo: mapped.pumpSrNo || data.pumpSrNo
+                            };
+                        }
+                        setter(prev=>prev.map(item=>item.id===id?mapped:item));
+                    }
+                } catch(err) {
+                    console.error('Update error:', err);
+                    alert(`System Error: ${err.message || 'An unexpected error occurred'}`);
+                    return;
+                }
                 if(modalSetter)modalSetter(false); if(resetData)resetData();
             };
 
@@ -972,12 +1039,46 @@
                 try {
                     let payload = {};
                     if (type==='customers') payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email};
-                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm,pump_sr_no:data.pumpSrNo,foam_capacity:data.foamCapacity,water_capacity:data.waterCapacity,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo,insurance_company:data.insuranceCompany,insurance_expiry_date:data.insuranceExpiryDate};
-                    else if (type==='complaints') payload={truck_id:data.truckId,complaint_id:data.complaintId,category:data.category,description:data.description,date_received:data.dateReceived,mode:data.mode||'Mail',reported_by:data.reportedBy,status:data.status||'Open'};
-                    else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
-                    const { data: inserted, error } = await sb.from(type).insert(payload).select().single();
-                    if (!error && inserted) { const mapped = type==='customers'?mapCustomer(inserted):type==='trucks'?mapTruck(inserted):type==='complaints'?mapComplaint(inserted):mapFeedback(inserted); setter(prev=>[mapped,...prev]); }
-                } catch(err) { setter(prev=>[{id:'LOCAL-'+Date.now(),...data,timestamp:new Date().toISOString()},...prev]); }
+                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null};
+                    else if (type==='complaints') payload={truck_id:data.truckId,complaint_id:data.complaintId,category:data.category,description:data.description,date_received:data.dateReceived || null,mode:data.mode||'Mail',reported_by:data.reportedBy,status:data.status||'Open'};
+                    else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate || null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
+                    
+                    let { data: inserted, error } = await sb.from(type).insert(payload).select().single();
+                    if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                        console.warn("Retrying insert without newer schema columns due to database version mismatch:", error.message);
+                        const fallbackPayload = { ...payload };
+                        delete fallbackPayload.insurance_policy_no;
+                        delete fallbackPayload.insurance_company;
+                        delete fallbackPayload.insurance_expiry_date;
+                        delete fallbackPayload.pump_sr_no;
+                        delete fallbackPayload.rating;
+                        const retry = await sb.from(type).insert(fallbackPayload).select().single();
+                        inserted = retry.data;
+                        error = retry.error;
+                    }
+                    if (error) {
+                        console.error(`Supabase insert error for ${type}:`, error);
+                        alert(`Database Error: ${error.message || 'Failed to save record'}`);
+                        return;
+                    }
+                    if (inserted) {
+                        let mapped = type==='customers'?mapCustomer(inserted):type==='trucks'?mapTruck(inserted):type==='complaints'?mapComplaint(inserted):mapFeedback(inserted);
+                        if (type==='trucks') {
+                            mapped = {
+                                ...mapped,
+                                insurancePolicyNo: mapped.insurancePolicyNo || data.insurancePolicyNo,
+                                insuranceCompany: mapped.insuranceCompany || data.insuranceCompany,
+                                insuranceExpiryDate: mapped.insuranceExpiryDate || data.insuranceExpiryDate,
+                                pumpSrNo: mapped.pumpSrNo || data.pumpSrNo
+                            };
+                        }
+                        setter(prev=>[mapped,...prev]);
+                    }
+                } catch(err) {
+                    console.error('Save error:', err);
+                    alert(`System Error: ${err.message || 'An unexpected error occurred'}`);
+                    return;
+                }
                 if(modalSetter)modalSetter(typeof modalSetter==='function'?false:null); if(resetData)resetData();
             };
 
@@ -1299,7 +1400,7 @@
                         </div>
                     )}
 
-                    <CustomerPortal trucks={trucks} customers={customers} complaints={complaints} categories={categories} setComplaints={setComplaints} feedbacks={feedbacks} setFeedbacks={setFeedbacks} user={user} initialPo={portalInitialPo}/>
+                    <CustomerPortal trucks={trucks} customers={customers} complaints={complaints} categories={categories} setComplaints={setComplaints} feedbacks={feedbacks} setFeedbacks={setFeedbacks} user={user} initialPo={portalInitialPo} getQrImageUrl={getQrImageUrl}/>
                 </div>
             );
 
@@ -1666,7 +1767,7 @@
                                 };
                                 saveRecord('trucks',newTrk,setTrucks,setShowTruckModal,resetFn,editingTruck?.id);
                             }} className="space-y-4">
-                                <div className="space-y-1"><label className="text-[10px] font-black text-slate-500 uppercase">Client</label><select className="w-full border rounded-xl p-3 text-sm bg-white" size="4" value={newTrk.customerId} onChange={e=>setNewTrk({...newTrk,customerId:e.target.value})} required>{customers.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                                <SearchableSelect label="Client" options={customers} value={newTrk.customerId} onChange={v=>setNewTrk({...newTrk,customerId:v})} getOptionLabel={c=>c.name} getOptionValue={c=>c.id} required/>
                                 <div className="grid grid-cols-2 gap-4"><Input label="PO Number" value={newTrk.poNo} onChange={v=>setNewTrk({...newTrk,poNo:v})} required/><Input label="Tender Type" value={newTrk.tenderType} onChange={v=>setNewTrk({...newTrk,tenderType:v})} required/></div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="Pump Make" value={newTrk.pumpMake} onChange={v=>setNewTrk({...newTrk,pumpMake:v})} required/><Input label="Pump Serial No" value={newTrk.pumpSrNo} onChange={v=>setNewTrk({...newTrk,pumpSrNo:v})}/></div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="LPM Capacity" value={newTrk.pumpLpm} onChange={v=>setNewTrk({...newTrk,pumpLpm:v})}/><Input label="Chassis Make" value={newTrk.chassisMake} onChange={v=>setNewTrk({...newTrk,chassisMake:v})}/></div>
@@ -1847,78 +1948,4 @@
                                 const upP = {
                                     closed_by: assignData.closedBy,
                                     closed_date: assignData.closedDate,
-                                    delay_reason: assignData.delayReason || null
-                                };
-                                const sb = window.SupabaseClient;
-                                if (user && sb && !String(showAssignModal.id).startsWith('LOCAL')) {
-                                    try {
-                                        const { error } = await sb.from('complaints').update(upP).eq('id', showAssignModal.id);
-                                        if (error) console.error("Supabase assign complaint error:", error);
-                                    } catch(er) {
-                                        console.error("Supabase assign complaint exception:", er);
-                                    }
-                                }
-                                setComplaints(prev => prev.map(c => c.id === showAssignModal.id ? { ...c, ...upP, closedBy: assignData.closedBy, closedDate: assignData.closedDate, delayReason: assignData.delayReason } : c));
-                                setShowAssignModal(null);
-                                setAssignData({ closedBy: '', closedDate: new Date().toISOString().split('T')[0], delayReason: '' });
-                            }} className="space-y-4">
-                                {showAssignModal.closedBy && (
-                                    <div className="p-3.5 bg-slate-50 border rounded-2xl text-[10px] font-bold text-slate-500 uppercase space-y-1">
-                                        <p className="text-slate-400 font-black tracking-widest">Previous Assignment</p>
-                                        <p className="text-slate-700 font-extrabold normal-case text-xs">Assigned to <span className="font-black uppercase">{showAssignModal.closedBy}</span> for <span className="font-black">{formatDate(showAssignModal.closedDate)}</span></p>
-                                    </div>
-                                )}
-                                
-                                {showAssignModal.closedDate && assignData.closedDate !== showAssignModal.closedDate && (
-                                    <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-[10px] font-bold text-amber-800 flex items-start gap-2.5">
-                                        <Icon name="alert-triangle" size={16} className="text-amber-600 shrink-0 mt-0.5"/>
-                                        <div>
-                                            <p className="font-black uppercase tracking-widest text-[9px] mb-1">⚠️ Rescheduling Target Date</p>
-                                            <p className="normal-case font-bold text-[11px] leading-relaxed">The target date is being adjusted from {formatDate(showAssignModal.closedDate)} to {formatDate(assignData.closedDate)}. A delay reason is required to save this update.</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Input label="Assign Engineer / Manpower *" value={assignData.closedBy} onChange={v=>setAssignData({...assignData,closedBy:v})} required/>
-                                    <Input label="Target Visit Date *" type="date" value={assignData.closedDate} onChange={v=>setAssignData({...assignData,closedDate:v})} required/>
-                                </div>
-
-                                {showAssignModal.closedBy && (
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Delay / Reschedule Reason {showAssignModal.closedDate && assignData.closedDate !== showAssignModal.closedDate ? ' *' : ' (Optional)'}</label>
-                                        <textarea value={assignData.delayReason} onChange={e=>setAssignData({...assignData, delayReason:e.target.value})} required={showAssignModal.closedDate && assignData.closedDate !== showAssignModal.closedDate} placeholder="Describe the reason for team/date adjustment..." className="w-full border rounded-xl p-3 text-sm min-h-[80px] outline-none focus:ring-2 focus:ring-indigo-500"/>
-                                    </div>
-                                )}
-
-                                <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl mt-2 tracking-widest hover:bg-indigo-700">Save Assignment</button>
-                            </form>
-                        </Modal>
-                    )}
-
-                    {deleteStep && (
-                        <Modal title="Confirm Deletion" onClose={()=>setDeleteStep(null)} maxW="max-w-md">
-                            <div className="space-y-6">
-                                <div className={`p-5 rounded-2xl border flex items-start gap-4 ${deleteStep.step===2?'bg-rose-50 border-rose-200 text-rose-800':'bg-amber-50 border-amber-200 text-amber-800'}`}>
-                                    <div className={`p-3 text-white rounded-xl shrink-0 ${deleteStep.step===2?'bg-rose-600':'bg-amber-500'}`}><Icon name="alert-triangle" size={24}/></div>
-                                    <div>
-                                        <p className="font-black uppercase text-[10px] mb-2 tracking-widest">{deleteStep.step===1?'Warning':'⚠ Final Confirmation'}</p>
-                                        <p className="text-sm font-bold leading-relaxed">{deleteStep.step===1?`Are you sure you want to remove this ${deleteStep.type}? This action cannot be undone.`:`CRITICAL: You are about to permanently delete this record from both the local data and the cloud database. Click "Delete Record" to proceed.`}</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <button onClick={()=>setDeleteStep(null)} className="flex-1 px-4 py-3.5 rounded-2xl bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Cancel</button>
-                                    <button onClick={confirmDeletion} className={`flex-1 px-4 py-3.5 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest shadow-xl transition-all ${deleteStep.step===2?'bg-rose-600 hover:bg-rose-700':'bg-amber-500 hover:bg-amber-600'}`}>{deleteStep.step===1?'Confirm Step 1 / 2':'Delete Record ✓'}</button>
-                                </div>
-                            </div>
-                        </Modal>
-                    )}
-                </div>
-            );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App/>);
-    </script>
-</body>
-</html>
+                                    del
