@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS complaints (
     closed_date DATE,
     remarks TEXT,
     resolved_at TIMESTAMPTZ,
+    delay_reason TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -72,6 +73,7 @@ CREATE TABLE IF NOT EXISTS feedbacks (
     person_name TEXT,
     contact_number TEXT,
     mode TEXT DEFAULT 'Telephonic',
+    rating INTEGER DEFAULT 5,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
