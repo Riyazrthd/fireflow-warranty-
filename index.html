@@ -719,7 +719,11 @@
 
             // QR helper — encodes current page URL + PO hash
             const getQrData = useCallback((truck) => {
-                const base = window.location.href.split('#')[0];
+                let base = window.location.href.split('#')[0];
+                // If running locally, fallback to the live GitHub Pages URL so QR codes scanned by mobile phones work!
+                if (base.startsWith('file:') || base.includes('localhost') || base.includes('127.0.0.1')) {
+                    base = 'https://riyazrthd.github.io/fireflow-warranty-/';
+                }
                 const url = `${base}#portal&po=${encodeURIComponent(truck.poNo)}`;
                 return url;
             }, []);
@@ -1948,4 +1952,78 @@
                                 const upP = {
                                     closed_by: assignData.closedBy,
                                     closed_date: assignData.closedDate,
-                                    del
+                                    delay_reason: assignData.delayReason || null
+                                };
+                                const sb = window.SupabaseClient;
+                                if (user && sb && !String(showAssignModal.id).startsWith('LOCAL')) {
+                                    try {
+                                        const { error } = await sb.from('complaints').update(upP).eq('id', showAssignModal.id);
+                                        if (error) console.error("Supabase assign complaint error:", error);
+                                    } catch(er) {
+                                        console.error("Supabase assign complaint exception:", er);
+                                    }
+                                }
+                                setComplaints(prev => prev.map(c => c.id === showAssignModal.id ? { ...c, ...upP, closedBy: assignData.closedBy, closedDate: assignData.closedDate, delayReason: assignData.delayReason } : c));
+                                setShowAssignModal(null);
+                                setAssignData({ closedBy: '', closedDate: new Date().toISOString().split('T')[0], delayReason: '' });
+                            }} className="space-y-4">
+                                {showAssignModal.closedBy && (
+                                    <div className="p-3.5 bg-slate-50 border rounded-2xl text-[10px] font-bold text-slate-500 uppercase space-y-1">
+                                        <p className="text-slate-400 font-black tracking-widest">Previous Assignment</p>
+                                        <p className="text-slate-700 font-extrabold normal-case text-xs">Assigned to <span className="font-black uppercase">{showAssignModal.closedBy}</span> for <span className="font-black">{formatDate(showAssignModal.closedDate)}</span></p>
+                                    </div>
+                                )}
+                                
+                                {showAssignModal.closedDate && assignData.closedDate !== showAssignModal.closedDate && (
+                                    <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-[10px] font-bold text-amber-800 flex items-start gap-2.5">
+                                        <Icon name="alert-triangle" size={16} className="text-amber-600 shrink-0 mt-0.5"/>
+                                        <div>
+                                            <p className="font-black uppercase tracking-widest text-[9px] mb-1">⚠️ Rescheduling Target Date</p>
+                                            <p className="normal-case font-bold text-[11px] leading-relaxed">The target date is being adjusted from {formatDate(showAssignModal.closedDate)} to {formatDate(assignData.closedDate)}. A delay reason is required to save this update.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input label="Assign Engineer / Manpower *" value={assignData.closedBy} onChange={v=>setAssignData({...assignData,closedBy:v})} required/>
+                                    <Input label="Target Visit Date *" type="date" value={assignData.closedDate} onChange={v=>setAssignData({...assignData,closedDate:v})} required/>
+                                </div>
+
+                                {showAssignModal.closedBy && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Delay / Reschedule Reason {showAssignModal.closedDate && assignData.closedDate !== showAssignModal.closedDate ? ' *' : ' (Optional)'}</label>
+                                        <textarea value={assignData.delayReason} onChange={e=>setAssignData({...assignData, delayReason:e.target.value})} required={showAssignModal.closedDate && assignData.closedDate !== showAssignModal.closedDate} placeholder="Describe the reason for team/date adjustment..." className="w-full border rounded-xl p-3 text-sm min-h-[80px] outline-none focus:ring-2 focus:ring-indigo-500"/>
+                                    </div>
+                                )}
+
+                                <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl mt-2 tracking-widest hover:bg-indigo-700">Save Assignment</button>
+                            </form>
+                        </Modal>
+                    )}
+
+                    {deleteStep && (
+                        <Modal title="Confirm Deletion" onClose={()=>setDeleteStep(null)} maxW="max-w-md">
+                            <div className="space-y-6">
+                                <div className={`p-5 rounded-2xl border flex items-start gap-4 ${deleteStep.step===2?'bg-rose-50 border-rose-200 text-rose-800':'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                                    <div className={`p-3 text-white rounded-xl shrink-0 ${deleteStep.step===2?'bg-rose-600':'bg-amber-500'}`}><Icon name="alert-triangle" size={24}/></div>
+                                    <div>
+                                        <p className="font-black uppercase text-[10px] mb-2 tracking-widest">{deleteStep.step===1?'Warning':'⚠ Final Confirmation'}</p>
+                                        <p className="text-sm font-bold leading-relaxed">{deleteStep.step===1?`Are you sure you want to remove this ${deleteStep.type}? This action cannot be undone.`:`CRITICAL: You are about to permanently delete this record from both the local data and the cloud database. Click "Delete Record" to proceed.`}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <button onClick={()=>setDeleteStep(null)} className="flex-1 px-4 py-3.5 rounded-2xl bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Cancel</button>
+                                    <button onClick={confirmDeletion} className={`flex-1 px-4 py-3.5 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest shadow-xl transition-all ${deleteStep.step===2?'bg-rose-600 hover:bg-rose-700':'bg-amber-500 hover:bg-amber-600'}`}>{deleteStep.step===1?'Confirm Step 1 / 2':'Delete Record ✓'}</button>
+                                </div>
+                            </div>
+                        </Modal>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App/>);
+    </script>
+</body>
+</html>
