@@ -74,6 +74,12 @@
         ];
 
         // ── Map utils ──
+        const isMissingColumnError = err => {
+            if (!err) return false;
+            const msg = (err.message || '').toLowerCase();
+            const code = err.code || '';
+            return code === '42703' || msg.includes('column') || msg.includes('does not exist') || msg.includes('schema cache') || msg.includes('not found');
+        };
         const mapCustomer = r => ({ id: r.id, name: r.name, address: r.address, contactPerson: r.contact_person, phone: r.phone, email: r.email, timestamp: r.created_at });
         const mapTruck = r => ({ id: r.id, customerId: r.customer_id, poNo: r.po_no, tenderType: r.tender_type, pumpMake: r.pump_make, pumpLpm: r.pump_lpm, pumpSrNo: r.pump_sr_no, foamCapacity: r.foam_capacity, waterCapacity: r.water_capacity, chassisMake: r.chassis_make, modelNo: r.model_no, deliveryDate: r.delivery_date, warrantyMonths: r.warranty_months, insurancePolicyNo: r.insurance_policy_no, insuranceCompany: r.insurance_company, insuranceExpiryDate: r.insurance_expiry_date, timestamp: r.created_at });
         const mapComplaint = r => {
@@ -847,7 +853,7 @@
                             try {
                                 const payload = { customer_id: t.customerId, po_no: t.poNo, tender_type: t.tenderType, pump_make: t.pumpMake, pump_lpm: t.pumpLpm || null, pump_sr_no: t.pumpSrNo || null, foam_capacity: t.foamCapacity || null, water_capacity: t.waterCapacity || null, chassis_make: t.chassisMake, model_no: t.modelNo, delivery_date: t.deliveryDate || null, warranty_months: parseInt(t.warrantyMonths)||12, insurance_policy_no: t.insurancePolicyNo || null, insurance_company: t.insuranceCompany || null, insurance_expiry_date: t.insuranceExpiryDate || null };
                                 let { data: ins, error } = await sb.from('trucks').insert(payload).select().single();
-                                if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                if (error && isMissingColumnError(error)) {
                                     const fallbackPayload = { ...payload };
                                     delete fallbackPayload.insurance_policy_no;
                                     delete fallbackPayload.insurance_company;
@@ -902,7 +908,7 @@
                                     payload.delay_reason = c.delayReason;
                                 }
                                 let { data: ins, error } = await sb.from('complaints').insert(payload).select().single();
-                                if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                if (error && isMissingColumnError(error)) {
                                     const fallbackPayload = { ...payload };
                                     delete fallbackPayload.delay_reason;
                                     const retry = await sb.from('complaints').insert(fallbackPayload).select().single();
@@ -929,7 +935,7 @@
                                     try {
                                         const upP = { status: 'Resolved', diagnosis: c.diagnosis, closed_by: c.closedBy, closed_date: c.closedDate, remarks: c.remarks, resolved_at: c.resolvedAt || new Date().toISOString(), delay_reason: c.delayReason };
                                         let { error } = await sb.from('complaints').update(upP).eq('id', c.id);
-                                        if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                        if (error && isMissingColumnError(error)) {
                                             const fallbackPayload = { ...upP };
                                             delete fallbackPayload.delay_reason;
                                             const retry = await sb.from('complaints').update(fallbackPayload).eq('id', c.id);
@@ -947,7 +953,7 @@
                                     try {
                                         const upP = { closed_by: c.closedBy, closed_date: c.closedDate, delay_reason: c.delayReason };
                                         let { error } = await sb.from('complaints').update(upP).eq('id', c.id);
-                                        if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                        if (error && isMissingColumnError(error)) {
                                             const fallbackPayload = { ...upP };
                                             delete fallbackPayload.delay_reason;
                                             const retry = await sb.from('complaints').update(fallbackPayload).eq('id', c.id);
@@ -971,7 +977,7 @@
                             try {
                                 const payload = { customer_id: f.customerId, feedback_text: f.feedbackText, feedback_date: f.feedbackDate || null, person_name: f.personName, contact_number: f.contactNumber, mode: f.mode||'Customer Portal', rating: f.rating||5 };
                                 let { data: ins, error } = await sb.from('feedbacks').insert(payload).select().single();
-                                if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                if (error && isMissingColumnError(error)) {
                                     const fallbackPayload = { ...payload };
                                     delete fallbackPayload.rating;
                                     const retry = await sb.from('feedbacks').insert(fallbackPayload).select().single();
@@ -1131,7 +1137,7 @@
                     else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate || null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
                     
                     let { data: updated, error } = await sb.from(type).update(payload).eq('id',id).select().single();
-                    if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                    if (error && isMissingColumnError(error)) {
                         console.warn("Retrying update without newer schema columns due to database version mismatch:", error.message);
                         const fallbackPayload = { ...payload };
                         delete fallbackPayload.insurance_policy_no;
@@ -1181,7 +1187,7 @@
                     else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate || null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
                     
                     let { data: inserted, error } = await sb.from(type).insert(payload).select().single();
-                    if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                    if (error && isMissingColumnError(error)) {
                         console.warn("Retrying insert without newer schema columns due to database version mismatch:", error.message);
                         const fallbackPayload = { ...payload };
                         delete fallbackPayload.insurance_policy_no;
@@ -2113,7 +2119,7 @@
                                 if (user && sb && !String(showAssignModal.id).startsWith('LOCAL')) {
                                     try {
                                         let { error } = await sb.from('complaints').update(upP).eq('id', showAssignModal.id);
-                                        if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                        if (error && isMissingColumnError(error)) {
                                             const fallbackPayload = { ...upP };
                                             delete fallbackPayload.delay_reason;
                                             const retry = await sb.from('complaints').update(fallbackPayload).eq('id', showAssignModal.id);
