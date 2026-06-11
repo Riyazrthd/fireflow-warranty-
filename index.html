@@ -799,11 +799,30 @@
                         const localOnlyTrks = localTrks.filter(lt => String(lt.id).startsWith('LOCAL-'));
                         for (const t of localOnlyTrks) {
                             try {
-                                const { data: ins } = await sb.from('trucks').insert({ customer_id: t.customerId, po_no: t.poNo, tender_type: t.tenderType, pump_make: t.pumpMake, pump_lpm: t.pumpLpm, pump_sr_no: t.pumpSrNo, foam_capacity: t.foamCapacity, water_capacity: t.waterCapacity, chassis_make: t.chassisMake, model_no: t.modelNo, delivery_date: t.deliveryDate, warranty_months: parseInt(t.warrantyMonths)||12, insurance_policy_no: t.insurancePolicyNo, insurance_company: t.insuranceCompany, insurance_expiry_date: t.insuranceExpiryDate }).select().single();
+                                const payload = { customer_id: t.customerId, po_no: t.poNo, tender_type: t.tenderType, pump_make: t.pumpMake, pump_lpm: t.pumpLpm || null, pump_sr_no: t.pumpSrNo || null, foam_capacity: t.foamCapacity || null, water_capacity: t.waterCapacity || null, chassis_make: t.chassisMake, model_no: t.modelNo, delivery_date: t.deliveryDate || null, warranty_months: parseInt(t.warrantyMonths)||12, insurance_policy_no: t.insurancePolicyNo || null, insurance_company: t.insuranceCompany || null, insurance_expiry_date: t.insuranceExpiryDate || null };
+                                let { data: ins, error } = await sb.from('trucks').insert(payload).select().single();
+                                if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                    const fallbackPayload = { ...payload };
+                                    delete fallbackPayload.insurance_policy_no;
+                                    delete fallbackPayload.insurance_company;
+                                    delete fallbackPayload.insurance_expiry_date;
+                                    delete fallbackPayload.pump_sr_no;
+                                    const retry = await sb.from('trucks').insert(fallbackPayload).select().single();
+                                    ins = retry.data;
+                                    error = retry.error;
+                                }
                                 if (ins) {
                                     const mapped = mapTruck(ins);
-                                    dbTrks.push(mapped);
-                                    localCmps.forEach(comp => { if (comp.truckId === t.id) comp.truckId = mapped.id; });
+                                    // Preserve local insurance info if database dropped them
+                                    const finalRecord = {
+                                        ...mapped,
+                                        insurancePolicyNo: mapped.insurancePolicyNo || t.insurancePolicyNo,
+                                        insuranceCompany: mapped.insuranceCompany || t.insuranceCompany,
+                                        insuranceExpiryDate: mapped.insuranceExpiryDate || t.insuranceExpiryDate,
+                                        pumpSrNo: mapped.pumpSrNo || t.pumpSrNo
+                                    };
+                                    dbTrks.push(finalRecord);
+                                    localCmps.forEach(comp => { if (comp.truckId === t.id) comp.truckId = finalRecord.id; });
                                 }
                             } catch(err) {}
                         }
@@ -855,9 +874,22 @@
                         const localOnlyFb = localFb.filter(lf => String(lf.id).startsWith('LOCAL-'));
                         for (const f of localOnlyFb) {
                             try {
-                                const payload = { customer_id: f.customerId, feedback_text: f.feedbackText, feedback_date: f.feedbackDate, person_name: f.personName, contact_number: f.contactNumber, mode: f.mode||'Customer Portal', rating: f.rating||5 };
-                                const { data: ins } = await sb.from('feedbacks').insert(payload).select().single();
-                                if (ins) dbFb.push(mapFeedback(ins));
+                                const payload = { customer_id: f.customerId, feedback_text: f.feedbackText, feedback_date: f.feedbackDate || null, person_name: f.personName, contact_number: f.contactNumber, mode: f.mode||'Customer Portal', rating: f.rating||5 };
+                                let { data: ins, error } = await sb.from('feedbacks').insert(payload).select().single();
+                                if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                    const fallbackPayload = { ...payload };
+                                    delete fallbackPayload.rating;
+                                    const retry = await sb.from('feedbacks').insert(fallbackPayload).select().single();
+                                    ins = retry.data;
+                                    error = retry.error;
+                                }
+                                if (ins) {
+                                    const mapped = mapFeedback(ins);
+                                    dbFb.push({
+                                        ...mapped,
+                                        rating: mapped.rating || f.rating || 5
+                                    });
+                                }
                             } catch(err) {}
                         }
 
