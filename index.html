@@ -373,7 +373,7 @@
                     setLookupQuery(initialPo);
                     if (trucks.length > 0) {
                         const q = initialPo.trim().toUpperCase();
-                        const found = trucks.find(t => (t.poNo||'').toUpperCase() === q || (t.pumpSrNo||'').toUpperCase() === q);
+                        const found = trucks.find(t => (t.poNo||'').trim().toUpperCase() === q || (t.pumpSrNo||'').trim().toUpperCase() === q);
                         if (found) {
                             setFoundTruck(found);
                             setLookupError('');
@@ -388,7 +388,7 @@
                 setLookupError(''); setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null);
                 const q = lookupQuery.trim().toUpperCase();
                 if (!q) { setLookupError('Please enter a PO Number or Pump Serial No.'); return; }
-                const found = trucks.find(t => (t.poNo||'').toUpperCase() === q || (t.pumpSrNo||'').toUpperCase() === q);
+                const found = trucks.find(t => (t.poNo||'').trim().toUpperCase() === q || (t.pumpSrNo||'').trim().toUpperCase() === q);
                 if (found) { setFoundTruck(found); } else { setLookupError('No vehicle found with that PO or Serial No. Please check and try again.'); }
             };
 
@@ -712,6 +712,7 @@
             const [notifications, setNotifications] = useState([]);
             const [analyticsRange, setAnalyticsRange] = useState(6);
             const [expiryDays, setExpiryDays] = useState(30);
+            const [syncErrors, setSyncErrors] = useState([]);
 
             // Filters
             const [compSearch, setCompSearch] = useState('');
@@ -825,13 +826,19 @@
                         const localOnlyCust = localCust.filter(lc => String(lc.id).startsWith('LOCAL-'));
                         for (const c of localOnlyCust) {
                             try {
-                                const { data: ins } = await sb.from('customers').insert({ name: c.name, address: c.address, contact_person: c.contactPerson, phone: c.phone, email: c.email }).select().single();
+                                const { data: ins, error } = await sb.from('customers').insert({ name: c.name, address: c.address, contact_person: c.contactPerson, phone: c.phone, email: c.email }).select().single();
                                 if (ins) {
                                     const mapped = mapCustomer(ins);
                                     dbCust.push(mapped);
                                     localTrks.forEach(t => { if (t.customerId === c.id) t.customerId = mapped.id; });
+                                } else {
+                                    dbCust.push(c);
+                                    if (error) setSyncErrors(prev => [...prev, { label: `Customer: ${c.name || 'N/A'}`, error: error.message }]);
                                 }
-                            } catch(err) {}
+                            } catch(err) {
+                                dbCust.push(c);
+                                setSyncErrors(prev => [...prev, { label: `Customer: ${c.name || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                            }
                         }
 
                         // ── Sync Trucks ──
@@ -850,6 +857,10 @@
                                     ins = retry.data;
                                     error = retry.error;
                                 }
+                                if (error) {
+                                    console.error("Sync error for truck PO:", t.poNo, error);
+                                    setSyncErrors(prev => [...prev, { label: `Delivery PO: ${t.poNo || 'N/A'}`, error: error.message }]);
+                                }
                                 if (ins) {
                                     const mapped = mapTruck(ins);
                                     // Preserve local insurance info if database dropped them
@@ -862,8 +873,14 @@
                                     };
                                     dbTrks.push(finalRecord);
                                     localCmps.forEach(comp => { if (comp.truckId === t.id) comp.truckId = finalRecord.id; });
+                                } else {
+                                    dbTrks.push(t);
                                 }
-                            } catch(err) {}
+                            } catch(err) {
+                                console.error("Sync exception for truck PO:", t.poNo, err);
+                                setSyncErrors(prev => [...prev, { label: `Delivery PO: ${t.poNo || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                                dbTrks.push(t);
+                            }
                         }
 
                         // ── Sync Complaints ──
@@ -884,9 +901,24 @@
                                     payload.closed_date = c.closedDate;
                                     payload.delay_reason = c.delayReason;
                                 }
-                                const { data: ins } = await sb.from('complaints').insert(payload).select().single();
-                                if (ins) dbCmps.push(mapComplaint(ins));
-                            } catch(err) {}
+                                let { data: ins, error } = await sb.from('complaints').insert(payload).select().single();
+                                if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                    const fallbackPayload = { ...payload };
+                                    delete fallbackPayload.delay_reason;
+                                    const retry = await sb.from('complaints').insert(fallbackPayload).select().single();
+                                    ins = retry.data;
+                                    error = retry.error;
+                                }
+                                if (ins) {
+                                    dbCmps.push(mapComplaint(ins));
+                                } else {
+                                    dbCmps.push(c);
+                                    if (error) setSyncErrors(prev => [...prev, { label: `Ticket: ${c.complaintId || 'N/A'}`, error: error.message }]);
+                                }
+                            } catch(err) {
+                                dbCmps.push(c);
+                                setSyncErrors(prev => [...prev, { label: `Ticket: ${c.complaintId || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                            }
                         }
 
                         // B. Handle local resolutions or assignments of existing DB complaints
@@ -896,15 +928,39 @@
                                 if (c.status === 'Resolved' && dbMatch.status === 'Open') {
                                     try {
                                         const upP = { status: 'Resolved', diagnosis: c.diagnosis, closed_by: c.closedBy, closed_date: c.closedDate, remarks: c.remarks, resolved_at: c.resolvedAt || new Date().toISOString(), delay_reason: c.delayReason };
-                                        await sb.from('complaints').update(upP).eq('id', c.id);
-                                        dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, remarks: c.remarks, delayReason: c.delayReason } : item);
-                                    } catch(err) {}
+                                        let { error } = await sb.from('complaints').update(upP).eq('id', c.id);
+                                        if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                            const fallbackPayload = { ...upP };
+                                            delete fallbackPayload.delay_reason;
+                                            const retry = await sb.from('complaints').update(fallbackPayload).eq('id', c.id);
+                                            error = retry.error;
+                                        }
+                                        if (!error) {
+                                            dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, remarks: c.remarks, delayReason: c.delayReason } : item);
+                                        } else {
+                                            setSyncErrors(prev => [...prev, { label: `Ticket Update: ${c.complaintId || 'N/A'}`, error: error.message }]);
+                                        }
+                                    } catch(err) {
+                                        setSyncErrors(prev => [...prev, { label: `Ticket Update: ${c.complaintId || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                                    }
                                 } else if (c.status === 'Open' && (c.closedBy !== dbMatch.closedBy || c.closedDate !== dbMatch.closedDate || c.delayReason !== dbMatch.delayReason)) {
                                     try {
                                         const upP = { closed_by: c.closedBy, closed_date: c.closedDate, delay_reason: c.delayReason };
-                                        await sb.from('complaints').update(upP).eq('id', c.id);
-                                        dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, delayReason: c.delayReason } : item);
-                                    } catch(err) {}
+                                        let { error } = await sb.from('complaints').update(upP).eq('id', c.id);
+                                        if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                            const fallbackPayload = { ...upP };
+                                            delete fallbackPayload.delay_reason;
+                                            const retry = await sb.from('complaints').update(fallbackPayload).eq('id', c.id);
+                                            error = retry.error;
+                                        }
+                                        if (!error) {
+                                            dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, delayReason: c.delayReason } : item);
+                                        } else {
+                                            setSyncErrors(prev => [...prev, { label: `Ticket Assign: ${c.complaintId || 'N/A'}`, error: error.message }]);
+                                        }
+                                    } catch(err) {
+                                        setSyncErrors(prev => [...prev, { label: `Ticket Assign: ${c.complaintId || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                                    }
                                 }
                             }
                         }
@@ -928,8 +984,14 @@
                                         ...mapped,
                                         rating: mapped.rating || f.rating || 5
                                     });
+                                } else {
+                                    dbFb.push(f);
+                                    if (error) setSyncErrors(prev => [...prev, { label: `Feedback Review`, error: error.message }]);
                                 }
-                            } catch(err) {}
+                            } catch(err) {
+                                dbFb.push(f);
+                                setSyncErrors(prev => [...prev, { label: `Feedback Review`, error: err.message || 'System error during sync' }]);
+                            }
                         }
 
                         // Merge local cache insurance info if missing in DB
@@ -1558,6 +1620,27 @@
                         {/* ── DASHBOARD ── */}
                         {activeTab==='dashboard' && (
                             <div className="space-y-4">
+                                {syncErrors.length > 0 && (
+                                    <div className="bg-rose-50 border border-rose-200 rounded-3xl p-5 space-y-3 fade-up">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-rose-500 flex items-center justify-center text-white">
+                                                <Icon name="alert-triangle" size={20}/>
+                                            </div>
+                                            <div>
+                                                <p className="font-black text-rose-950 uppercase text-xs tracking-wider">Database Sync Warnings</p>
+                                                <p className="text-[11px] font-bold text-rose-700 mt-0.5">Some local records could not be pushed to Supabase due to key constraints or missing data:</p>
+                                            </div>
+                                        </div>
+                                        <div className="max-h-32 overflow-y-auto divide-y divide-rose-100 bg-white/80 rounded-2xl border border-rose-150 p-4 text-[11px] font-bold text-slate-700">
+                                            {syncErrors.map((err, idx) => (
+                                                <div key={idx} className="py-2.5 first:pt-0 last:pb-0 flex justify-between items-start gap-4">
+                                                    <span className="text-slate-900 uppercase font-black">{err.label}</span>
+                                                    <span className="text-rose-600 text-right font-medium">{err.error}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {[
                                         {l:'Clients',v:customers.length,c:'text-blue-600',icon:'building-2',bg:'bg-blue-50'},
@@ -2028,7 +2111,13 @@
                                 const sb = window.SupabaseClient;
                                 if (user && sb && !String(showAssignModal.id).startsWith('LOCAL')) {
                                     try {
-                                        const { error } = await sb.from('complaints').update(upP).eq('id', showAssignModal.id);
+                                        let { error } = await sb.from('complaints').update(upP).eq('id', showAssignModal.id);
+                                        if (error && error.message && error.message.includes('column') && (error.message.includes('schema cache') || error.message.includes('not found'))) {
+                                            const fallbackPayload = { ...upP };
+                                            delete fallbackPayload.delay_reason;
+                                            const retry = await sb.from('complaints').update(fallbackPayload).eq('id', showAssignModal.id);
+                                            error = retry.error;
+                                        }
                                         if (error) console.error("Supabase assign complaint error:", error);
                                     } catch(er) {
                                         console.error("Supabase assign complaint exception:", er);
