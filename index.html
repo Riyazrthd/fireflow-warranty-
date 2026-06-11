@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>FireFlow - Technical Warranty Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -398,12 +401,38 @@
                 if (found) { setFoundTruck(found); } else { setLookupError('No vehicle found with that PO Number. Please check and try again.'); }
             };
 
-            const handleTicketLookup = () => {
+            const handleTicketLookup = async () => {
                 setTicketError(''); setFoundTicket(null); setFbSubmitted(false);
                 const q = ticketQuery.trim().toUpperCase();
                 if (!q) { setTicketError('Please enter your Ticket ID.'); return; }
-                const found = complaints.find(c => (c.complaintId||'').toUpperCase() === q);
-                if (found) { setFoundTicket(found); } else { setTicketError('Ticket not found. Please check the ID and try again.'); }
+                const localFound = complaints.find(c => (c.complaintId||'').toUpperCase() === q);
+                if (localFound) {
+                    setFoundTicket(localFound);
+                }
+                const sb = window.SupabaseClient;
+                if (sb) {
+                    try {
+                        const { data, error } = await sb.from('complaints').select('*').eq('complaint_id', q);
+                        if (!error && data && data.length > 0) {
+                            const freshComplaint = mapComplaint(data[0]);
+                            setFoundTicket(freshComplaint);
+                            setComplaints(prev => {
+                                const exists = prev.some(c => c.id === freshComplaint.id);
+                                if (exists) {
+                                    return prev.map(c => c.id === freshComplaint.id ? freshComplaint : c);
+                                } else {
+                                    return [freshComplaint, ...prev];
+                                }
+                            });
+                        } else if (!localFound) {
+                            setTicketError('Ticket not found. Please check the ID and try again.');
+                        }
+                    } catch (err) {
+                        console.error("Error fetching ticket in real-time:", err);
+                    }
+                } else if (!localFound) {
+                    setTicketError('Ticket not found. Please check the ID and try again.');
+                }
             };
 
             const handleSubmitComplaint = async e => {
@@ -966,7 +995,7 @@
                                     } catch(err) {
                                         setSyncErrors(prev => [...prev, { label: `Ticket Update: ${c.complaintId || 'N/A'}`, error: err.message || 'System error during sync' }]);
                                     }
-                                } else if (c.status === 'Open' && (c.closedBy !== dbMatch.closedBy || c.closedDate !== dbMatch.closedDate || c.delayReason !== dbMatch.delayReason)) {
+                                } else if (c.status === 'Open' && c.closedBy && (c.closedBy !== dbMatch.closedBy || c.closedDate !== dbMatch.closedDate || c.delayReason !== dbMatch.delayReason)) {
                                     try {
                                         const upP = { closed_by: c.closedBy, closed_date: c.closedDate, delay_reason: c.delayReason };
                                         let { error } = await sb.from('complaints').update(upP).eq('id', c.id);
@@ -2092,9 +2121,15 @@
                                 if(user&&sb&&!String(showCloseModal.id).startsWith('LOCAL')){
                                     try {
                                         const { error } = await sb.from('complaints').update(upP).eq('id',showCloseModal.id);
-                                        if (error) console.error("Supabase close complaint error:", error);
+                                        if (error) {
+                                            console.error("Supabase close complaint error:", error);
+                                            alert(`Database Error: ${error.message || 'Failed to update database'}`);
+                                            return;
+                                        }
                                     } catch(er) {
                                         console.error("Supabase close complaint exception:", er);
+                                        alert(`System Error: ${er.message || 'An unexpected error occurred'}`);
+                                        return;
                                     }
                                 }
                                 setComplaints(prev=>prev.map(c=>c.id===showCloseModal.id?{...c,...upP,closedBy:closeData.closedBy,closedDate:closeData.closedDate,remarks:closeData.remarks}:c));
@@ -2140,9 +2175,15 @@
                                             const retry = await sb.from('complaints').update(fallbackPayload).eq('id', showAssignModal.id);
                                             error = retry.error;
                                         }
-                                        if (error) console.error("Supabase assign complaint error:", error);
+                                        if (error) {
+                                            console.error("Supabase assign complaint error:", error);
+                                            alert(`Database Error: ${error.message || 'Failed to save assignment'}`);
+                                            return;
+                                        }
                                     } catch(er) {
                                         console.error("Supabase assign complaint exception:", er);
+                                        alert(`System Error: ${er.message || 'An unexpected error occurred'}`);
+                                        return;
                                     }
                                 }
                                 setComplaints(prev => prev.map(c => c.id === showAssignModal.id ? { ...c, ...upP, closedBy: assignData.closedBy, closedDate: assignData.closedDate, delayReason: assignData.delayReason } : c));
