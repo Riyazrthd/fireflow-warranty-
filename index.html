@@ -379,7 +379,7 @@
                     setLookupQuery(initialPo);
                     if (trucks.length > 0) {
                         const q = initialPo.trim().toUpperCase();
-                        const found = trucks.find(t => (t.poNo||'').trim().toUpperCase() === q || (t.pumpSrNo||'').trim().toUpperCase() === q);
+                        const found = trucks.find(t => (t.poNo||'').trim().toUpperCase() === q);
                         if (found) {
                             setFoundTruck(found);
                             setLookupError('');
@@ -393,9 +393,9 @@
             const handleLookup = () => {
                 setLookupError(''); setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null);
                 const q = lookupQuery.trim().toUpperCase();
-                if (!q) { setLookupError('Please enter a PO Number or Pump Serial No.'); return; }
-                const found = trucks.find(t => (t.poNo||'').trim().toUpperCase() === q || (t.pumpSrNo||'').trim().toUpperCase() === q);
-                if (found) { setFoundTruck(found); } else { setLookupError('No vehicle found with that PO or Serial No. Please check and try again.'); }
+                if (!q) { setLookupError('Please enter a PO Number.'); return; }
+                const found = trucks.find(t => (t.poNo||'').trim().toUpperCase() === q);
+                if (found) { setFoundTruck(found); } else { setLookupError('No vehicle found with that PO Number. Please check and try again.'); }
             };
 
             const handleTicketLookup = () => {
@@ -485,9 +485,9 @@
                             <div className="space-y-5 fade-up">
                                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 portal-glow">
                                     <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="shield-check" size={18} className="text-indigo-600"/> Warranty & Vehicle Lookup</h2>
-                                    <p className="text-[11px] text-slate-500 font-bold mb-5">Enter your Purchase Order number or Pump Serial Number to check warranty status.</p>
+                                    <p className="text-[11px] text-slate-500 font-bold mb-5">Enter your Purchase Order (PO) number to check warranty status.</p>
                                     <div className="flex gap-3">
-                                        <input type="text" value={lookupQuery} onChange={e=>setLookupQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleLookup()} placeholder="e.g. PO-802 or SR-12345" className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-300"/>
+                                        <input type="text" value={lookupQuery} onChange={e=>setLookupQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleLookup()} placeholder="e.g. PO-802" className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-300"/>
                                         <button onClick={handleLookup} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-7 py-3.5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-lg hover:shadow-indigo-200 hover:shadow-xl transition-all">Search</button>
                                     </div>
                                     {lookupError && <div className="mt-3 flex items-center gap-2 text-rose-600 text-sm font-bold bg-rose-50 px-4 py-3 rounded-xl border border-rose-100"><Icon name="alert-circle" size={16}/>{lookupError}</div>}
@@ -858,7 +858,6 @@
                                     delete fallbackPayload.insurance_policy_no;
                                     delete fallbackPayload.insurance_company;
                                     delete fallbackPayload.insurance_expiry_date;
-                                    delete fallbackPayload.pump_sr_no;
                                     const retry = await sb.from('trucks').insert(fallbackPayload).select().single();
                                     ins = retry.data;
                                     error = retry.error;
@@ -886,6 +885,24 @@
                                 console.error("Sync exception for truck PO:", t.poNo, err);
                                 setSyncErrors(prev => [...prev, { label: `Delivery PO: ${t.poNo || 'N/A'}`, error: err.message || 'System error during sync' }]);
                                 dbTrks.push(t);
+                            }
+                        }
+
+                        // ── Sync existing Trucks with missing pumpSrNo in DB ──
+                        for (let dt of dbTrks) {
+                            if (!dt.pumpSrNo) {
+                                const localMatch = localTrks.find(lt => (lt.poNo||'').trim().toUpperCase() === (dt.poNo||'').trim().toUpperCase());
+                                if (localMatch && localMatch.pumpSrNo) {
+                                    try {
+                                        const upP = { pump_sr_no: localMatch.pumpSrNo };
+                                        let { error } = await sb.from('trucks').update(upP).eq('id', dt.id);
+                                        if (!error) {
+                                            dt.pumpSrNo = localMatch.pumpSrNo;
+                                        }
+                                    } catch (err) {
+                                        console.error(`Failed to sync serial number to DB for PO ${dt.poNo}:`, err);
+                                    }
+                                }
                             }
                         }
 
@@ -1143,7 +1160,6 @@
                         delete fallbackPayload.insurance_policy_no;
                         delete fallbackPayload.insurance_company;
                         delete fallbackPayload.insurance_expiry_date;
-                        delete fallbackPayload.pump_sr_no;
                         delete fallbackPayload.rating;
                         const retry = await sb.from(type).update(fallbackPayload).eq('id',id).select().single();
                         updated = retry.data;
@@ -1193,7 +1209,6 @@
                         delete fallbackPayload.insurance_policy_no;
                         delete fallbackPayload.insurance_company;
                         delete fallbackPayload.insurance_expiry_date;
-                        delete fallbackPayload.pump_sr_no;
                         delete fallbackPayload.rating;
                         const retry = await sb.from(type).insert(fallbackPayload).select().single();
                         inserted = retry.data;
