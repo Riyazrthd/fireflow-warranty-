@@ -489,53 +489,92 @@
 
                                 {foundTruck && (
                                     <div className="slide-in-right space-y-4">
-                                        {/* Vehicle Card */}
-                                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
-                                            <div className="flex flex-col md:flex-row gap-6">
-                                                <div className="flex-1 space-y-4">
-                                                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                                                        <div>
-                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vehicle Found</p>
-                                                            <h3 className="text-xl font-black text-slate-900 uppercase">{foundTruck.tenderType}</h3>
-                                                            <p className="text-[11px] font-bold text-indigo-600 mt-0.5">PO: {foundTruck.poNo} · {cust?.name||'Unknown'}</p>
-                                                        </div>
-                                                        <div className={`px-5 py-3 rounded-2xl text-center shadow-lg ${dRem>60?'status-badge-active':dRem>0?'status-badge-expiring':'status-badge-expired'}`}>
-                                                            <p className="text-[9px] font-black uppercase tracking-widest opacity-80">Warranty Status</p>
-                                                            <p className="text-xl font-black">{dRem>0?`${dRem}d`:dRem===0?'Today!':'Expired'}</p>
-                                                            <p className="text-[9px] font-bold opacity-80">{dRem>0?'Remaining':dRem<0?`${Math.abs(dRem)}d ago`:''}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        {[['Pump Make', foundTruck.pumpMake], ['Capacity', `${foundTruck.pumpLpm||'—'} LPM`], ['Chassis', foundTruck.chassisMake||'N/A'], ['Delivery', formatDate(foundTruck.deliveryDate)]].map(([l,v],i)=>(
-                                                            <div key={i} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                         {/* Vehicle Details Card */}
+                                        <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-100/80 fade-up">
+                                            {/* Header Section */}
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-5">
+                                                <div>
+                                                    <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-widest">Vehicle Verified</span>
+                                                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mt-2">{foundTruck.tenderType}</h3>
+                                                    <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1">
+                                                        <Icon name="building" size={12}/> {cust?.name||'Client Organization'}
+                                                    </p>
+                                                </div>
+                                                <div className={`px-5 py-3 rounded-2xl text-center sm:text-right ${dRem>60?'status-badge-active':dRem>0?'status-badge-expiring':'status-badge-expired'}`}>
+                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-95">Warranty Coverage</p>
+                                                    <p className="text-2xl font-black mt-0.5">{dRem>0?`${dRem} Days`:dRem===0?'Expires Today':'Expired'}</p>
+                                                    <p className="text-[9px] font-bold opacity-80 mt-0.5">{dRem>0?'Active Coverage':dRem<0?`Expired ${Math.abs(dRem)} days ago`:''}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Info Grid */}
+                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                                {/* Left Column: Tech Specifications */}
+                                                <div className="space-y-4 lg:col-span-2">
+                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">Technical Specifications</h4>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                        {[
+                                                            ['PO Number', foundTruck.poNo],
+                                                            ['Chassis Make', foundTruck.chassisMake],
+                                                            ['Model Number', foundTruck.modelNo || 'N/A'],
+                                                            ['Pump Make', foundTruck.pumpMake],
+                                                            ['Pump Serial', foundTruck.pumpSrNo || 'N/A'],
+                                                            ['Pump Capacity', foundTruck.pumpLpm ? `${foundTruck.pumpLpm} LPM` : 'N/A'],
+                                                            ['Water Capacity', foundTruck.waterCapacity ? `${foundTruck.waterCapacity} L` : 'N/A'],
+                                                            ['Foam Capacity', foundTruck.foamCapacity ? `${foundTruck.foamCapacity} L` : 'N/A'],
+                                                            ['Delivery Date', formatDate(foundTruck.deliveryDate)]
+                                                        ].map(([l,v],i)=>(
+                                                            <div key={i} className="bg-slate-50/50 rounded-xl p-3 border border-slate-100 hover:bg-slate-50 transition-colors">
                                                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-1">{l}</p>
-                                                                <p className="text-[11px] font-black text-slate-800">{v||'N/A'}</p>
+                                                                <p className="text-[11px] font-bold text-slate-800 uppercase truncate" title={v}>{v||'—'}</p>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
-                                                {getQrImageUrl && (
-                                                    <div className="flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 shrink-0">
-                                                        <div className="bg-slate-900 rounded-2xl p-4 text-center text-white" style={{maxWidth:'180px'}}>
-                                                            <p className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-2">Scan for Support</p>
-                                                            <div className="bg-white rounded-lg p-1.5 inline-block">
-                                                                <img src={getQrImageUrl(foundTruck)} alt="Warranty QR Code" width="110" height="110" className="block" style={{imageRendering:'pixelated'}}/>
+
+                                                {/* Right Column: Insurance & QR (Desktop Only) */}
+                                                <div className="space-y-4 flex flex-col justify-between">
+                                                    <div>
+                                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">Insurance details</h4>
+                                                        <div className="bg-indigo-50/30 rounded-2xl p-4 border border-indigo-100/50 mt-3 space-y-3">
+                                                            <div>
+                                                                <p className="text-[8px] font-black text-indigo-400 uppercase">Provider Company</p>
+                                                                <p className="text-xs font-black text-slate-800 uppercase mt-0.5">{foundTruck.insuranceCompany || 'Not Recorded'}</p>
                                                             </div>
-                                                            <p className="text-[8px] font-bold text-slate-300 mt-2">PO: {foundTruck.poNo}</p>
+                                                            <div>
+                                                                <p className="text-[8px] font-black text-indigo-400 uppercase">Policy Number</p>
+                                                                <p className="text-xs font-bold text-slate-700 uppercase mt-0.5">{foundTruck.insurancePolicyNo || 'Not Recorded'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[8px] font-black text-indigo-400 uppercase">Coverage Expiry</p>
+                                                                <p className="text-xs font-bold text-slate-700 mt-0.5">{foundTruck.insuranceExpiryDate ? formatDate(foundTruck.insuranceExpiryDate) : 'Not Recorded'}</p>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                )}
-                                            </div>
-                                            <div className="mt-5 pt-5 border-t border-slate-100">
-                                                <div className="flex items-center justify-between gap-4 flex-wrap">
-                                                    <div>
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase">Warranty Expiry</p>
-                                                        <p className="font-black text-slate-800">{formatDate(warrantyExp)} <span className={`ml-2 text-[10px] px-2 py-0.5 rounded-full font-black ${dRem>60?'bg-emerald-100 text-emerald-700':dRem>0?'bg-amber-100 text-amber-700':'bg-rose-100 text-rose-700'}`}>{dRem>0?'Active':'Expired'}</span></p>
-                                                    </div>
-                                                    <button onClick={()=>setShowComplaintForm(!showComplaintForm)} className="flex items-center gap-2 bg-rose-600 text-white px-6 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-rose-700 shadow-lg shadow-rose-200 transition-all">
-                                                        <Icon name="message-square-plus" size={16}/>Log a Complaint
-                                                    </button>
+
+                                                    {/* QR Code Container (Visible on Desktop, hidden on Mobile) */}
+                                                    {getQrImageUrl && (
+                                                        <div className="hidden lg:flex flex-col items-center justify-center pt-4 shrink-0">
+                                                            <div className="bg-slate-900 rounded-2xl p-3 text-center text-white w-full max-w-[160px] shadow-md">
+                                                                <div className="bg-white rounded-lg p-1 inline-block">
+                                                                    <img src={getQrImageUrl(foundTruck)} alt="Warranty QR Code" width="100" height="100" className="block" style={{imageRendering:'pixelated'}}/>
+                                                                </div>
+                                                                <p className="text-[8px] font-bold text-slate-400 mt-1.5 uppercase tracking-wider">Device QR Reference</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
+                                            </div>
+
+                                            {/* Action / Warranty Expiry Footer */}
+                                            <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Warranty Period Ends</p>
+                                                    <p className="font-black text-slate-800 text-sm mt-0.5">{formatDate(warrantyExp)} <span className={`ml-2 text-[9px] px-2 py-0.5 rounded-full font-black ${dRem>60?'bg-emerald-100 text-emerald-700':dRem>0?'bg-amber-100 text-amber-700':'bg-rose-100 text-rose-700'}`}>{dRem>0?'ACTIVE COVERAGE':'EXPIRED'}</span></p>
+                                                </div>
+                                                <button onClick={()=>setShowComplaintForm(!showComplaintForm)} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-rose-600 text-white px-7 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-rose-700 shadow-lg shadow-rose-200 hover:shadow-xl transition-all">
+                                                    <Icon name="message-square-plus" size={16}/>Log a Complaint
+                                                </button>
                                             </div>
                                         </div>
 
