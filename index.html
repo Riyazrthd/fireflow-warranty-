@@ -222,7 +222,7 @@
                                 <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{paddingBottom:'15px',fontSize:'9px',fontWeight:'900',textTransform:'uppercase'}}/>
                                 <Bar name="Open" dataKey="received" fill="url(#tR)" radius={[6,6,0,0]} barSize={10}/>
                                 <Bar name="Closed" dataKey="closed" fill="url(#tC)" radius={[6,6,0,0]} barSize={10}/>
-                                <Line name="Avg" type="monotone" dataKey="trend" stroke="#6366f1" strokeWidth={3} dot={{r:3,fill:'#fff',stroke:'#6366f1',strokeWidth:2}} animationDuration={1500}/>
+                                <Line name="Mid" type="monotone" dataKey="trend" stroke="#6366f1" strokeWidth={3} dot={{r:3,fill:'#fff',stroke:'#6366f1',strokeWidth:2}} animationDuration={1500}/>
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>
@@ -450,8 +450,12 @@
                     try {
                         const payload = { truck_id: newComp.truckId, complaint_id: newComp.complaintId, category: newComp.category, description: newComp.description, date_received: newComp.dateReceived, mode: newComp.mode, reported_by: newComp.reportedBy, status: 'Open' };
                         const { data: inserted, error } = await sb.from('complaints').insert(payload).select().single();
+                        if (error) throw error;
                         if (!error && inserted) saved = mapComplaint(inserted);
-                    } catch(err) {}
+                    } catch(err) {
+                        alert(`Failed to save complaint: ${err.message || 'Network error. Please try again.'}`);
+                        return;
+                    }
                 }
                 setComplaints(prev => [saved, ...prev]);
                 setCompSubmitted(saved);
@@ -470,8 +474,12 @@
                     try {
                         const payload = { customer_id: newFb.customerId, feedback_text: newFb.feedbackText, feedback_date: newFb.feedbackDate, person_name: newFb.personName, contact_number: newFb.contactNumber, mode: newFb.mode, rating: newFb.rating };
                         const { data: inserted, error } = await sb.from('feedbacks').insert(payload).select().single();
+                        if (error) throw error;
                         if (!error && inserted) saved = mapFeedback(inserted);
-                    } catch(err) {}
+                    } catch(err) {
+                        alert(`Failed to save feedback: ${err.message || 'Network error. Please try again.'}`);
+                        return;
+                    }
                 }
                 setFeedbacks(prev => [saved, ...prev]);
                 setFbSubmitted(true);
@@ -600,6 +608,16 @@
                                                     )}
                                                 </div>
                                             </div>
+
+                                            {!compSubmitted && !showComplaintForm && dRem <= 0 && (
+                                                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 flex items-start gap-3">
+                                                    <Icon name="alert-triangle" size={18} className="text-amber-600 shrink-0 mt-0.5"/>
+                                                    <div>
+                                                        <p className="font-black text-amber-900 text-xs uppercase tracking-widest mb-1">Warranty Expired</p>
+                                                        <p className="text-amber-800 text-xs font-bold leading-relaxed">Your warranty expired {Math.abs(dRem)} days ago. You can still log a complaint but it will be marked <span className="uppercase font-black">Out of Warranty (OW)</span> and may be chargeable.</p>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* Action / Warranty Expiry Footer */}
                                             <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -743,7 +761,7 @@
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
             const [activeTab, setActiveTab] = useState('dashboard');
-            const [viewMode, setViewMode] = useState('admin'); // 'admin' | 'customer'
+            const [viewMode, setViewMode] = useState(() => localStorage.getItem('ff_admin_logged_in') === 'true' ? 'admin' : 'customer');
             const [notifications, setNotifications] = useState([]);
             const [analyticsRange, setAnalyticsRange] = useState(6);
             const [expiryDays, setExpiryDays] = useState(30);
@@ -756,10 +774,11 @@
             const [compDate, setCompDate] = useState('');
 
             // Core Data
-            const [customers, setCustomers] = useState(() => JSON.parse(localStorage.getItem('ff_cust')||'[]'));
-            const [trucks, setTrucks] = useState(() => JSON.parse(localStorage.getItem('ff_trks')||'[]'));
-            const [complaints, setComplaints] = useState(() => JSON.parse(localStorage.getItem('ff_cmps')||'[]'));
-            const [feedbacks, setFeedbacks] = useState(() => JSON.parse(localStorage.getItem('ff_fb')||'[]'));
+            const safeLocalGet = (key) => { try { return JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) { console.warn('localStorage read failed for', key, e); return []; } };
+            const [customers, setCustomers] = useState(() => safeLocalGet('ff_cust'));
+            const [trucks, setTrucks] = useState(() => safeLocalGet('ff_trks'));
+            const [complaints, setComplaints] = useState(() => safeLocalGet('ff_cmps'));
+            const [feedbacks, setFeedbacks] = useState(() => safeLocalGet('ff_fb'));
             const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem('ff_cats')||JSON.stringify(DEFAULT_CATEGORIES)));
 
             // Modals
@@ -779,7 +798,6 @@
             const [showAdminPin, setShowAdminPin] = useState(false);
             const [pinInput, setPinInput] = useState('');
             const [pinError, setPinError] = useState(false);
-            const ADMIN_PIN = '2410'; // Change this to your preferred PIN
             const [editingCustomer, setEditingCustomer] = useState(null);
             const [editingTruck, setEditingTruck] = useState(null);
 
@@ -794,7 +812,7 @@
 
             // QR helper — encodes current page URL + PO hash
             const getQrData = useCallback((truck) => {
-                let base = window.location.href.split('#')[0];
+                let base = window.location.origin + window.location.pathname;
                 // If running locally, fallback to the live GitHub Pages URL so QR codes scanned by mobile phones work!
                 if (base.startsWith('file:') || base.includes('localhost') || base.includes('127.0.0.1')) {
                     base = 'https://riyazrthd.github.io/fireflow-warranty-/';
@@ -842,6 +860,7 @@
                 setUser({ connected: true });
                 const fetchAll = async () => {
                     try {
+
                         const [custRes, trkRes, compRes, catRes, fbRes] = await Promise.all([
                             sb.from('customers').select('*'), sb.from('trucks').select('*'), sb.from('complaints').select('*'), sb.from('categories').select('name'), sb.from('feedbacks').select('*')
                         ]);
@@ -1301,6 +1320,7 @@
             };
 
             const downloadClosureReport = (complaint) => {
+                const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
                 const trk = trucks.find(t => t.id === complaint.truckId);
                 const cust = trk ? customers.find(c => c.id === trk.customerId) : null;
                 const warrantyExp = trk ? calculateWarrantyExpiry(trk.deliveryDate, trk.warrantyMonths) : null;
@@ -1345,10 +1365,10 @@
                 
                 const complaintDateVal = formatDate(complaint.dateReceived);
                 const complaintMode = complaint.mode || 'Mail';
-                const diagnosisVal = complaint.diagnosis || 'Diagnosis details not available.';
+                const diagnosisVal = esc(complaint.diagnosis) || 'Diagnosis details not available.';
                 const remarksHtml = complaint.remarks ? `
                     <p class="text-xs font-semibold text-emerald-700 uppercase text-[9px] mt-3">Additional Engineer Notes</p>
-                    <p class="text-xs font-bold italic text-slate-600 whitespace-pre-line leading-relaxed mb-3">"${complaint.remarks}"</p>
+                    <p class="text-xs font-bold italic text-slate-600 whitespace-pre-line leading-relaxed mb-3">"${esc(complaint.remarks)}"</p>
                 ` : '';
                 
                 const delayReasonHtml = complaint.delayReason ? `
@@ -1455,8 +1475,8 @@
                                         <p class="text-xs font-semibold text-slate-500 uppercase text-[9px]">Category</p>
                                         <p class="text-xs font-black text-slate-700 uppercase mb-2">${complaint.category}</p>
                                         <p class="text-xs font-semibold text-slate-500 uppercase text-[9px]">Description</p>
-                                        <p class="text-xs font-bold text-slate-700 whitespace-pre-line leading-relaxed">"${complaint.description}"</p>
-                                        <p class="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wide">Reported By: ${complaint.reportedBy}</p>
+                                        <p class="text-xs font-bold text-slate-700 whitespace-pre-line leading-relaxed">"${esc(complaint.description)}"</p>
+                                        <p class="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wide">Reported By: ${esc(complaint.reportedBy)}</p>
                                     </div>
                                     <div class="border border-emerald-200 rounded-2xl p-4 bg-emerald-50/20">
                                         <div class="flex justify-between items-center mb-2 text-xs flex-wrap gap-2">
@@ -1518,6 +1538,10 @@
                     </body>
                 </html>`;
 
+                if (!reportWindow) {
+                    alert('Popup blocked! Please allow popups for this site to print reports.\n\nClick the popup icon in your browser address bar and select "Always allow".');
+                    return;
+                }
                 reportWindow.document.write(html);
                 reportWindow.document.close();
             };
@@ -1570,7 +1594,14 @@
                                             setPinInput(next);
                                             setPinError(false);
                                             if(next.length===4){
-                                                if(next===ADMIN_PIN){ setViewMode('admin'); setPortalInitialPo(''); setShowAdminPin(false); setPinInput(''); }
+                                                if(next==='2410'){
+                                                    localStorage.setItem('ff_admin_logged_in', 'true');
+                                                    setUser({ connected: true });
+                                                    setViewMode('admin');
+                                                    setPortalInitialPo('');
+                                                    setShowAdminPin(false);
+                                                    setPinInput('');
+                                                }
                                                 else { setPinError(true); setTimeout(()=>setPinInput(''),600); }
                                             }
                                         }} disabled={k===''}
@@ -1645,6 +1676,9 @@
                         </nav>
                         {/* Customer Portal Switch */}
                         <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
+                            <button onClick={()=>{ localStorage.setItem('ff_admin_logged_in', 'false'); setViewMode('customer'); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[10px] font-black text-slate-400 hover:text-rose-400 uppercase tracking-widest transition-colors">
+                                <Icon name="log-out" size={14}/>Logout
+                            </button>
                             <button onClick={()=>setViewMode('customer')} className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-[11px] font-black uppercase tracking-wide text-white shadow-lg hover:shadow-indigo-500/30 transition-all">
                                 <Icon name="users-2" size={14}/>Customer Portal
                             </button>
