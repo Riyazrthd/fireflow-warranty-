@@ -761,7 +761,7 @@
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
             const [activeTab, setActiveTab] = useState('dashboard');
-            const [viewMode, setViewMode] = useState(() => localStorage.getItem('ff_admin_logged_in') === 'true' ? 'admin' : 'customer');
+            const [viewMode, setViewMode] = useState('customer');
             const [notifications, setNotifications] = useState([]);
             const [analyticsRange, setAnalyticsRange] = useState(6);
             const [expiryDays, setExpiryDays] = useState(30);
