@@ -523,9 +523,9 @@
                                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 portal-glow">
                                     <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="shield-check" size={18} className="text-indigo-600"/> Warranty & Vehicle Lookup</h2>
                                     <p className="text-[11px] text-slate-500 font-bold mb-5">Enter your Purchase Order (PO) number to check warranty status.</p>
-                                    <div className="flex gap-3">
+                                    <div className="flex flex-col sm:flex-row gap-3">
                                         <input type="text" value={lookupQuery} onChange={e=>setLookupQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleLookup()} placeholder="e.g. PO-802" className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-300"/>
-                                        <button onClick={handleLookup} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-7 py-3.5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-lg hover:shadow-indigo-200 hover:shadow-xl transition-all">Search</button>
+                                        <button onClick={handleLookup} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-7 py-3.5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-lg hover:shadow-indigo-200 hover:shadow-xl transition-all w-full sm:w-auto">Search</button>
                                     </div>
                                     {lookupError && <div className="mt-3 flex items-center gap-2 text-rose-600 text-sm font-bold bg-rose-50 px-4 py-3 rounded-xl border border-rose-100"><Icon name="alert-circle" size={16}/>{lookupError}</div>}
                                 </div>
@@ -2015,7 +2015,7 @@
                                 <div className="grid grid-cols-2 gap-4"><Input label="LPM Capacity" value={newTrk.pumpLpm} onChange={v=>setNewTrk({...newTrk,pumpLpm:v})}/><Input label="Chassis Make" value={newTrk.chassisMake} onChange={v=>setNewTrk({...newTrk,chassisMake:v})}/></div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="Water Tank Capacity (Ltrs)" value={newTrk.waterCapacity} onChange={v=>setNewTrk({...newTrk,waterCapacity:v})}/><Input label="Foam Tank Capacity (Ltrs)" value={newTrk.foamCapacity} onChange={v=>setNewTrk({...newTrk,foamCapacity:v})}/></div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="Delivery Date" type="date" value={newTrk.deliveryDate} onChange={v=>setNewTrk({...newTrk,deliveryDate:v})} required/><Input label="Warranty Months" type="number" value={newTrk.warrantyMonths} onChange={v=>setNewTrk({...newTrk,warrantyMonths:v})}/></div>
-                                <div className="grid grid-cols-2 gap-4"><Input label="Insurance Company" value={newTrk.insuranceCompany} onChange={v=>setNewTrk({...newTrk,insuranceCompany:v})}/><Input label="Insurance Expiry" type="date" value={newTrk.insuranceExpiryDate} onChange={v=>setNewTrk({...newTrk,insuranceExpiryDate:v})}/></div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"><Input label="Insurance Company" value={newTrk.insuranceCompany} onChange={v=>setNewTrk({...newTrk,insuranceCompany:v})}/><Input label="Policy No" value={newTrk.insurancePolicyNo} onChange={v=>setNewTrk({...newTrk,insurancePolicyNo:v})}/><Input label="Insurance Expiry" type="date" value={newTrk.insuranceExpiryDate} onChange={v=>setNewTrk({...newTrk,insuranceExpiryDate:v})}/></div>
                                 <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl mt-2 tracking-widest hover:bg-blue-700">{editingTruck?'Update':'Save & Generate QR ▶'}</button>
                             </form>
                         </Modal>
