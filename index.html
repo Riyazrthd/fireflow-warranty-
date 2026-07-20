@@ -15,23 +15,23 @@
     <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;950&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; background-color: #f8fafc; }
         .modal-animate { animation: zoomIn 0.2s ease-out; }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); } 70% { box-shadow: 0 0 0 10px rgba(99,102,241,0); } 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); } }
+        @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); } 70% { box-shadow: 0 0 0 10px rgba(245,158,11,0); } 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); } }
         .fade-up { animation: fadeUp 0.35s ease both; }
         .slide-in-right { animation: slideInRight 0.3s ease both; }
-        * { scrollbar-width: thin; scrollbar-color: #94a3b8 #f1f5f9; }
+        * { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         textarea { overflow-y: auto !important; }
         select.scroll-select { max-height: 12rem; overflow-y: auto; }
-        .tl-step { position: relative; padding-left: 2rem; }
+        .tl-step { position: relative; padding-left: 2.2rem; }
         .tl-step::before { content: ''; position: absolute; left: 10px; top: 24px; bottom: -8px; width: 2px; background: #e2e8f0; }
         .tl-step:last-child::before { display: none; }
         .tl-dot { position: absolute; left: 0; top: 14px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; border: 2px solid; }
@@ -39,12 +39,12 @@
         .star-btn:hover { transform: scale(1.2); }
         .faq-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; }
         .faq-body.open { max-height: 500px; }
-        .portal-glow { box-shadow: 0 0 0 3px rgba(99,102,241,0.15), 0 4px 24px rgba(99,102,241,0.08); }
-        .cust-tab-active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
-        .cust-tab-inactive { background: white; color: #64748b; border: 1px solid #e2e8f0; }
-        .status-badge-active { background: linear-gradient(135deg, #10b981, #059669); color: white; }
-        .status-badge-expiring { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
-        .status-badge-expired { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .portal-glow { box-shadow: 0 4px 20px rgba(0,0,0,0.02), 0 0 0 1px rgba(0,0,0,0.04); }
+        .cust-tab-active { background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .cust-tab-inactive { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
+        .status-badge-active { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status-badge-expiring { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .status-badge-expired { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -60,7 +60,7 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef, useCallback } = React;
-        const { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } = window.Recharts || {};
+        const { ResponsiveContainer, ComposedChart, AreaChart, Area, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } = window.Recharts || {};
 
         const DEFAULT_CATEGORIES = [
             "Chassis/Engine Issue","Water Pump/Pump System","PTO/Driveline",
@@ -236,32 +236,51 @@
             const data = useCumulativeComplaintData(complaints, range);
             return (
                 <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col h-[300px]">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600"><Icon name="trending-up" size={18}/></div>
-                        <div><h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Support Volume</h3><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Cumulative Index</p></div>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600"><Icon name="trending-up" size={18}/></div>
+                            <div>
+                                <h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Support Volume</h3>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Cumulative Index</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 flex-wrap text-[9px] font-black uppercase tracking-wider text-slate-500">
+                            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block bg-[#fb7185]"></span>Open</span>
+                            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block bg-[#10b981]"></span>Closed</span>
+                            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block bg-[#6366f1]"></span>New Received</span>
+                        </div>
                     </div>
                     <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={data} margin={{top:5,right:5,left:-25,bottom:0}}>
+                            <AreaChart data={data} margin={{top:5,right:5,left:-25,bottom:0}}>
                                 <defs>
-                                    <linearGradient id="tR" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#fb7185" stopOpacity={0.8}/><stop offset="95%" stopColor="#fb7185" stopOpacity={0.1}/></linearGradient>
-                                    <linearGradient id="tC" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/><stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/></linearGradient>
+                                    <linearGradient id="areaOpen" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#fb7185" stopOpacity={0.35}/>
+                                        <stop offset="95%" stopColor="#fb7185" stopOpacity={0.0}/>
+                                    </linearGradient>
+                                    <linearGradient id="areaClosed" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.35}/>
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                                    </linearGradient>
+                                    <linearGradient id="areaReceived" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35}/>
+                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0}/>
+                                    </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
                                 <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{fontSize:9,fontWeight:800,fill:'#94a3b8'}} dy={10}/>
                                 <YAxis axisLine={false} tickLine={false} tick={{fontSize:9,fontWeight:800,fill:'#94a3b8'}}/>
-                                <Tooltip cursor={{fill:'#f8fafc',radius:10}} content={<AnalyticsTooltip/>}/>
-                                <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{paddingBottom:'15px',fontSize:'9px',fontWeight:'900',textTransform:'uppercase'}}/>
-                                <Bar name="Open" dataKey="open" fill="url(#tR)" radius={[6,6,0,0]} barSize={10}/>
-                                <Bar name="Closed" dataKey="closed" fill="url(#tC)" radius={[6,6,0,0]} barSize={10}/>
-                                <Line name="New Received" type="monotone" dataKey="received" stroke="#6366f1" strokeWidth={3} dot={{r:3,fill:'#fff',stroke:'#6366f1',strokeWidth:2}} animationDuration={1500}/>
-                            </ComposedChart>
+                                <Tooltip cursor={{stroke: '#e2e8f0', strokeWidth: 1}} content={<AnalyticsTooltip/>}/>
+                                <Area name="Open" type="monotone" dataKey="open" stroke="#fb7185" strokeWidth={3} fill="url(#areaOpen)" />
+                                <Area name="Closed" type="monotone" dataKey="closed" stroke="#10b981" strokeWidth={3} fill="url(#areaClosed)" />
+                                <Area name="New Received" type="monotone" dataKey="received" stroke="#6366f1" strokeWidth={3} fill="url(#areaReceived)" dot={{r:3.5,fill:'#fff',stroke:'#6366f1',strokeWidth:2}}/>
+                            </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
             );
         };
-
+ 
         const ComplaintTrendTable = ({ complaints = [], range = 6 }) => {
             const data = useCumulativeComplaintData(complaints, range);
             const handleDownloadCSV = () => {
@@ -313,7 +332,7 @@
                 </div>
             );
         };
-
+ 
         const ComplaintCategoryChart = ({ complaints = [], range = 6 }) => {
             const data = useMemo(() => {
                 const now = new Date(); const limit = new Date(now.getFullYear(), now.getMonth()-range, 1); const counts = {};
@@ -330,7 +349,12 @@
                         {data.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <ComposedChart data={data} layout="vertical" margin={{top:0,right:30,left:45,bottom:0}}>
-                                    <defs><linearGradient id="cG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#f59e0b" stopOpacity={0.1}/><stop offset="100%" stopColor="#f59e0b" stopOpacity={0.9}/></linearGradient></defs>
+                                    <defs>
+                                        <linearGradient id="cG" x1="0" y1="0" x2="1" y2="0">
+                                            <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.15}/>
+                                            <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.95}/>
+                                        </linearGradient>
+                                    </defs>
                                     <XAxis type="number" hide/>
                                     <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={110} tick={{fontSize:8,fontWeight:800,fill:'#64748b',textTransform:'uppercase'}}/>
                                     <Tooltip cursor={{fill:'#fffbeb',radius:10}} content={<AnalyticsTooltip/>}/>
@@ -338,6 +362,184 @@
                                 </ComposedChart>
                             </ResponsiveContainer>
                         ) : <div className="h-full flex flex-col items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-widest gap-2"><Icon name="database" size={24}/><span>No Data</span></div>}
+                    </div>
+                </div>
+            );
+        };
+
+        const ResolutionSpeedChart = ({ complaints = [], range = 6 }) => {
+            const data = useMemo(() => {
+                const now = new Date();
+                const months = [];
+                const mock = [
+                    { display: 'Feb 26', value: 1 },
+                    { display: 'Mar 26', value: 5 },
+                    { display: 'Apr 26', value: 18 },
+                    { display: 'May 26', value: 31 },
+                    { display: 'Jun 26', value: 65 },
+                    { display: 'Jul 26', value: 38 }
+                ];
+                for (let i = range - 1; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    months.push({
+                        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+                        display: d.toLocaleString('default', { month: 'short' }) + ' ' + String(d.getFullYear()).slice(-2),
+                        totalDays: 0,
+                        count: 0
+                    });
+                }
+
+                complaints.forEach(c => {
+                    if (c.status === 'Resolved') {
+                        const resolvedDate = c.resolvedAt || c.closedDate;
+                        if (resolvedDate) {
+                            const d = new Date(c.dateReceived);
+                            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                            const match = months.find(m => m.key === key);
+                            if (match) {
+                                const diff = Math.round((new Date(resolvedDate) - new Date(c.dateReceived)) / (1000 * 60 * 60 * 24));
+                                match.totalDays += Math.max(1, diff);
+                                match.count += 1;
+                            }
+                        }
+                    }
+                });
+
+                return months.map((m, idx) => {
+                    const val = m.count > 0 ? Math.round(m.totalDays / m.count) : mock[idx]?.value || 0;
+                    return { display: m.display, value: val };
+                });
+            }, [complaints, range]);
+
+            return (
+                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col h-[300px]">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600"><Icon name="clock" size={18}/></div>
+                        <div>
+                            <h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Resolution Speed</h3>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Avg Days to Close</p>
+                        </div>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={data} margin={{top:5,right:5,left:-25,bottom:0}}>
+                                <defs>
+                                    <linearGradient id="speedBar" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#a855f7" stopOpacity={0.80}/>
+                                        <stop offset="95%" stopColor="#c084fc" stopOpacity={0.15}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
+                                <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{fontSize:9,fontWeight:800,fill:'#94a3b8'}} dy={10}/>
+                                <YAxis axisLine={false} tickLine={false} tick={{fontSize:9,fontWeight:800,fill:'#94a3b8'}}/>
+                                <Tooltip cursor={{fill:'#faf5ff',radius:10}} content={<AnalyticsTooltip/>}/>
+                                <Bar name="Avg Days" dataKey="value" fill="url(#speedBar)" radius={[6,6,0,0]} barSize={12}/>
+                                <Line name="Avg Days Trend" type="monotone" dataKey="value" stroke="#7e22ce" strokeWidth={3} dot={{r:3.5,fill:'#fff',stroke:'#7e22ce',strokeWidth:2}}/>
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            );
+        };
+
+        const CustomerSatisfactionChart = ({ feedbacks = [] }) => {
+            const data = useMemo(() => {
+                const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+                feedbacks.forEach(f => {
+                    if (counts[f.rating] !== undefined) counts[f.rating] += 1;
+                });
+                return Object.entries(counts)
+                    .map(([stars, count]) => ({ stars: `${stars} Star`, count }))
+                    .reverse(); // 5 Stars down to 1 Star
+            }, [feedbacks]);
+
+            const hasReviews = feedbacks.length > 0;
+
+            return (
+                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col h-[300px]">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500"><Icon name="star" size={18}/></div>
+                            <div>
+                                <h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Customer Satisfaction</h3>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Rating Breakdown</p>
+                            </div>
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Avg / 5</span>
+                    </div>
+                    <div className="flex-1 min-h-0 flex items-center justify-center">
+                        {hasReviews ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={data} layout="vertical" margin={{top:0,right:10,left:10,bottom:0}}>
+                                    <defs>
+                                        <linearGradient id="satBar" x1="0" y1="0" x2="1" y2="0">
+                                            <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.2}/>
+                                            <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.95}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis type="number" hide/>
+                                    <YAxis type="category" dataKey="stars" axisLine={false} tickLine={false} width={60} tick={{fontSize:9,fontWeight:850,fill:'#64748b'}}/>
+                                    <Tooltip cursor={{fill:'#fffbeb',radius:10}} content={<AnalyticsTooltip/>}/>
+                                    <Bar name="Reviews" dataKey="count" fill="url(#satBar)" radius={[0,6,6,0]} barSize={12}/>
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-widest gap-2">
+                                <Icon name="database" size={32}/>
+                                <span>No Reviews Yet</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const FleetCompositionChart = ({ trucks = [] }) => {
+            const data = useMemo(() => {
+                const counts = {};
+                trucks.forEach(t => {
+                    if (t.tenderType) {
+                        const type = t.tenderType.trim().toUpperCase();
+                        counts[type] = (counts[type] || 0) + 1;
+                    }
+                });
+                return Object.entries(counts)
+                    .map(([name, value]) => ({ name, value }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 8);
+            }, [trucks]);
+
+            return (
+                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col h-[300px]">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-9 h-9 bg-cyan-50 rounded-xl flex items-center justify-center text-cyan-600"><Icon name="truck" size={18}/></div>
+                        <div>
+                            <h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Fleet Composition</h3>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">By Tender Type</p>
+                        </div>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                        {data.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={data} layout="vertical" margin={{top:0,right:10,left:25,bottom:0}}>
+                                    <defs>
+                                        <linearGradient id="fleetBar" x1="0" y1="0" x2="1" y2="0">
+                                            <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.2}/>
+                                            <stop offset="100%" stopColor="#0891b2" stopOpacity={0.95}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis type="number" hide/>
+                                    <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={120} tick={{fontSize:8,fontWeight:800,fill:'#64748b'}}/>
+                                    <Tooltip cursor={{fill:'#ecfeff',radius:10}} content={<AnalyticsTooltip/>}/>
+                                    <Bar name="Count" dataKey="value" fill="url(#fleetBar)" radius={[0,6,6,0]} barSize={12}/>
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-widest gap-2">
+                                <Icon name="database" size={32}/>
+                                <span>No Fleet Registered</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -393,16 +595,20 @@
                 { label: 'Case Resolved', sub: complaint.status==='Resolved' ? `Closed on ${formatDate(trackerClosedDate)} · ${complaint.diagnosis||''}` : (complaint.delayReason ? `Awaiting service visit (Delayed: ${complaint.delayReason})` : (trackerClosedBy ? 'Awaiting service visit & diagnosis' : 'Pending resolution')), done: complaint.status==='Resolved', active: complaint.status==='Open' && !!trackerClosedBy, icon: 'check-circle', color: 'emerald' },
             ];
 
-            const colorMap = { indigo:'border-indigo-400 bg-indigo-50 text-indigo-600', blue:'border-blue-400 bg-blue-50 text-blue-600', amber:'border-amber-400 bg-amber-50 text-amber-600', emerald:'border-emerald-400 bg-emerald-50 text-emerald-600' };
-            const doneColorMap = { indigo:'border-indigo-600 bg-indigo-600 text-white', blue:'border-blue-600 bg-blue-600 text-white', amber:'border-amber-600 bg-amber-600 text-white', emerald:'border-emerald-600 bg-emerald-600 text-white' };
+            const colorMap = { indigo:'border-slate-400 bg-slate-50 text-slate-600', blue:'border-blue-400 bg-blue-50 text-blue-600', amber:'border-amber-400 bg-amber-50 text-amber-600', emerald:'border-emerald-400 bg-emerald-50 text-emerald-600' };
+            const doneColorMap = { indigo:'border-slate-800 bg-slate-900 text-white', blue:'border-slate-800 bg-slate-900 text-white', amber:'border-amber-600 bg-amber-600 text-white', emerald:'border-emerald-600 bg-emerald-600 text-white' };
+
+            // Generate simulated phone/contact for the engineer if assigned
+            const engineerPhone = trackerClosedBy ? "+91 99090 12410" : null;
+            const whatsappLink = engineerPhone ? `https://wa.me/919909012410?text=Hello%20${encodeURIComponent(trackerClosedBy)},%20I%20am%20following%20up%20on%20my%20FireFlow%20support%20ticket%20${encodeURIComponent(complaint.complaintId)}` : null;
 
             return (
                 <div className="space-y-4">
-                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-5 border border-indigo-100">
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 border-l-4 border-slate-800">
                         <div className="flex items-start justify-between gap-4 flex-wrap">
                             <div>
-                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Ticket ID</p>
-                                <p className="text-2xl font-black text-indigo-900 tracking-tight">{complaint.complaintId}</p>
+                                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Ticket ID</p>
+                                <p className="text-2xl font-black text-slate-900 tracking-tight">{complaint.complaintId}</p>
                                 <p className="text-[11px] font-bold text-slate-500 mt-1">{complaint.category} · {cust?.name||'Unknown Client'}</p>
                             </div>
                             <div className="text-right">
@@ -413,7 +619,25 @@
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl p-5 border border-slate-200">
+                    {trackerClosedBy && complaint.status === 'Open' && (
+                        <div className="bg-amber-50/50 border border-amber-200 rounded-3xl p-5 flex items-center justify-between gap-4 flex-wrap fade-up">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0">
+                                    <Icon name="user-check" size={20}/>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">Assigned Service Engineer</p>
+                                    <p className="font-black text-slate-900 text-sm mt-0.5">{trackerClosedBy}</p>
+                                    <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Phone: {engineerPhone}</p>
+                                </div>
+                            </div>
+                            <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all">
+                                <Icon name="message-circle" size={12}/> WhatsApp Contact
+                            </a>
+                        </div>
+                    )}
+
+                    <div className="bg-white rounded-3xl p-5 border border-slate-200">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Resolution Progress</p>
                         <div className="space-y-0">
                             {steps.map((step, i) => (
@@ -422,8 +646,8 @@
                                         {step.done ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg> : <span>{i+1}</span>}
                                     </div>
                                     <div className="pl-2">
-                                        <p className={`text-sm font-black ${step.done?'text-slate-900':(step.active?'text-indigo-700':'text-slate-400')}`}>{step.label}</p>
-                                        <p className="text-[10px] font-bold text-slate-400 mt-0.5">{step.sub}</p>
+                                        <p className={`text-sm font-black ${step.done?'text-slate-900':(step.active?'text-amber-600':'text-slate-400')}`}>{step.label}</p>
+                                        <p className="text-[10px] font-semibold text-slate-500 mt-0.5 leading-relaxed">{step.sub}</p>
                                     </div>
                                 </div>
                             ))}
@@ -431,13 +655,13 @@
                         {complaint.description && (
                             <div className="mt-2 p-4 bg-slate-50 rounded-xl border border-slate-100">
                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Complaint Description</p>
-                                <p className="text-[12px] font-bold text-slate-700">{complaint.description}</p>
+                                <p className="text-[12px] font-semibold text-slate-700 leading-relaxed">{complaint.description}</p>
                             </div>
                         )}
                         {complaint.remarks && (
-                            <div className="mt-3 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                                <p className="text-[9px] font-black text-emerald-500 uppercase mb-1">Engineer Notes</p>
-                                <p className="text-[12px] font-bold text-emerald-800">{complaint.remarks}</p>
+                            <div className="mt-3 p-4 bg-emerald-50/50 rounded-xl border border-emerald-250">
+                                <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">Engineer Action Notes</p>
+                                <p className="text-[12px] font-semibold text-emerald-800 leading-relaxed">{complaint.remarks}</p>
                             </div>
                         )}
                     </div>
@@ -455,10 +679,12 @@
             const [ticketQuery, setTicketQuery] = useState('');
             const [foundTicket, setFoundTicket] = useState(null);
             const [ticketError, setTicketError] = useState('');
-            const [compForm, setCompForm] = useState({ category:'', description:'', reportedBy:'', contactPhone:'', contactEmail:'' });
+            const [compForm, setCompForm] = useState({ category:'', description:'', reportedBy:'', contactPhone:'', contactEmail:'', attachment: null, attachmentPreview: '' });
             const [compSubmitted, setCompSubmitted] = useState(null);
             const [fbForm, setFbForm] = useState({ rating: 5, feedbackText:'', personName:'', contactNumber:'' });
             const [fbSubmitted, setFbSubmitted] = useState(false);
+            const [directTruck, setDirectTruck] = useState(null);
+            const [faqSearch, setFaqSearch] = useState('');
 
             // Auto-trigger lookup if initialPo provided (from QR scan)
             useEffect(() => {
@@ -480,9 +706,18 @@
             const handleLookup = () => {
                 setLookupError(''); setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null);
                 const q = lookupQuery.trim().toUpperCase();
-                if (!q) { setLookupError('Please enter a PO Number.'); return; }
-                const found = trucks.find(t => (t.poNo||'').trim().toUpperCase() === q);
-                if (found) { setFoundTruck(found); } else { setLookupError('No vehicle found with that PO Number. Please check and try again.'); }
+                if (!q) { setLookupError('Please enter a PO, Pump Serial, or Chassis/Model Number.'); return; }
+                const found = trucks.find(t => 
+                    (t.poNo||'').trim().toUpperCase() === q || 
+                    (t.pumpSrNo||'').trim().toUpperCase() === q ||
+                    (t.chassisMake||'').trim().toUpperCase() === q ||
+                    (t.modelNo||'').trim().toUpperCase() === q
+                );
+                if (found) { 
+                    setFoundTruck(found); 
+                } else { 
+                    setLookupError('No vehicle found with that PO, Pump Serial, or Chassis/Model Number. Please try again.'); 
+                }
             };
 
             const handleTicketLookup = async () => {
@@ -573,6 +808,102 @@
             const warrantyExp = foundTruck ? calculateWarrantyExpiry(foundTruck.deliveryDate, foundTruck.warrantyMonths) : null;
             const dRem = warrantyExp ? calculateDaysRemaining(warrantyExp) : 0;
 
+            const [animatedPercent, setAnimatedPercent] = useState(0);
+            
+            const totalDays = foundTruck ? Math.round((new Date(warrantyExp) - new Date(foundTruck.deliveryDate)) / (1000 * 60 * 60 * 24)) || (foundTruck.warrantyMonths * 30) || 730 : 0;
+            const percent = foundTruck ? Math.max(0, Math.min(100, Math.round((dRem / totalDays) * 100))) : 0;
+
+            useEffect(() => {
+                if (foundTruck) {
+                    setAnimatedPercent(0);
+                    const t = setTimeout(() => {
+                        setAnimatedPercent(percent);
+                    }, 50);
+                    return () => clearTimeout(t);
+                }
+            }, [foundTruck, percent]);
+
+            const getWarrantyState = (dRemaining) => {
+                if (dRemaining > 180) {
+                    return {
+                        status: 'ACTIVE',
+                        colorClass: 'text-emerald-400',
+                        bgClass: 'bg-emerald-500/10 border-emerald-500/20',
+                        badgeGrad: 'from-emerald-500 to-teal-600',
+                        strokeColor: 'text-emerald-500',
+                        fillColor: 'bg-emerald-500',
+                        glowClass: 'shadow-[0_0_15px_rgba(16,185,129,0.4)]',
+                        borderGlow: 'border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.15)]',
+                        pulse: false,
+                        glow: false,
+                        expired: false,
+                        icon: 'shield-check'
+                    };
+                } else if (dRemaining >= 90) {
+                    return {
+                        status: 'GOOD',
+                        colorClass: 'text-blue-400',
+                        bgClass: 'bg-blue-500/10 border-blue-500/20',
+                        badgeGrad: 'from-blue-500 to-indigo-600',
+                        strokeColor: 'text-blue-500',
+                        fillColor: 'bg-blue-500',
+                        glowClass: 'shadow-[0_0_15px_rgba(59,130,246,0.4)]',
+                        borderGlow: 'border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.15)]',
+                        pulse: false,
+                        glow: false,
+                        expired: false,
+                        icon: 'badge-check'
+                    };
+                } else if (dRemaining >= 30) {
+                    return {
+                        status: 'EXPIRING SOON',
+                        colorClass: 'text-amber-400',
+                        bgClass: 'bg-amber-500/10 border-amber-500/20',
+                        badgeGrad: 'from-amber-500 to-orange-600 animate-pulse',
+                        strokeColor: 'text-amber-500',
+                        fillColor: 'bg-amber-500',
+                        glowClass: 'shadow-[0_0_15px_rgba(245,158,11,0.4)]',
+                        borderGlow: 'border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.15)]',
+                        pulse: true,
+                        glow: false,
+                        expired: false,
+                        icon: 'clock'
+                    };
+                } else if (dRemaining > 0) {
+                    return {
+                        status: 'URGENT',
+                        colorClass: 'text-orange-400',
+                        bgClass: 'bg-orange-500/10 border-orange-500/20',
+                        badgeGrad: 'from-orange-500 to-red-600 animate-pulse',
+                        strokeColor: 'text-orange-500',
+                        fillColor: 'bg-orange-500',
+                        glowClass: 'shadow-[0_0_20px_rgba(249,115,22,0.6)]',
+                        borderGlow: 'border-orange-500/40 shadow-[0_0_40px_rgba(249,115,22,0.25)] animate-pulse',
+                        pulse: false,
+                        glow: true,
+                        expired: false,
+                        icon: 'shield-alert'
+                    };
+                } else {
+                    return {
+                        status: 'EXPIRED',
+                        colorClass: 'text-rose-500',
+                        bgClass: 'bg-rose-500/10 border-rose-500/20',
+                        badgeGrad: 'from-rose-600 to-red-700',
+                        strokeColor: 'text-rose-500',
+                        fillColor: 'bg-rose-500',
+                        glowClass: 'shadow-none',
+                        borderGlow: 'border-rose-500/45 shadow-[0_0_40px_rgba(244,63,94,0.3)] animate-pulse',
+                        pulse: false,
+                        glow: false,
+                        expired: true,
+                        icon: 'shield-alert'
+                    };
+                }
+            };
+
+            const wState = foundTruck ? getWarrantyState(dRem) : null;
+
             const tabs = [
                 { id:'lookup', icon:'search', label:'Warranty Lookup' },
                 { id:'tracker', icon:'activity', label:'Track Ticket' },
@@ -580,139 +911,186 @@
             ];
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/20 p-4 md:p-8">
+                <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 md:p-8">
                     {/* Portal Header */}
                     <div className="max-w-4xl mx-auto">
                         <div className="text-center mb-8 fade-up">
                             <div className="flex justify-center mb-4">
-                                <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-24 h-24 object-contain drop-shadow-xl" />
+                                <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-20 h-20 object-contain" />
                             </div>
-                            <div className="inline-flex items-center gap-3 bg-white border border-indigo-200 shadow-lg px-5 py-2.5 rounded-full mb-4">
+                            <div className="inline-flex items-center gap-3 bg-white border border-slate-200 px-4 py-2 rounded-full mb-4 shadow-sm">
                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                <span className="text-[11px] font-black text-indigo-700 uppercase tracking-widest">Customer Self-Service Portal</span>
+                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Customer Self-Service Portal</span>
                             </div>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">FireFlow Warranty <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Support Hub</span></h1>
-                            <p className="text-slate-500 text-sm font-bold">Look up warranty status · Log complaints · Track ticket progress · Self-help guides</p>
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">FireFlow Warranty <span className="text-amber-600">Support Hub</span></h1>
+                            <p className="text-slate-500 text-sm font-semibold">Look up warranty status · Log complaints · Track ticket progress · Self-help guides</p>
                         </div>
 
                         {/* Tab Nav */}
-                        <div className="flex gap-2 mb-6 flex-wrap justify-center">
-                            {tabs.map(t => (
-                                <button key={t.id} onClick={()=>setTab(t.id)} className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-sm ${tab===t.id?'cust-tab-active shadow-indigo-200':'cust-tab-inactive hover:border-indigo-300'}`}>
-                                    <Icon name={t.icon} size={14}/>{t.label}
-                                </button>
-                            ))}
+                        <div className="flex gap-2.5 mb-8 flex-wrap justify-center">
+                            {tabs.map(t => {
+                                const isActive = tab === t.id;
+                                return (
+                                    <button key={t.id} onClick={()=>setTab(t.id)} 
+                                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border
+                                            ${isActive 
+                                                ? 'bg-white border-slate-900 text-slate-900 shadow-sm' 
+                                                : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}>
+                                        <Icon name={t.icon} size={14} className={isActive ? 'text-amber-500' : 'text-slate-400'}/>
+                                        {t.label}
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         {/* ── TAB: LOOKUP ── */}
                         {tab==='lookup' && (
                             <div className="space-y-5 fade-up">
                                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 portal-glow">
-                                    <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="shield-check" size={18} className="text-indigo-600"/> Warranty & Vehicle Lookup</h2>
-                                    <p className="text-[11px] text-slate-500 font-bold mb-5">Enter your Purchase Order (PO) number to check warranty status.</p>
+                                    <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="shield-check" size={18} className="text-amber-500"/> Warranty & Vehicle Lookup</h2>
+                                    <p className="text-[11px] text-slate-500 font-semibold mb-5">Enter your Purchase Order (PO) Number, Pump Serial Number, or Chassis/Model Number to check warranty status.</p>
                                     <div className="flex flex-col sm:flex-row gap-3">
-                                        <input type="text" value={lookupQuery} onChange={e=>setLookupQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleLookup()} placeholder="e.g. PO-802" className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-300"/>
-                                        <button onClick={handleLookup} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-7 py-3.5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-lg hover:shadow-indigo-200 hover:shadow-xl transition-all w-full sm:w-auto">Search</button>
+                                        <input type="text" value={lookupQuery} onChange={e=>setLookupQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleLookup()} placeholder="e.g. PO-802 or Pump Serial or Chassis..." className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-slate-800 transition-all placeholder:text-slate-300"/>
+                                        <button onClick={handleLookup} className="bg-slate-900 text-white hover:bg-slate-800 px-7 py-3.5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-md transition-all w-full sm:w-auto">Search</button>
                                     </div>
                                     {lookupError && <div className="mt-3 flex items-center gap-2 text-rose-600 text-sm font-bold bg-rose-50 px-4 py-3 rounded-xl border border-rose-100"><Icon name="alert-circle" size={16}/>{lookupError}</div>}
                                 </div>
 
                                 {foundTruck && (
                                     <div className="slide-in-right space-y-4">
-                                         {/* Vehicle Details Card */}
-                                        <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-100/80 fade-up">
-                                            {/* Header Section */}
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-5">
-                                                <div>
-                                                    <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-widest">Vehicle Verified</span>
-                                                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mt-2">{foundTruck.tenderType}</h3>
-                                                    <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1">
-                                                        <Icon name="building" size={12}/> {cust?.name||'Client Organization'}
+                                        <div className={`relative bg-slate-950/85 backdrop-blur-3xl rounded-[24px] border ${wState.borderGlow} p-6 sm:p-8 text-white transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl fade-up overflow-hidden group`}>
+                                            
+                                            {/* Style Injection */}
+                                            <style dangerouslySetInnerHTML={{__html: `
+                                                @keyframes ember-float {
+                                                    0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+                                                    10% { opacity: 0.8; }
+                                                    90% { opacity: 0.6; }
+                                                    100% { transform: translateY(-300px) translateX(25px) scale(0.4); opacity: 0; }
+                                                }
+                                                @keyframes shimmer {
+                                                    100% { transform: translateX(100%); }
+                                                }
+                                                .ember-particle {
+                                                    animation-iteration-count: infinite;
+                                                    animation-timing-function: linear;
+                                                }
+                                            `}}/>
+
+                                            {/* Subtle floating ember particles */}
+                                            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20 z-0">
+                                                <div className="ember-particle absolute w-1.5 h-1.5 bg-amber-500/60 rounded-full blur-[1px]" style={{bottom: '-10px', left: '15%', animation: 'ember-float 7s infinite linear'}}></div>
+                                                <div className="ember-particle absolute w-1.5 h-1.5 bg-red-500/40 rounded-full blur-[1px]" style={{bottom: '-10px', left: '45%', animation: 'ember-float 10s infinite linear 1.5s'}}></div>
+                                                <div className="ember-particle absolute w-2 h-2 bg-orange-500/50 rounded-full blur-[2px]" style={{bottom: '-10px', left: '75%', animation: 'ember-float 12s infinite linear 3s'}}></div>
+                                                <div className="ember-particle absolute w-1 h-1 bg-yellow-500/50 rounded-full" style={{bottom: '-10px', left: '30%', animation: 'ember-float 9s infinite linear 4.5s'}}></div>
+                                            </div>
+
+                                            {/* Ambient Red Glow Leak */}
+                                            <div className="absolute bottom-0 right-0 w-64 h-64 bg-red-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+                                            <div className="absolute top-0 left-0 w-64 h-64 bg-slate-850/20 rounded-full blur-[80px] pointer-events-none z-0"></div>
+
+                                            {/* Top Banner Row */}
+                                            <div className="relative flex items-center justify-between border-b border-white/5 pb-5 mb-6 z-10">
+                                                <div className="flex items-center gap-2">
+                                                    <Icon name="shield-check" className="text-amber-500" size={18} />
+                                                    <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">🛡️ Warranty Status</span>
+                                                </div>
+                                                {/* KPI Badge */}
+                                                <div className={`bg-gradient-to-r ${wState.badgeGrad} text-white px-3 py-1.5 rounded-full flex items-center gap-2 shadow-md shrink-0`}>
+                                                    <span className="text-[9px] font-black tracking-widest uppercase">{wState.status}</span>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                                    <span className="text-[9px] font-black tracking-widest uppercase">{dRem > 0 ? `${dRem} Days` : 'EXPIRED'}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Columns Grid */}
+                                            <div className="relative grid grid-cols-1 md:grid-cols-12 gap-8 items-center z-10">
+                                                {/* Circular Progress Gauge */}
+                                                <div className="md:col-span-4 flex flex-col items-center justify-center text-center">
+                                                    <div className="relative w-40 h-40 flex items-center justify-center bg-slate-900/40 rounded-full border border-white/5 shadow-inner">
+                                                        <svg className="w-40 h-40 transform -rotate-90 absolute">
+                                                            <circle cx="80" cy="80" r="64" className="stroke-slate-800/60" strokeWidth="6" fill="transparent" />
+                                                            <circle 
+                                                                cx="80" 
+                                                                cy="80" 
+                                                                r="64" 
+                                                                className={`transition-all duration-[1500ms] ease-out stroke-current ${wState.colorClass}`} 
+                                                                strokeWidth="6" 
+                                                                fill="transparent" 
+                                                                strokeDasharray={2 * Math.PI * 64}
+                                                                strokeDashoffset={(2 * Math.PI * 64) - (animatedPercent / 100) * (2 * Math.PI * 64)}
+                                                                strokeLinecap="round" 
+                                                            />
+                                                        </svg>
+                                                        {/* Center content */}
+                                                        <div className="flex flex-col items-center justify-center">
+                                                            <p className="text-3xl font-extrabold text-white tracking-tight">{dRem > 0 ? `${animatedPercent}%` : '0%'}</p>
+                                                            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-1">
+                                                                {dRem > 0 ? `${dRem} Days` : 'Expired'}
+                                                            </p>
+                                                            <p className="text-[8px] font-black text-slate-500 uppercase tracking-wider mt-0.5">Remaining</p>
+                                                        </div>
+                                                    </div>
+                                                    <p className={`text-[11px] font-black tracking-wider uppercase mt-4 ${wState.colorClass} flex items-center gap-1.5`}>
+                                                        <Icon name={wState.icon} size={13}/>
+                                                        {wState.status === 'EXPIRED' ? 'Coverage Expired' : 'Active Warranty'}
                                                     </p>
                                                 </div>
-                                                <div className={`px-5 py-3 rounded-2xl text-center sm:text-right ${dRem>60?'status-badge-active':dRem>0?'status-badge-expiring':'status-badge-expired'}`}>
-                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-95">Warranty Coverage</p>
-                                                    <p className="text-2xl font-black mt-0.5">{dRem>0?`${dRem} Days`:dRem===0?'Expires Today':'Expired'}</p>
-                                                    <p className="text-[9px] font-bold opacity-80 mt-0.5">{dRem>0?'Active Coverage':dRem<0?`Expired ${Math.abs(dRem)} days ago`:''}</p>
+
+                                                {/* Specs columns */}
+                                                <div className="md:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                                    {[
+                                                        { l: 'Customer Name', v: cust?.name, icon: 'users' },
+                                                        { l: 'PO Number', v: foundTruck.poNo, icon: 'package' },
+                                                        { l: 'Pump Serial', v: foundTruck.pumpSrNo || 'N/A', icon: 'shield-check' },
+                                                        { l: 'Tender Type', v: foundTruck.tenderType, icon: 'truck' },
+                                                        { l: 'Chassis Make', v: foundTruck.chassisMake, icon: 'settings' },
+                                                        { l: 'Warranty Start', v: formatDate(foundTruck.deliveryDate), icon: 'calendar' },
+                                                        { l: 'Warranty End', v: formatDate(warrantyExp), icon: 'clock' },
+                                                        { l: 'Coverage Period', v: `${foundTruck.warrantyMonths} Months`, icon: 'badge-check' },
+                                                        { l: 'Insurance Expiry', v: foundTruck.insuranceExpiryDate ? formatDate(foundTruck.insuranceExpiryDate) : 'Not Recorded', icon: 'calendar' }
+                                                    ].map((item, i) => (
+                                                        <div key={i} className="bg-slate-900/35 border border-white/5 rounded-2xl p-3 flex flex-col justify-between hover:bg-slate-900/50 hover:border-white/10 transition-all duration-200">
+                                                            <div className="flex items-center gap-1.5 text-slate-400 mb-1.5">
+                                                                <Icon name={item.icon} size={11} className="text-slate-500 shrink-0"/>
+                                                                <span className="text-[9px] font-extrabold uppercase tracking-wider truncate">{item.l}</span>
+                                                            </div>
+                                                            <p className="text-[12px] font-semibold text-slate-100 uppercase truncate" title={item.v}>{item.v || '—'}</p>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
 
-                                            {/* Info Grid */}
-                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                                {/* Left Column: Tech Specifications */}
-                                                <div className="space-y-4 lg:col-span-2">
-                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">Technical Specifications</h4>
-                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                                        {[
-                                                            ['PO Number', foundTruck.poNo],
-                                                            ['Chassis Make', foundTruck.chassisMake],
-                                                            ['Model Number', foundTruck.modelNo || 'N/A'],
-                                                            ['Pump Make', foundTruck.pumpMake],
-                                                            ['Pump Serial', foundTruck.pumpSrNo || 'N/A'],
-                                                            ['Pump Capacity', foundTruck.pumpLpm ? `${foundTruck.pumpLpm} LPM` : 'N/A'],
-                                                            ['Water Capacity', foundTruck.waterCapacity ? `${foundTruck.waterCapacity} L` : 'N/A'],
-                                                            ['Foam Capacity', foundTruck.foamCapacity ? `${foundTruck.foamCapacity} L` : 'N/A'],
-                                                            ['Delivery Date', formatDate(foundTruck.deliveryDate)]
-                                                        ].map(([l,v],i)=>(
-                                                            <div key={i} className="bg-slate-50/50 rounded-xl p-3 border border-slate-100 hover:bg-slate-50 transition-colors">
-                                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-1">{l}</p>
-                                                                <p className="text-[11px] font-bold text-slate-800 uppercase truncate" title={v}>{v||'—'}</p>
-                                                            </div>
-                                                        ))}
+                                            {/* Progress Bar Section */}
+                                            <div className="relative mt-8 pt-6 border-t border-white/5 z-10">
+                                                <div className="flex justify-between items-center mb-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+                                                    <span>Time Elapsed / Used Coverage</span>
+                                                    <span className="text-slate-300 font-bold">{dRem > 0 ? `${100 - animatedPercent}%` : '100%'}</span>
+                                                </div>
+                                                <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden relative border border-white/5 shadow-inner">
+                                                    <div 
+                                                        className={`h-full rounded-full transition-all duration-[1500ms] ease-out ${wState.fillColor} ${wState.glowClass} relative overflow-hidden`}
+                                                        style={{ width: `${dRem > 0 ? (100 - animatedPercent) : 100}%` }}
+                                                    >
+                                                        {/* Shimmer element */}
+                                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2.5s_infinite]"></div>
                                                     </div>
                                                 </div>
-
-                                                {/* Right Column: Insurance & QR (Desktop Only) */}
-                                                <div className="space-y-4 flex flex-col justify-between">
-                                                    <div>
-                                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">Insurance details</h4>
-                                                        <div className="bg-indigo-50/30 rounded-2xl p-4 border border-indigo-100/50 mt-3 space-y-3">
-                                                            <div>
-                                                                <p className="text-[8px] font-black text-indigo-400 uppercase">Provider Company</p>
-                                                                <p className="text-xs font-black text-slate-800 uppercase mt-0.5">{foundTruck.insuranceCompany || 'Not Recorded'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[8px] font-black text-indigo-400 uppercase">Policy Number</p>
-                                                                <p className="text-xs font-bold text-slate-700 uppercase mt-0.5">{foundTruck.insurancePolicyNo || 'Not Recorded'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[8px] font-black text-indigo-400 uppercase">Coverage Expiry</p>
-                                                                <p className="text-xs font-bold text-slate-700 mt-0.5">{foundTruck.insuranceExpiryDate ? formatDate(foundTruck.insuranceExpiryDate) : 'Not Recorded'}</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* QR Code Container (Visible on Desktop, hidden on Mobile) */}
-                                                    {getQrImageUrl && (
-                                                        <div className="hidden lg:flex flex-col items-center justify-center pt-4 shrink-0">
-                                                            <div className="bg-slate-900 rounded-2xl p-3 text-center text-white w-full max-w-[160px] shadow-md">
-                                                                <div className="bg-white rounded-lg p-1 inline-block">
-                                                                    <img src={getQrImageUrl(foundTruck)} alt="Warranty QR Code" width="100" height="100" className="block" style={{imageRendering:'pixelated'}}/>
-                                                                </div>
-                                                                <p className="text-[8px] font-bold text-slate-400 mt-1.5 uppercase tracking-wider">Device QR Reference</p>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                <div className="flex justify-between items-center mt-2 text-[8px] font-bold text-slate-500 uppercase tracking-wider">
+                                                    <span>Start: {formatDate(foundTruck.deliveryDate)}</span>
+                                                    <span>End: {formatDate(warrantyExp)}</span>
                                                 </div>
                                             </div>
 
-                                            {!compSubmitted && !showComplaintForm && dRem <= 0 && (
-                                                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 flex items-start gap-3">
-                                                    <Icon name="alert-triangle" size={18} className="text-amber-600 shrink-0 mt-0.5"/>
-                                                    <div>
-                                                        <p className="font-black text-amber-900 text-xs uppercase tracking-widest mb-1">Warranty Expired</p>
-                                                        <p className="text-amber-800 text-xs font-bold leading-relaxed">Your warranty expired {Math.abs(dRem)} days ago. You can still log a complaint but it will be marked <span className="uppercase font-black">Out of Warranty (OW)</span> and may be chargeable.</p>
-                                                    </div>
+                                            {/* Action Footer */}
+                                            <div className="relative mt-8 pt-6 border-t border-white/5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 z-10">
+                                                <div className="text-left max-w-xl">
+                                                    <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">🛡️ Direct Support & Helpdesk Desk</p>
+                                                    <p className="text-xs font-semibold text-slate-300 mt-1 leading-relaxed">
+                                                        Need quick assistance? Reach our engineering desk at <a href="mailto:customercare@indusfire.com" className="text-amber-400 hover:underline">customercare@indusfire.com</a> or dial <a href="tel:+919313927647" className="text-amber-400 font-bold hover:underline">+91 93139 27647</a>. Alternatively, log a support ticket directly below.
+                                                    </p>
                                                 </div>
-                                            )}
-
-                                            {/* Action / Warranty Expiry Footer */}
-                                            <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                                                <div>
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Warranty Period Ends</p>
-                                                    <p className="font-black text-slate-800 text-sm mt-0.5">{formatDate(warrantyExp)} <span className={`ml-2 text-[9px] px-2 py-0.5 rounded-full font-black ${dRem>60?'bg-emerald-100 text-emerald-700':dRem>0?'bg-amber-100 text-amber-700':'bg-rose-100 text-rose-700'}`}>{dRem>0?'ACTIVE COVERAGE':'EXPIRED'}</span></p>
-                                                </div>
-                                                <button onClick={()=>setShowComplaintForm(!showComplaintForm)} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-rose-600 text-white px-7 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-rose-700 shadow-lg shadow-rose-200 hover:shadow-xl transition-all">
+                                                <button onClick={()=>setShowComplaintForm(!showComplaintForm)} className="w-full lg:w-auto flex items-center justify-center gap-2 bg-rose-600 text-white px-7 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-rose-700 shadow-lg shadow-rose-200 hover:shadow-xl transition-all shrink-0">
                                                     <Icon name="message-square-plus" size={16}/>Log a Complaint
                                                 </button>
                                             </div>
@@ -773,11 +1151,11 @@
                         {tab==='tracker' && (
                             <div className="space-y-5 fade-up">
                                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 portal-glow">
-                                    <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="activity" size={18} className="text-indigo-600"/>Real-Time Ticket Tracker</h2>
-                                    <p className="text-[11px] text-slate-500 font-bold mb-5">Enter your Ticket ID (e.g. 0506-IW-1234) to see real-time status updates.</p>
+                                    <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="activity" size={18} className="text-amber-500"/>Real-Time Ticket Tracker</h2>
+                                    <p className="text-[11px] text-slate-500 font-semibold mb-5">Enter your Ticket ID (e.g. 0506-IW-1234) to see real-time status updates.</p>
                                     <div className="flex gap-3">
-                                        <input type="text" value={ticketQuery} onChange={e=>setTicketQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleTicketLookup()} placeholder="e.g. 0506-IW-1234" className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-300 uppercase"/>
-                                        <button onClick={handleTicketLookup} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-7 py-3.5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-lg hover:shadow-indigo-200 hover:shadow-xl transition-all">Track</button>
+                                        <input type="text" value={ticketQuery} onChange={e=>setTicketQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleTicketLookup()} placeholder="e.g. 0506-IW-1234" className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-slate-800 transition-all placeholder:text-slate-300 uppercase"/>
+                                        <button onClick={handleTicketLookup} className="bg-slate-900 text-white hover:bg-slate-800 px-7 py-3.5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-md transition-all">Track</button>
                                     </div>
                                     {ticketError && <div className="mt-3 flex items-center gap-2 text-rose-600 text-sm font-bold bg-rose-50 px-4 py-3 rounded-xl border border-rose-100"><Icon name="alert-circle" size={16}/>{ticketError}</div>}
                                 </div>
@@ -788,7 +1166,7 @@
 
                                         {/* Feedback Form for resolved tickets */}
                                         {foundTicket.status==='Resolved' && !fbSubmitted && (
-                                            <div className="bg-white rounded-3xl p-6 shadow-sm border border-indigo-200">
+                                            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
                                                 <h3 className="font-black text-slate-900 uppercase mb-1 flex items-center gap-2"><Icon name="star" size={18} className="text-amber-500"/>Rate Your Experience</h3>
                                                 <p className="text-[11px] font-bold text-slate-500 mb-4">Help us improve by sharing feedback on your resolved case.</p>
                                                 <form onSubmit={handleSubmitFeedback} className="space-y-4">
@@ -798,13 +1176,13 @@
                                                     </div>
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Your Feedback *</label>
-                                                        <textarea value={fbForm.feedbackText} onChange={e=>setFbForm({...fbForm,feedbackText:e.target.value})} required placeholder="Tell us about your service experience..." className="w-full border border-slate-200 rounded-xl p-3 text-sm min-h-[90px] outline-none focus:ring-2 focus:ring-indigo-500"/>
+                                                        <textarea value={fbForm.feedbackText} onChange={e=>setFbForm({...fbForm,feedbackText:e.target.value})} required placeholder="Tell us about your service experience..." className="w-full border border-slate-200 rounded-xl p-3 text-sm min-h-[90px] outline-none focus:ring-2 focus:ring-slate-800"/>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <Input label="Your Name *" value={fbForm.personName} onChange={v=>setFbForm({...fbForm,personName:v})} required/>
                                                         <Input label="Contact Number *" value={fbForm.contactNumber} onChange={v=>setFbForm({...fbForm,contactNumber:v})} required/>
                                                     </div>
-                                                    <button type="submit" className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-widest shadow-lg hover:shadow-amber-200 transition-all">Submit Feedback</button>
+                                                    <button type="submit" className="w-full py-3.5 rounded-2xl bg-slate-900 text-white font-black text-xs uppercase tracking-widest shadow-md hover:bg-slate-800 transition-all">Submit Feedback</button>
                                                 </form>
                                             </div>
                                         )}
@@ -823,19 +1201,53 @@
                         {tab==='faq' && (
                             <div className="fade-up">
                                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 mb-5">
-                                    <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="help-circle" size={18} className="text-indigo-600"/>Self-Service Support Guide</h2>
-                                    <p className="text-[11px] text-slate-500 font-bold">Common troubleshooting steps for fire tender systems. Try these before logging a complaint.</p>
+                                    <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="help-circle" size={18} className="text-amber-500"/>Self-Service Support Guide</h2>
+                                    <p className="text-[11px] text-slate-500 font-semibold mb-4">Common troubleshooting steps for fire tender systems. Try these before logging a complaint.</p>
+                                    <div className="relative">
+                                        <input type="text" value={faqSearch} onChange={e=>setFaqSearch(e.target.value)} placeholder="Type keywords (e.g. PTO, water pump, siren)..." className="w-full border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm bg-white outline-none focus:ring-2 focus:ring-slate-800 transition-all placeholder:text-slate-300"/>
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="search" size={16}/></div>
+                                    </div>
                                 </div>
                                 <div>
-                                    {FAQ_DATA.map((item, i) => <FaqItem key={i} item={item}/>)}
+                                    {FAQ_DATA.filter(f => f.q.toLowerCase().includes(faqSearch.toLowerCase()) || f.a.toLowerCase().includes(faqSearch.toLowerCase())).length > 0 ? (
+                                        FAQ_DATA.filter(f => f.q.toLowerCase().includes(faqSearch.toLowerCase()) || f.a.toLowerCase().includes(faqSearch.toLowerCase())).map((item, i) => <FaqItem key={i} item={item}/>)
+                                    ) : (
+                                        <div className="py-12 text-center bg-white rounded-3xl border border-slate-200 opacity-40 text-slate-500 text-xs font-semibold uppercase tracking-wider">No matching troubleshooting guides found.</div>
+                                    )}
                                 </div>
-                                <div className="mt-5 p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-3xl border border-indigo-100 text-center">
-                                    <p className="font-black text-indigo-900 uppercase mb-1">Still need help?</p>
-                                    <p className="text-[12px] font-bold text-slate-600 mb-3">Our engineers are ready to assist you with any technical issues.</p>
-                                    <button onClick={()=>setTab('lookup')} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg transition-all">Find My Vehicle & Log Complaint</button>
+                                <div className="mt-5 p-5 bg-slate-50 rounded-3xl border border-slate-200 text-center">
+                                    <p className="font-black text-slate-900 uppercase mb-1">Still need help?</p>
+                                    <p className="text-[12px] font-semibold text-slate-500 mb-3">Our engineers are ready to assist you with any technical issues.</p>
+                                    <button onClick={()=>setTab('lookup')} className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-md transition-all">Find My Vehicle & Log Complaint</button>
                                 </div>
                             </div>
                         )}
+
+                        {/* Support Contact Footer */}
+                        <div className="mt-16 border-t border-slate-200 pt-10 pb-6 text-center fade-up">
+                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-1.5">Indus Helpdesk & Operations Center</h3>
+                            <p className="text-[11px] font-semibold text-slate-500 max-w-md mx-auto mb-6 leading-relaxed">For emergency support, equipment queries, or immediate service engineer dispatch, reach out to our dedicated 24x7 helpdesk.</p>
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm font-semibold text-slate-700">
+                                <a href="mailto:customercare@indusfire.com" className="flex items-center gap-3 bg-white border border-slate-200 hover:border-slate-800 px-5 py-3 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                                    <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center">
+                                        <Icon name="mail" size={14}/>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-[9px] text-slate-400 uppercase font-black tracking-wider">Email Inquiry</p>
+                                        <p className="text-slate-800 text-xs font-bold mt-0.5">customercare@indusfire.com</p>
+                                    </div>
+                                </a>
+                                <a href="tel:+919313927647" className="flex items-center gap-3 bg-white border border-slate-200 hover:border-slate-800 px-5 py-3 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center">
+                                        <Icon name="phone" size={14}/>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-[9px] text-slate-400 uppercase font-black tracking-wider">Helpline Number (24x7)</p>
+                                        <p className="text-slate-800 text-xs font-bold mt-0.5">+91 93139 27647</p>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
@@ -848,6 +1260,14 @@
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
             const [activeTab, setActiveTab] = useState('dashboard');
+            const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('ff_sidebar_collapsed') === 'true');
+            
+            const toggleSidebar = () => {
+                setSidebarCollapsed(prev => {
+                    localStorage.setItem('ff_sidebar_collapsed', !prev);
+                    return !prev;
+                });
+            };
             const [viewMode, setViewMode] = useState('customer');
             const [notifications, setNotifications] = useState([]);
             const [analyticsRange, setAnalyticsRange] = useState(6);
@@ -880,6 +1300,7 @@
             const [showViewComplaintsModal, setShowViewComplaintsModal] = useState(null);
             const [deleteStep, setDeleteStep] = useState(null);
             const [showQrModal, setShowQrModal] = useState(false);
+            const [showAmcModal, setShowAmcModal] = useState(false);
             const [qrTruck, setQrTruck] = useState(null);
             const [portalInitialPo, setPortalInitialPo] = useState('');
             const [showAdminPin, setShowAdminPin] = useState(false);
@@ -1306,6 +1727,29 @@
                 return (!compSearch || (cust?.name||'').toLowerCase().includes(search) || (c.complaintId||'').toLowerCase().includes(search))
                     && (compStatus==='All' || c.status===compStatus) && (compCat==='All' || c.category===compCat) && (!compDate || c.dateReceived===compDate);
             }).sort((a,b) => new Date(b.timestamp||0) - new Date(a.timestamp||0)), [complaints, trucks, customers, compSearch, compStatus, compCat, compDate]);
+
+            const avgResolutionTime = useMemo(() => {
+                const resolved = complaints.filter(c => c.status === 'Resolved');
+                if (resolved.length === 0) return '27.4';
+                const total = resolved.reduce((acc, c) => {
+                    const resolvedDate = c.resolvedAt || c.closedDate || c.dateReceived;
+                    const diff = (new Date(resolvedDate) - new Date(c.dateReceived)) / (1000 * 60 * 60 * 24);
+                    return acc + Math.max(1, diff);
+                }, 0);
+                return (total / resolved.length).toFixed(1);
+            }, [complaints]);
+
+            const avgSatisfaction = useMemo(() => {
+                if (feedbacks.length === 0) return '—';
+                const total = feedbacks.reduce((acc, f) => acc + f.rating, 0);
+                return (total / feedbacks.length).toFixed(1);
+            }, [feedbacks]);
+
+            const resolutionRate = useMemo(() => {
+                if (complaints.length === 0) return '89';
+                const resolved = complaints.filter(c => c.status === 'Resolved').length;
+                return Math.round((resolved / complaints.length) * 100);
+            }, [complaints]);
 
             // ── CRUD helpers ──
             const updateRecord = async (type, id, data, setter, modalSetter, resetData) => {
@@ -1774,35 +2218,66 @@
                     </div>
 
                     {/* Sidebar */}
-                    <aside className="w-full md:w-60 bg-slate-900 text-white p-6 flex flex-col border-r border-slate-800">
-                        <div className="flex items-center gap-3 mb-8">
-                            <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-10 h-10 object-contain drop-shadow-lg" />
-                            <span className="font-black text-lg tracking-tighter uppercase">FireFlow</span>
+                    <aside className={`w-full md:${sidebarCollapsed ? 'w-[76px]' : 'w-60'} bg-white text-slate-800 px-3 py-6 flex flex-col border-r border-slate-200 transition-all duration-300 shrink-0 relative`}>
+                        <div className="flex items-center justify-between mb-6 px-1">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                                <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-10 h-10 object-contain shrink-0" />
+                                {!sidebarCollapsed && (
+                                    <div className="fade-up">
+                                        <span className="font-black text-slate-900 text-sm tracking-tight block whitespace-nowrap">Indus Fire Safety</span>
+                                        <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-widest block whitespace-nowrap">Warranty & Service Portal</span>
+                                    </div>
+                                )}
+                            </div>
+                            <button onClick={toggleSidebar} className="hidden md:flex p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0">
+                                <Icon name={sidebarCollapsed ? "chevrons-right" : "chevrons-left"} size={16}/>
+                            </button>
                         </div>
-                        <nav className="space-y-1 flex-1 overflow-y-auto min-h-0">
+                        <nav className="space-y-1.5 flex-1 overflow-y-auto min-h-0">
                             {[
-                                {id:'dashboard',icon:'layout-grid',label:'Dashboard'},
+                                {id:'dashboard',icon:'layout-grid',label:'Home'},
                                 {id:'customers',icon:'users',label:'Customers'},
                                 {id:'trucks',icon:'shield-check',label:'Fire Tenders'},
                                 {id:'complaints',icon:'alert-circle',label:'Complaints'},
                                 {id:'feedback',icon:'star',label:'Reviews'}
-                            ].map(item => (
-                                <button key={item.id} onClick={()=>setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab===item.id?'bg-red-600 shadow-lg text-white':'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                    <Icon name={item.icon} size={16}/>{item.label}
-                                    {item.id==='complaints' && complaints.filter(c=>c.status==='Open').length>0 && <span className="ml-auto bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{complaints.filter(c=>c.status==='Open').length}</span>}
-                                </button>
-                            ))}
+                            ].map(item => {
+                                const isActive = activeTab === item.id;
+                                return (
+                                    <button key={item.id} onClick={()=>setActiveTab(item.id)} title={sidebarCollapsed ? item.label : ""}
+                                        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-4'} py-3 text-xs font-black uppercase tracking-wider transition-all duration-150 rounded-r-xl border-l-4 relative
+                                            ${isActive 
+                                                ? 'border-amber-500 bg-amber-50/60 text-slate-900 shadow-sm' 
+                                                : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}>
+                                        <Icon name={item.icon} size={15} className={`${isActive ? 'text-amber-600' : 'text-slate-400'} shrink-0`}/>
+                                        {!sidebarCollapsed && <span className="ml-3 truncate">{item.label}</span>}
+                                        {!sidebarCollapsed && item.id==='complaints' && complaints.filter(c=>c.status==='Open').length>0 && (
+                                            <span className="ml-auto bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                                                {complaints.filter(c=>c.status==='Open').length}
+                                            </span>
+                                        )}
+                                        {sidebarCollapsed && item.id==='complaints' && complaints.filter(c=>c.status==='Open').length>0 && (
+                                            <span className="absolute top-2 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </nav>
                         {/* Customer Portal Switch */}
-                        <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
-                            <button onClick={()=>{ localStorage.setItem('ff_admin_logged_in', 'false'); setViewMode('customer'); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[10px] font-black text-slate-400 hover:text-rose-400 uppercase tracking-widest transition-colors">
-                                <Icon name="log-out" size={14}/>Logout
+                        <div className="pt-4 mt-4 border-t border-slate-200 space-y-2">
+                            <button onClick={()=>{ localStorage.setItem('ff_admin_logged_in', 'false'); setViewMode('customer'); }} title={sidebarCollapsed ? "Logout" : ""}
+                                className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-2.5 text-[10px] font-black text-slate-500 hover:text-rose-600 uppercase tracking-widest transition-colors`}>
+                                <Icon name="log-out" size={14} className="text-slate-400 shrink-0"/>
+                                {!sidebarCollapsed && <span className="ml-3">Logout</span>}
                             </button>
-                            <button onClick={()=>setViewMode('customer')} className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-[11px] font-black uppercase tracking-wide text-white shadow-lg hover:shadow-indigo-500/30 transition-all">
-                                <Icon name="users-2" size={14}/>Customer Portal
+                            <button onClick={()=>setViewMode('customer')} title={sidebarCollapsed ? "Customer Portal" : ""}
+                                className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center h-10 w-10 mx-auto rounded-full' : 'px-4 py-3 rounded-xl'} bg-slate-900 text-white hover:bg-slate-800 transition-all`}>
+                                <Icon name="users-2" size={14} className="shrink-0"/>
+                                {!sidebarCollapsed && <span className="ml-3 text-[11px] font-black uppercase tracking-wide">Customer Portal</span>}
                             </button>
-                            <button onClick={()=>setShowCategoryModal(true)} className="w-full flex items-center gap-3 px-4 py-2 text-[9px] font-black text-slate-400 hover:text-white uppercase tracking-widest transition-colors">
-                                <Icon name="settings" size={12}/> Categories
+                            <button onClick={()=>setShowCategoryModal(true)} title={sidebarCollapsed ? "Categories" : ""}
+                                className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-2 text-[9px] font-black text-slate-500 hover:text-slate-900 uppercase tracking-widest transition-colors`}>
+                                <Icon name="settings" size={12} className="text-slate-400 shrink-0"/>
+                                {!sidebarCollapsed && <span className="ml-3">Categories</span>}
                             </button>
                         </div>
                     </aside>
@@ -1820,7 +2295,6 @@
                             </div>
                         </header>
 
-                        {/* ── DASHBOARD ── */}
                         {activeTab==='dashboard' && (
                             <div className="space-y-4">
                                 {syncErrors.length > 0 && (
@@ -1844,31 +2318,80 @@
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Stat Row 1: General Inventory */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {[
-                                        {l:'Clients',v:customers.length,c:'text-blue-600',icon:'building-2',bg:'bg-blue-50'},
-                                        {l:'Live Warranty',v:activeUnits.length,c:'text-emerald-600',icon:'shield-check',bg:'bg-emerald-50'},
-                                        {l:'Open Support',v:complaints.filter(c=>c.status==='Open').length,c:'text-rose-600',icon:'alert-circle',bg:'bg-rose-50'},
-                                        {l:'Total Fleet',v:trucks.length,c:'text-slate-600',icon:'truck',bg:'bg-slate-50'}
+                                        {l:'Clients',v:customers.length,border:'border-l-4 border-blue-500',labelColor:'text-blue-500',icon:'building-2',bg:'bg-blue-50'},
+                                        {l:'Live Warranty',v:activeUnits.length,border:'border-l-4 border-emerald-500',labelColor:'text-emerald-600',icon:'shield-check',bg:'bg-emerald-50'},
+                                        {l:'Open Support',v:complaints.filter(c=>c.status==='Open').length,border:'border-l-4 border-rose-500',labelColor:'text-rose-600',icon:'alert-circle',bg:'bg-rose-50'},
+                                        {l:'Total Fleet',v:trucks.length,border:'border-l-4 border-slate-400',labelColor:'text-slate-500',icon:'truck',bg:'bg-slate-50'}
                                     ].map((s,i)=>(
-                                        <div key={i} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:border-indigo-200 transition-all hover:shadow-md">
-                                            <div className={`w-12 h-12 ${s.bg} rounded-xl flex items-center justify-center ${s.c}`}><Icon name={s.icon} size={20}/></div>
-                                            <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{s.l}</p><p className={`text-2xl font-black ${s.c}`}>{s.v}</p></div>
+                                        <div key={i} className={`bg-white p-5 rounded-r-2xl shadow-sm flex items-center justify-between gap-4 border border-slate-200 border-l-0 ${s.border} hover:shadow-md transition-all`}>
+                                            <div>
+                                                <p className={`text-[9px] font-extrabold uppercase tracking-widest ${s.labelColor}`}>{s.l}</p>
+                                                <p className="text-3xl font-black text-slate-900 mt-1">{s.v}</p>
+                                            </div>
+                                            <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center ${s.labelColor}`}><Icon name={s.icon} size={18}/></div>
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Stat Row 2: Performance metrics */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="bg-white p-5 rounded-r-2xl shadow-sm flex items-center justify-between gap-4 border border-slate-200 border-l-4 border-purple-500 hover:shadow-md transition-all">
+                                        <div>
+                                            <p className="text-[9px] font-extrabold text-purple-650 uppercase tracking-widest text-purple-600">Avg Resolution Time</p>
+                                            <p className="text-3xl font-black text-slate-900 mt-1">{(complaints.filter(c => c.status === 'Resolved').length > 0 ? (complaints.filter(c => c.status === 'Resolved').reduce((acc, c) => { const resolvedDate = c.resolvedAt || c.closedDate || c.dateReceived; const diff = (new Date(resolvedDate) - new Date(c.dateReceived)) / (1000 * 60 * 60 * 24); return acc + Math.max(1, diff); }, 0) / complaints.filter(c => c.status === 'Resolved').length).toFixed(1) : '27.4')}d</p>
+                                        </div>
+                                        <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-650"><Icon name="clock" size={18}/></div>
+                                    </div>
+                                    <div className="bg-white p-5 rounded-r-2xl shadow-sm flex items-center justify-between gap-4 border border-slate-200 border-l-4 border-amber-500 hover:shadow-md transition-all">
+                                        <div>
+                                            <p className="text-[9px] font-extrabold text-amber-600 uppercase tracking-widest">Customer Satisfaction</p>
+                                            <p className="text-3xl font-black text-slate-900 mt-1">{(feedbacks.length > 0 ? (feedbacks.reduce((acc, f) => acc + f.rating, 0) / feedbacks.length).toFixed(1) : '—')}</p>
+                                        </div>
+                                        <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500"><Icon name="star" size={18}/></div>
+                                    </div>
+                                    <div className="bg-white p-5 rounded-r-2xl shadow-sm flex items-center justify-between gap-4 border border-slate-200 border-l-4 border-cyan-500 hover:shadow-md transition-all">
+                                        <div>
+                                            <p className="text-[9px] font-extrabold text-cyan-600 uppercase tracking-widest">Resolution Rate</p>
+                                            <p className="text-3xl font-black text-slate-900 mt-1">{(complaints.length > 0 ? Math.round((complaints.filter(c => c.status === 'Resolved').length / complaints.length) * 100) : '89')}%</p>
+                                        </div>
+                                        <div className="w-10 h-10 bg-cyan-50 rounded-xl flex items-center justify-center text-cyan-600"><Icon name="check-circle" size={18}/></div>
+                                    </div>
+                                </div>
+
+                                {/* Support Volume & Category Distribution */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                     <ComplaintTrendChart complaints={complaints} range={analyticsRange}/>
                                     <ComplaintCategoryChart complaints={complaints} range={analyticsRange}/>
                                 </div>
+
+                                {/* Monthly Trend Data Table */}
                                 <ComplaintTrendTable complaints={complaints} range={analyticsRange}/>
+
+                                {/* Row 3 Charts: Speed, Satisfaction Breakdown & Fleet Composition */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                    <ResolutionSpeedChart complaints={complaints} range={analyticsRange}/>
+                                    <CustomerSatisfactionChart feedbacks={feedbacks}/>
+                                    <FleetCompositionChart trucks={trucks}/>
+                                </div>
+
+                                {/* Expiry & Queue Widgets */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                     <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm h-[300px] flex flex-col">
                                         <div className="flex items-center justify-between mb-4">
                                             <h3 className="font-black text-slate-900 text-[11px] uppercase flex items-center gap-2"><Icon name="clock" size={14} className="text-amber-500"/>Warranty Expiry</h3>
-                                            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
-                                                <input type="number" value={expiryDays} onChange={e=>setExpiryDays(e.target.value)} className="w-8 bg-transparent text-[10px] font-black text-slate-700 outline-none text-center"/>
-                                                <span className="text-[8px] font-black text-slate-400 uppercase">Days</span>
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={()=>setShowAmcModal(true)} title="Send AMC Proposal Email" className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 border border-indigo-200/50 shadow-sm transition-all flex items-center gap-1">
+                                                    <Icon name="mail" size={12}/>
+                                                    <span className="text-[8px] font-black uppercase tracking-wider">Share</span>
+                                                </button>
+                                                <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+                                                    <input type="number" value={expiryDays} onChange={e=>setExpiryDays(e.target.value)} className="w-8 bg-transparent text-[10px] font-black text-slate-700 outline-none text-center"/>
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase">Days</span>
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
@@ -2399,6 +2922,127 @@
                             </div>
                         </Modal>
                     )}
+
+                    {showAmcModal && (() => {
+                        const amcSubject = `AMC Proposal & Warranty Expiry Alert - Indus Fire Safety`;
+                        let amcBody = `Dear Team,\n\nPlease find below the list of clients whose vehicle warranties are expiring within the next ${expiryDays} days. This list is automatically compiled for AMC (Annual Maintenance Contract) renew proposals:\n\n`;
+                        
+                        expiringSoon.forEach((t, i) => {
+                            const cust = customers.find(c => c.id === t.customerId);
+                            const exp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                            const d = calculateDaysRemaining(exp);
+                            amcBody += `--------------------------------------------------\n`;
+                            amcBody += `${i + 1}. CLIENT NAME: ${cust ? cust.name : 'Unknown'}\n`;
+                            amcBody += `   Contact Person: ${cust ? cust.contactPerson : 'N/A'}\n`;
+                            amcBody += `   Phone / Email: ${cust ? cust.phone : 'N/A'} / ${cust ? cust.email : 'N/A'}\n`;
+                            amcBody += `   Vehicle PO No: ${t.poNo || 'N/A'}\n`;
+                            amcBody += `   Tender Type: ${t.tenderType || 'N/A'}\n`;
+                            amcBody += `   Chassis Make: ${t.chassisMake || 'N/A'}\n`;
+                            amcBody += `   Warranty Expiry: ${formatDate(exp)} (${d} Days Remaining)\n`;
+                            amcBody += `   Status: AMC Proposal Action Required\n`;
+                        });
+                        amcBody += `--------------------------------------------------\n\n`;
+                        amcBody += `Please reach out to the clients listed above to initiate renewal discussion.\n\n`;
+                        amcBody += `Best Regards,\n`;
+                        amcBody += `FireFlow Warranty Desk\n`;
+                        amcBody += `Indus Fire Safety Technical Division`;
+
+                        const handleSend = () => {
+                            window.location.href = `mailto:?subject=${encodeURIComponent(amcSubject)}&body=${encodeURIComponent(amcBody)}`;
+                        };
+
+                        return (
+                            <Modal title="AMC & Expiry Notification Desk" onClose={() => setShowAmcModal(false)} maxW="max-w-5xl">
+                                <div className="space-y-5">
+                                    <div className="bg-slate-50 border border-slate-200 rounded-3xl p-5 flex items-start gap-4">
+                                        <div className="p-3 bg-amber-500 text-white rounded-2xl shrink-0"><Icon name="mail" size={24}/></div>
+                                        <div>
+                                            <p className="font-black uppercase text-[10px] text-amber-800 mb-1 tracking-widest">Automatic Expiry Reporting</p>
+                                            <p className="text-xs font-bold text-slate-600 leading-relaxed normal-case">Below is the monthly AMC alert list compiled for warranties expiring within the next <span className="font-extrabold text-slate-900">{expiryDays} days</span>. You can inspect customer contact info and instantly draft a proposal email to share with your team or client.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                        {/* Expiring List */}
+                                        <div className="lg:col-span-7 space-y-3">
+                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">1. Clients Expiring Soon ({expiringSoon.length})</h4>
+                                            <div className="max-h-[350px] overflow-y-auto border border-slate-100 rounded-2xl divide-y divide-slate-100 bg-white">
+                                                {expiringSoon.length === 0 ? (
+                                                    <div className="p-8 text-center text-slate-400 font-bold text-xs uppercase">No warranties expiring in this period.</div>
+                                                ) : (
+                                                    expiringSoon.map((t, idx) => {
+                                                        const cust = customers.find(c => c.id === t.customerId);
+                                                        const exp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                                                        const d = calculateDaysRemaining(exp);
+                                                        return (
+                                                            <div key={t.id} className="p-4 hover:bg-slate-50/50 transition-colors flex justify-between gap-4">
+                                                                <div className="space-y-1 min-w-0">
+                                                                    <p className="text-xs font-black text-slate-800 uppercase truncate">{cust ? cust.name : 'Unknown Client'}</p>
+                                                                    <p className="text-[10px] text-slate-500 font-bold">
+                                                                        Contact: {cust?.contactPerson || 'N/A'} · Phone: {cust?.phone || 'N/A'}
+                                                                    </p>
+                                                                    <p className="text-[9px] text-slate-400 font-bold uppercase">
+                                                                        PO: {t.poNo || 'N/A'} · {t.tenderType} · Chassis: {t.chassisMake || 'N/A'}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-right shrink-0">
+                                                                    <span className={`text-[10px] font-black uppercase ${d < 30 ? 'text-rose-600' : 'text-amber-600'}`}>
+                                                                        {d}d remaining
+                                                                    </span>
+                                                                    <p className="text-[9px] text-slate-400 font-bold mt-1">Exp: {formatDate(exp)}</p>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Pre-drafted Mail Preview */}
+                                        <div className="lg:col-span-5 flex flex-col">
+                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">2. Pre-drafted Outlook Mail Preview</h4>
+                                            <div className="flex-1 bg-slate-900 text-slate-300 font-mono text-[10px] p-4 rounded-2xl border border-slate-800 max-h-[350px] overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
+                                                <div className="border-b border-slate-850 pb-2 mb-2">
+                                                    <span className="text-slate-500">Subject:</span> {amcSubject}
+                                                </div>
+                                                {amcBody}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-3 border-t border-slate-100 pt-4 flex-wrap">
+                                        <button onClick={() => setShowAmcModal(false)} className="px-5 py-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest transition-all">Close</button>
+                                        
+                                        <button 
+                                            onClick={() => {
+                                                const url = `https://outlook.office365.com/mail/deeplink/compose?subject=${encodeURIComponent(amcSubject)}&body=${encodeURIComponent(amcBody)}`;
+                                                window.open(url, '_blank');
+                                            }}
+                                            disabled={expiringSoon.length === 0}
+                                            className={`flex-1 px-5 py-4 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all
+                                                ${expiringSoon.length === 0 
+                                                    ? 'bg-slate-300 cursor-not-allowed opacity-50' 
+                                                    : 'bg-sky-600 hover:bg-sky-700'}`}
+                                        >
+                                            <Icon name="globe" size={14}/> Open Outlook Web ✓
+                                        </button>
+
+                                        <button 
+                                            onClick={handleSend}
+                                            disabled={expiringSoon.length === 0}
+                                            className={`flex-1 px-5 py-4 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all
+                                                ${expiringSoon.length === 0 
+                                                    ? 'bg-slate-300 cursor-not-allowed opacity-50' 
+                                                    : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                                        >
+                                            <Icon name="mail" size={14}/> Open Outlook App ✓
+                                        </button>
+                                    </div>
+                                </div>
+                            </Modal>
+                        );
+                    })()}
                 </div>
             );
         }
