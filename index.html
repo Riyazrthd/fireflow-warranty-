@@ -7,6 +7,13 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>FireFlow - Technical Warranty Management</title>
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/png" href="icons/favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -3049,6 +3056,35 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App/>);
+    </script>
+    <!-- PWA Update Toast -->
+    <div id="pwa-update-toast" style="display:none; position:fixed; bottom:20px; right:20px; background:#0f172a; color:white; padding:15px 25px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); z-index:9999; font-family:'Plus Jakarta Sans', sans-serif; align-items:center; gap:15px;">
+        <span style="font-size:14px; font-weight:600;">New Version Available</span>
+        <button onclick="window.location.reload()" style="background:#3b82f6; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;">Reload</button>
+    </div>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                .then(registration => {
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                document.getElementById('pwa-update-toast').style.display = 'flex';
+                            }
+                        });
+                    });
+                })
+                .catch(err => console.error('SW registration failed:', err));
+            });
+
+            if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+        }
     </script>
 </body>
 </html>
