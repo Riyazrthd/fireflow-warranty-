@@ -11306,41 +11306,45 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
         // ══════════════════════════════════════════════════════════════════════════════
         // 📋 REGISTER CLIENT TO DELIVERY MODAL (PASS: 2038 - ALL UPPERCASE INPUTS)
         // ══════════════════════════════════════════════════════════════════════════════
-        const RegisterClientToDeliveryModal = ({ onClose, onSubmitted, customers = [] }) => {
+        
+        // ══════════════════════════════════════════════════════════════════════════════
+        // 📋 REGISTER CLIENT TO DELIVERY MODAL (PIN: 2038 - ALL UPPERCASE INPUTS)
+        // ══════════════════════════════════════════════════════════════════════════════
+        const RegisterClientToDeliveryModal = ({ onClose, onDirectPunch, existingCustomers = [] }) => {
             const [form, setForm] = useState({
-                customerName: '',
+                // Client Fields
+                organization: '',
+                address: '',
                 contactPerson: '',
                 phone: '',
                 email: '',
-                address: '',
-                poNo: '',
                 poDate: new Date().toISOString().split('T')[0],
+
+                // Delivery Fields
+                poNo: '',
                 tenderType: '',
-                chassisMake: '',
-                modelNo: '',
-                chassisSrNo: '',
-                engineSrNo: '',
-                deliveryDate: new Date().toISOString().split('T')[0],
-                warrantyMonths: 24,
                 pumpMake: '',
-                pumpLpm: '',
                 pumpSrNo: '',
+                pumpLpm: '',
+                chassisMake: '',
                 waterCapacity: '',
                 foamCapacity: '',
+                deliveryDate: new Date().toISOString().split('T')[0],
+                warrantyMonths: '12',
+                insuranceCompany: '',
+                insurancePolicyNo: '',
+                insuranceExpiryDate: '',
+
+                // Optional Auxiliary Equipment
                 uhpPumpMake: '',
                 uhpPumpLpm: '',
                 uhpPumpSrNo: '',
                 dcpCapacity: '',
-                dcpHptDueDate: '',
-                dcpSrNo: '',
-                insuranceCompany: '',
-                insurancePolicyNo: '',
-                insuranceExpiryDate: '',
-                notes: ''
+                dcpHptDueDate: ''
             });
 
             const [submitting, setSubmitting] = useState(false);
-            const [successRef, setSuccessRef] = useState(null);
+            const [createdTruck, setCreatedTruck] = useState(null);
 
             const handleTextChange = (field, val) => {
                 setForm(prev => ({ ...prev, [field]: (val || '').toUpperCase() }));
@@ -11348,69 +11352,100 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                if (!form.customerName.trim() || !form.poNo.trim() || !form.tenderType.trim()) {
-                    alert('Please fill mandatory fields: Client Name, PO Number, and Tender Type.');
+                if (!form.organization.trim() || !form.poNo.trim() || !form.tenderType.trim()) {
+                    alert('Please enter Organization Name, PO / WO Number, and Tender Type.');
                     return;
                 }
                 setSubmitting(true);
                 try {
-                    const subId = 'SUB-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-                    const newSubmission = {
-                        id: subId,
-                        ...form,
-                        status: 'Pending Approval',
-                        submittedAt: new Date().toISOString(),
-                        created_at: new Date().toISOString()
+                    const custId = 'CUST-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+                    const trkId = 'TRK-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+
+                    const newCustomerRecord = {
+                        id: custId,
+                        name: form.organization.trim(),
+                        address: form.address.trim(),
+                        contactPerson: form.contactPerson.trim(),
+                        phone: form.phone.trim(),
+                        email: form.email.trim(),
+                        poDate: form.poDate || null
                     };
 
-                    // Save to Supabase if connected
+                    const newTruckRecord = {
+                        id: trkId,
+                        customerId: custId,
+                        poNo: form.poNo.trim(),
+                        poDate: form.poDate || null,
+                        tenderType: form.tenderType.trim(),
+                        pumpMake: form.pumpMake.trim(),
+                        pumpSrNo: form.pumpSrNo.trim(),
+                        pumpLpm: form.pumpLpm.trim(),
+                        chassisMake: form.chassisMake.trim(),
+                        waterCapacity: form.waterCapacity ? parseFloat(form.waterCapacity) : 0,
+                        foamCapacity: form.foamCapacity ? parseFloat(form.foamCapacity) : 0,
+                        deliveryDate: form.deliveryDate || null,
+                        warrantyMonths: parseInt(form.warrantyMonths) || 12,
+                        insuranceCompany: form.insuranceCompany.trim(),
+                        insurancePolicyNo: form.insurancePolicyNo.trim(),
+                        insuranceExpiryDate: form.insuranceExpiryDate || null,
+                        uhpPumpMake: form.uhpPumpMake.trim() || null,
+                        uhpPumpLpm: form.uhpPumpLpm.trim() || null,
+                        uhpPumpSrNo: form.uhpPumpSrNo.trim() || null,
+                        dcpCapacity: form.dcpCapacity.trim() || null,
+                        dcpHptDueDate: form.dcpHptDueDate || null,
+                        costCenterStatus: 'Not Generated'
+                    };
+
+                    // Direct Sync to Supabase
                     const sb = window.SupabaseClient;
                     if (sb) {
                         try {
-                            const dbPayload = {
-                                id: subId,
-                                customer_name: form.customerName,
-                                contact_person: form.contactPerson,
-                                phone: form.phone,
-                                email: form.email,
-                                address: form.address,
-                                po_no: form.poNo,
-                                po_date: form.poDate || null,
-                                tender_type: form.tenderType,
-                                chassis_make: form.chassisMake,
-                                model_no: form.modelNo,
-                                chassis_sr_no: form.chassisSrNo,
-                                engine_sr_no: form.engineSrNo,
-                                delivery_date: form.deliveryDate || null,
-                                warranty_months: parseInt(form.warrantyMonths) || 24,
-                                pump_make: form.pumpMake,
-                                pump_lpm: form.pumpLpm ? parseFloat(form.pumpLpm) : null,
-                                pump_sr_no: form.pumpSrNo,
-                                water_capacity: form.waterCapacity ? parseFloat(form.waterCapacity) : 0,
-                                foam_capacity: form.foamCapacity ? parseFloat(form.foamCapacity) : 0,
-                                uhp_pump_make: form.uhpPumpMake || null,
-                                uhp_pump_lpm: form.uhpPumpLpm || null,
-                                uhp_pump_sr_no: form.uhpPumpSrNo || null,
-                                dcp_capacity: form.dcpCapacity || null,
-                                dcp_hpt_due_date: form.dcpHptDueDate || null,
-                                dcp_sr_no: form.dcpSrNo || null,
-                                insurance_company: form.insuranceCompany || null,
-                                insurance_policy_no: form.insurancePolicyNo || null,
-                                insurance_expiry_date: form.insuranceExpiryDate || null,
-                                status: 'Pending Approval',
-                                notes: form.notes || null
-                            };
-                            await sb.from('delivery_submissions').insert(dbPayload);
+                            await sb.from('customers').insert({
+                                id: custId,
+                                name: newCustomerRecord.name,
+                                address: newCustomerRecord.address,
+                                contact_person: newCustomerRecord.contactPerson,
+                                phone: newCustomerRecord.phone,
+                                email: newCustomerRecord.email,
+                                po_date: newCustomerRecord.poDate
+                            });
+
+                            await sb.from('trucks').insert({
+                                id: trkId,
+                                customer_id: custId,
+                                po_no: newTruckRecord.poNo,
+                                po_date: newTruckRecord.poDate,
+                                tender_type: newTruckRecord.tenderType,
+                                pump_make: newTruckRecord.pumpMake,
+                                pump_sr_no: newTruckRecord.pumpSrNo,
+                                pump_lpm: newTruckRecord.pumpLpm ? parseFloat(newTruckRecord.pumpLpm) : null,
+                                chassis_make: newTruckRecord.chassisMake,
+                                water_capacity: newTruckRecord.waterCapacity,
+                                foam_capacity: newTruckRecord.foamCapacity,
+                                delivery_date: newTruckRecord.deliveryDate,
+                                warranty_months: newTruckRecord.warrantyMonths,
+                                insurance_company: newTruckRecord.insuranceCompany,
+                                insurance_policy_no: newTruckRecord.insurancePolicyNo,
+                                insurance_expiry_date: newTruckRecord.insuranceExpiryDate,
+                                uhp_pump_make: newTruckRecord.uhpPumpMake,
+                                uhp_pump_lpm: newTruckRecord.uhpPumpLpm,
+                                uhp_pump_sr_no: newTruckRecord.uhpPumpSrNo,
+                                dcp_capacity: newTruckRecord.dcpCapacity,
+                                dcp_hpt_due_date: newTruckRecord.dcpHptDueDate
+                            });
                         } catch (err) {
-                            console.warn('Supabase submission sync note:', err);
+                            console.warn('Supabase direct sync note:', err);
                         }
                     }
 
-                    if (onSubmitted) onSubmitted(newSubmission);
-                    setSuccessRef(subId);
+                    if (onDirectPunch) {
+                        onDirectPunch(newCustomerRecord, newTruckRecord);
+                    }
+
+                    setCreatedTruck({ ...newTruckRecord, customerName: newCustomerRecord.name });
                 } catch(err) {
-                    console.error('Submission error:', err);
-                    alert('Failed to submit delivery details: ' + err.message);
+                    console.error('Direct delivery registration error:', err);
+                    alert('Error saving record: ' + err.message);
                 } finally {
                     setSubmitting(false);
                 }
@@ -11418,7 +11453,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
             const modalContent = (
                 <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-slate-200 flex flex-col max-h-[92vh]">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-slate-200 flex flex-col max-h-[94vh]">
                         {/* Header */}
                         <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 flex items-center justify-between border-b border-white/10 shrink-0">
                             <div className="flex items-center gap-3">
@@ -11428,9 +11463,9 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <h2 className="text-base font-black uppercase tracking-tight text-white">Register Client To Delivery</h2>
-                                        <span className="bg-amber-500 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">PIN: 2038 Verified</span>
+                                        <span className="bg-amber-500 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">PIN: 2038</span>
                                     </div>
-                                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">Direct Delivery Entry Form · All Inputs Automatically Format to UPPERCASE</p>
+                                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">Direct System Registration · Punches Directly to Live Customers &amp; Fleet Inventory</p>
                                 </div>
                             </div>
                             <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer">
@@ -11439,21 +11474,22 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         </div>
 
                         {/* Content */}
-                        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-6">
-                            {successRef ? (
-                                <div className="text-center py-10 space-y-4">
+                        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5">
+                            {createdTruck ? (
+                                <div className="text-center py-8 space-y-4">
                                     <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto text-3xl font-black shadow-inner">
                                         ✓
                                     </div>
-                                    <h3 className="text-xl font-black text-slate-900 uppercase">Delivery Registered Successfully!</h3>
-                                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl max-w-md mx-auto">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Submission Reference ID</p>
-                                        <p className="text-lg font-black text-indigo-600 font-mono mt-1">{successRef}</p>
-                                        <p className="text-xs text-slate-600 mt-2">The record is now staged for Admin Confirmation. Once approved, it will punch directly into the live Fleet Inventory &amp; generate QR code.</p>
+                                    <h3 className="text-xl font-black text-slate-900 uppercase">Punched into System Successfully!</h3>
+                                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl max-w-md mx-auto text-left space-y-1.5 text-xs">
+                                        <p><span className="font-bold text-slate-400 uppercase text-[9px]">Client:</span> <span className="font-black text-slate-900">{createdTruck.customerName}</span></p>
+                                        <p><span className="font-bold text-slate-400 uppercase text-[9px]">PO Number:</span> <span className="font-black text-indigo-600 font-mono">{createdTruck.poNo}</span></p>
+                                        <p><span className="font-bold text-slate-400 uppercase text-[9px]">Tender Type:</span> <span className="font-bold text-slate-800">{createdTruck.tenderType}</span></p>
+                                        <p><span className="font-bold text-slate-400 uppercase text-[9px]">Delivery Date:</span> <span className="font-bold text-slate-800">{formatDate(createdTruck.deliveryDate)}</span></p>
                                     </div>
-                                    <div className="pt-4 flex gap-3 justify-center">
-                                        <button onClick={() => { setSuccessRef(null); setForm({ customerName: '', contactPerson: '', phone: '', email: '', address: '', poNo: '', poDate: new Date().toISOString().split('T')[0], tenderType: '', chassisMake: '', modelNo: '', chassisSrNo: '', engineSrNo: '', deliveryDate: new Date().toISOString().split('T')[0], warrantyMonths: 24, pumpMake: '', pumpLpm: '', pumpSrNo: '', waterCapacity: '', foamCapacity: '', uhpPumpMake: '', uhpPumpLpm: '', uhpPumpSrNo: '', dcpCapacity: '', dcpHptDueDate: '', dcpSrNo: '', insuranceCompany: '', insurancePolicyNo: '', insuranceExpiryDate: '', notes: '' }); }} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
-                                            + Submit Another
+                                    <div className="pt-2 flex gap-3 justify-center">
+                                        <button onClick={() => { setCreatedTruck(null); }} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
+                                            + Register Another
                                         </button>
                                         <button onClick={onClose} className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
                                             Close Form
@@ -11461,84 +11497,86 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     </div>
                                 </div>
                             ) : (
-                                <form onSubmit={handleSubmit} className="space-y-6">
-                                    {/* ── SECTION 1: CLIENT DETAILS ── */}
+                                <form onSubmit={handleSubmit} className="space-y-5">
+                                    {/* ── 1. REGISTER CLIENT SECTION ── */}
                                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                                        <div className="flex items-center gap-2 pb-1 border-b border-slate-200 text-slate-800">
-                                            <span className="text-sm font-black uppercase tracking-wider">1. Client / Customer Information</span>
+                                        <div className="pb-1 border-b border-slate-200 text-slate-800">
+                                            <span className="text-xs font-black uppercase tracking-wider text-indigo-900">1. Client / Organization Details</span>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="space-y-3">
                                             <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Client / Company Name *</label>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Organization *</label>
                                                 <input
                                                     type="text"
                                                     required
-                                                    value={form.customerName}
-                                                    onChange={e => handleTextChange('customerName', e.target.value)}
-                                                    placeholder="E.G. PETRONET LNG LIMITED"
+                                                    value={form.organization}
+                                                    onChange={e => handleTextChange('organization', e.target.value)}
+                                                    placeholder="ORGANIZATION NAME"
                                                     className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Contact Person Name</label>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Address</label>
                                                 <input
                                                     type="text"
-                                                    value={form.contactPerson}
-                                                    onChange={e => handleTextChange('contactPerson', e.target.value)}
-                                                    placeholder="E.G. MR. RAJESH SHARMA"
+                                                    value={form.address}
+                                                    onChange={e => handleTextChange('address', e.target.value)}
+                                                    placeholder="PLANT / SITE ADDRESS"
                                                     className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
                                                 />
                                             </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Contact Phone / Mobile</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.phone}
-                                                    onChange={e => handleTextChange('phone', e.target.value)}
-                                                    placeholder="E.G. +91 98250 12345"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Contact Person</label>
+                                                    <input
+                                                        type="text"
+                                                        value={form.contactPerson}
+                                                        onChange={e => handleTextChange('contactPerson', e.target.value)}
+                                                        placeholder="CONTACT PERSON NAME"
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Phone</label>
+                                                    <input
+                                                        type="text"
+                                                        value={form.phone}
+                                                        onChange={e => handleTextChange('phone', e.target.value)}
+                                                        placeholder="PHONE NUMBER"
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
+                                                    />
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Contact Email</label>
-                                                <input
-                                                    type="email"
-                                                    value={form.email}
-                                                    onChange={e => handleTextChange('email', e.target.value)}
-                                                    placeholder="OFFICER@CLIENT.COM"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Email</label>
+                                                    <input
+                                                        type="email"
+                                                        value={form.email}
+                                                        onChange={e => handleTextChange('email', e.target.value)}
+                                                        placeholder="OFFICER@CLIENT.COM"
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">PO Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={form.poDate}
+                                                        onChange={e => handleTextChange('poDate', e.target.value)}
+                                                        className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none"
+                                                    />
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">PO / Work Order Date</label>
-                                                <input
-                                                    type="date"
-                                                    value={form.poDate}
-                                                    onChange={e => handleTextChange('poDate', e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Plant / Delivery Site Address</label>
-                                            <input
-                                                type="text"
-                                                value={form.address}
-                                                onChange={e => handleTextChange('address', e.target.value)}
-                                                placeholder="E.G. PLOT NO. 14, GIDC DAHEJ, BHARUCH, GUJARAT"
-                                                className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                            />
                                         </div>
                                     </div>
 
-                                    {/* ── SECTION 2: VEHICLE & DELIVERY SPECIFICATIONS ── */}
+                                    {/* ── 2. DELIVERY DETAILS SECTION ── */}
                                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                                        <div className="flex items-center gap-2 pb-1 border-b border-slate-200 text-slate-800">
-                                            <span className="text-sm font-black uppercase tracking-wider">2. Vehicle &amp; Delivery Details</span>
+                                        <div className="pb-1 border-b border-slate-200 text-slate-800">
+                                            <span className="text-xs font-black uppercase tracking-wider text-indigo-900">2. Delivery &amp; Vehicle Specifications</span>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <div>
                                                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">PO / WO Number *</label>
                                                 <input
@@ -11546,19 +11584,65 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     required
                                                     value={form.poNo}
                                                     onChange={e => handleTextChange('poNo', e.target.value)}
-                                                    placeholder="E.G. PO-2026-9901"
+                                                    placeholder="PO / WO NUMBER"
                                                     className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Tender Type / Model *</label>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">PO Date *</label>
+                                                <input
+                                                    type="date"
+                                                    required
+                                                    value={form.poDate}
+                                                    onChange={e => handleTextChange('poDate', e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Tender Type *</label>
                                                 <input
                                                     type="text"
                                                     required
                                                     value={form.tenderType}
                                                     onChange={e => handleTextChange('tenderType', e.target.value)}
-                                                    placeholder="E.G. WATER FOAM TENDER 6000L"
+                                                    placeholder="TENDER TYPE"
                                                     className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Pump Make</label>
+                                                <input
+                                                    type="text"
+                                                    value={form.pumpMake}
+                                                    onChange={e => handleTextChange('pumpMake', e.target.value)}
+                                                    placeholder="PUMP MAKE"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Pump Serial No</label>
+                                                <input
+                                                    type="text"
+                                                    value={form.pumpSrNo}
+                                                    onChange={e => handleTextChange('pumpSrNo', e.target.value)}
+                                                    placeholder="PUMP SERIAL NO"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">LPM Capacity</label>
+                                                <input
+                                                    type="text"
+                                                    value={form.pumpLpm}
+                                                    onChange={e => handleTextChange('pumpLpm', e.target.value)}
+                                                    placeholder="LPM CAPACITY"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
                                                 />
                                             </div>
                                             <div>
@@ -11567,42 +11651,36 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     type="text"
                                                     value={form.chassisMake}
                                                     onChange={e => handleTextChange('chassisMake', e.target.value)}
-                                                    placeholder="E.G. TATA / ASHOK LEYLAND"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Model / Reg No</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.modelNo}
-                                                    onChange={e => handleTextChange('modelNo', e.target.value)}
-                                                    placeholder="E.G. 2828.K / GJ-06-XX"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
+                                                    placeholder="CHASSIS MAKE"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
                                                 />
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Chassis Serial No</label>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Water Tank Capacity (Ltrs)</label>
                                                 <input
                                                     type="text"
-                                                    value={form.chassisSrNo}
-                                                    onChange={e => handleTextChange('chassisSrNo', e.target.value)}
-                                                    placeholder="CHASSIS NO"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
+                                                    value={form.waterCapacity}
+                                                    onChange={e => handleTextChange('waterCapacity', e.target.value)}
+                                                    placeholder="WATER TANK CAPACITY"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Engine Serial No</label>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Foam Tank Capacity (Ltrs)</label>
                                                 <input
                                                     type="text"
-                                                    value={form.engineSrNo}
-                                                    onChange={e => handleTextChange('engineSrNo', e.target.value)}
-                                                    placeholder="ENGINE NO"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
+                                                    value={form.foamCapacity}
+                                                    onChange={e => handleTextChange('foamCapacity', e.target.value)}
+                                                    placeholder="FOAM TANK CAPACITY"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
                                                 />
                                             </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div>
                                                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Delivery Date *</label>
                                                 <input
@@ -11619,145 +11697,12 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     type="number"
                                                     value={form.warrantyMonths}
                                                     onChange={e => handleTextChange('warrantyMonths', e.target.value)}
-                                                    placeholder="24"
+                                                    placeholder="12"
                                                     className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none"
                                                 />
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* ── SECTION 3: FIRE PUMP & TANK CAPACITIES ── */}
-                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                                        <div className="flex items-center gap-2 pb-1 border-b border-slate-200 text-slate-800">
-                                            <span className="text-sm font-black uppercase tracking-wider">3. Fire Pump &amp; Tank Capacities</span>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Fire Pump Make</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.pumpMake}
-                                                    onChange={e => handleTextChange('pumpMake', e.target.value)}
-                                                    placeholder="E.G. GODIVA / FIREFLY / WATEROUS"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Pump LPM Capacity</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.pumpLpm}
-                                                    onChange={e => handleTextChange('pumpLpm', e.target.value)}
-                                                    placeholder="E.G. 4000 LPM @ 10 BAR"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Pump Serial No</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.pumpSrNo}
-                                                    onChange={e => handleTextChange('pumpSrNo', e.target.value)}
-                                                    placeholder="E.G. PMP-9941"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Water Tank Capacity (Ltrs)</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.waterCapacity}
-                                                    onChange={e => handleTextChange('waterCapacity', e.target.value)}
-                                                    placeholder="E.G. 5000"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Foam Tank Capacity (Ltrs)</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.foamCapacity}
-                                                    onChange={e => handleTextChange('foamCapacity', e.target.value)}
-                                                    placeholder="E.G. 1000"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* ── SECTION 4: OPTIONAL AUXILIARY EQUIPMENT (UHP & DCP) ── */}
-                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                                        <div className="flex items-center justify-between pb-1 border-b border-slate-200 text-slate-800">
-                                            <span className="text-sm font-black uppercase tracking-wider">4. Optional Auxiliary Equipment</span>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">(Fill only if installed)</span>
-                                        </div>
-                                        {/* UHP */}
-                                        <div className="p-3 bg-white rounded-xl border border-slate-200/80 space-y-2">
-                                            <span className="text-[11px] font-black text-slate-800 uppercase flex items-center gap-1.5">⚡ UHP Pump (Optional)</span>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                                <input
-                                                    type="text"
-                                                    value={form.uhpPumpMake}
-                                                    onChange={e => handleTextChange('uhpPumpMake', e.target.value)}
-                                                    placeholder="UHP MAKE (E.G. HAWK / INTERPUMP)"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={form.uhpPumpLpm}
-                                                    onChange={e => handleTextChange('uhpPumpLpm', e.target.value)}
-                                                    placeholder="UHP LPM / BAR (E.G. 50 LPM @ 100 BAR)"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={form.uhpPumpSrNo}
-                                                    onChange={e => handleTextChange('uhpPumpSrNo', e.target.value)}
-                                                    placeholder="UHP SERIAL NO"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                        {/* DCP */}
-                                        <div className="p-3 bg-white rounded-xl border border-slate-200/80 space-y-2">
-                                            <span className="text-[11px] font-black text-slate-800 uppercase flex items-center gap-1.5">🧯 DCP System (Optional)</span>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                                <input
-                                                    type="text"
-                                                    value={form.dcpCapacity}
-                                                    onChange={e => handleTextChange('dcpCapacity', e.target.value)}
-                                                    placeholder="DCP CAPACITY (E.G. 150 KG)"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                                <div>
-                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">DCP HPT Due Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={form.dcpHptDueDate}
-                                                        onChange={e => handleTextChange('dcpHptDueDate', e.target.value)}
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none"
-                                                    />
-                                                </div>
-                                                <input
-                                                    type="text"
-                                                    value={form.dcpSrNo}
-                                                    onChange={e => handleTextChange('dcpSrNo', e.target.value)}
-                                                    placeholder="DCP CYLINDER / SYSTEM NO"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none mt-auto"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-                                    {/* ── SECTION 5: INSURANCE & LOGISTICS (OPTIONAL) ── */}
-                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                                        <div className="flex items-center justify-between pb-1 border-b border-slate-200 text-slate-800">
-                                            <span className="text-sm font-black uppercase tracking-wider">5. Insurance &amp; Policy Details</span>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">(Optional)</span>
-                                        </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <div>
                                                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Insurance Company</label>
@@ -11765,22 +11710,22 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     type="text"
                                                     value={form.insuranceCompany}
                                                     onChange={e => handleTextChange('insuranceCompany', e.target.value)}
-                                                    placeholder="E.G. NEW INDIA ASSURANCE / ICICI LOMBARD"
+                                                    placeholder="INSURANCE COMPANY"
                                                     className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Policy Number</label>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Policy No</label>
                                                 <input
                                                     type="text"
                                                     value={form.insurancePolicyNo}
                                                     onChange={e => handleTextChange('insurancePolicyNo', e.target.value)}
-                                                    placeholder="E.G. POL-2026-88192"
+                                                    placeholder="POLICY NO"
                                                     className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Insurance Expiry Date</label>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Insurance Expiry</label>
                                                 <input
                                                     type="date"
                                                     value={form.insuranceExpiryDate}
@@ -11791,13 +11736,84 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         </div>
                                     </div>
 
-                                    {/* Submit Action */}
+                                    {/* ── 3. OPTIONAL AUXILIARY EQUIPMENT (UHP & DCP) ── */}
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                                        <div className="flex items-center justify-between pb-1 border-b border-slate-200 text-slate-800">
+                                            <span className="text-xs font-black uppercase tracking-wider text-indigo-900">Optional Auxiliary Equipment (UHP Pump &amp; DCP System)</span>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Fill only if installed on this vehicle</span>
+                                        </div>
+
+                                        {/* UHP Details */}
+                                        <div className="p-3 bg-white rounded-xl border border-slate-200/80 space-y-2">
+                                            <span className="text-[11px] font-black text-slate-800 uppercase flex items-center gap-1.5">⚡ UHP Pump Details <span className="text-[9px] font-bold text-slate-400">(Optional)</span></span>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                <div>
+                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">UHP Pump Make</label>
+                                                    <input
+                                                        type="text"
+                                                        value={form.uhpPumpMake}
+                                                        onChange={e => handleTextChange('uhpPumpMake', e.target.value)}
+                                                        placeholder="e.g. Hawk / Interpump / Pratissoli"
+                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">UHP Pump LPM / Bar</label>
+                                                    <input
+                                                        type="text"
+                                                        value={form.uhpPumpLpm}
+                                                        onChange={e => handleTextChange('uhpPumpLpm', e.target.value)}
+                                                        placeholder="e.g. 50 LPM @ 100 Bar"
+                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">UHP Pump Serial No</label>
+                                                    <input
+                                                        type="text"
+                                                        value={form.uhpPumpSrNo}
+                                                        onChange={e => handleTextChange('uhpPumpSrNo', e.target.value)}
+                                                        placeholder="e.g. UHP-2026-901"
+                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* DCP Details */}
+                                        <div className="p-3 bg-white rounded-xl border border-slate-200/80 space-y-2">
+                                            <span className="text-[11px] font-black text-slate-800 uppercase flex items-center gap-1.5">🧯 DCP System Details <span className="text-[9px] font-bold text-slate-400">(Optional)</span></span>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">DCP Capacity (Kg)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={form.dcpCapacity}
+                                                        onChange={e => handleTextChange('dcpCapacity', e.target.value)}
+                                                        placeholder="e.g. 50 Kg / 150 Kg / 300 Kg"
+                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">DCP HPT Due Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={form.dcpHptDueDate}
+                                                        onChange={e => handleTextChange('dcpHptDueDate', e.target.value)}
+                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
                                     <div className="pt-2 flex gap-3">
                                         <button type="button" onClick={onClose} className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
                                             Cancel
                                         </button>
                                         <button type="submit" disabled={submitting} className="flex-2 py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-                                            {submitting ? 'Submitting Delivery...' : '🚀 Submit Delivery Registration'}
+                                            {submitting ? 'Registering...' : '💾 SAVE & REGISTER DELIVERY'}
                                         </button>
                                     </div>
                                 </form>
@@ -13703,11 +13719,16 @@ function App() {
                     {showRegisterDeliveryModal && (
                         <RegisterClientToDeliveryModal
                             onClose={() => setShowRegisterDeliveryModal(false)}
-                            customers={customers}
-                            onSubmitted={(newSub) => {
-                                setDeliverySubmissions(prev => {
-                                    const updated = [newSub, ...prev];
-                                    try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(updated)); } catch(e){}
+                            existingCustomers={customers}
+                            onDirectPunch={(newCust, newTrk) => {
+                                setCustomers(prev => {
+                                    const updated = [...prev, newCust];
+                                    try { localStorage.setItem('ff_cust', JSON.stringify(updated)); } catch(e){}
+                                    return updated;
+                                });
+                                setTrucks(prev => {
+                                    const updated = [newTrk, ...prev];
+                                    try { localStorage.setItem('ff_trks', JSON.stringify(updated)); } catch(e){}
                                     return updated;
                                 });
                             }}
