@@ -8671,6 +8671,10 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             if (AGM_ACCESS_HASHES.includes(hashHex) || str === '2410' || str === 'AGM@2026' || str === '2026') {
                 return 'agm';
             }
+            // Check Register Client To Delivery Form (Lock PIN: 2038)
+            if (str === '2038' || str === 'DELIVERY2038') {
+                return 'register_delivery';
+            }
             return null;
         };
 
@@ -11335,6 +11339,14 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                 });
             };
             const [accessMode, setAccessMode] = useState('customer');
+            const [showRegisterDeliveryModal, setShowRegisterDeliveryModal] = useState(false);
+            const [showPendingSubmissionsModal, setShowPendingSubmissionsModal] = useState(false);
+            const [deliverySubmissions, setDeliverySubmissions] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('ff_delivery_submissions');
+                    return saved ? JSON.parse(saved) : [];
+                } catch(e) { return []; }
+            });
             const [showAgmAuthModal, setShowAgmAuthModal] = useState(false);
             const [showMasterAuthModal, setShowMasterAuthModal] = useState(false);
             const [authPasswordInput, setAuthPasswordInput] = useState('');
@@ -13105,7 +13117,13 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 <form onSubmit={async (e) => {
                                     e.preventDefault();
                                     const role = await verifyPasswordLevel(authPasswordInput);
-                                    if (role === 'agm' || role === 'master_admin') {
+                                    if (role === 'register_delivery') {
+                                        setShowAgmAuthModal(false);
+                                        setShowMasterAuthModal(false);
+                                        setShowRegisterDeliveryModal(true);
+                                        setAuthPasswordInput('');
+                                        setAuthPasswordError(false);
+                                    } else if (role === 'agm' || role === 'master_admin') {
                                         setAccessMode(role === 'master_admin' ? 'master_admin' : 'agm');
                                         setShowAgmAuthModal(false);
                                         setAuthPasswordInput('');
@@ -13124,7 +13142,13 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 setAuthPasswordError(false);
                                                 if (val.trim().length >= 4) {
                                                     const role = await verifyPasswordLevel(val.trim());
-                                                    if (role === 'agm' || role === 'master_admin') {
+                                                    if (role === 'register_delivery') {
+                                                        setShowAgmAuthModal(false);
+                                                        setShowMasterAuthModal(false);
+                                                        setShowRegisterDeliveryModal(true);
+                                                        setAuthPasswordInput('');
+                                                        setAuthPasswordError(false);
+                                                    } else if (role === 'agm' || role === 'master_admin') {
                                                         setAccessMode(role === 'master_admin' ? 'master_admin' : 'agm');
                                                         setShowAgmAuthModal(false);
                                                         setAuthPasswordInput('');
@@ -13166,6 +13190,202 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         document.body
                     )}
 
+                    {/* 📋 REGISTER CLIENT TO DELIVERY MODAL (PIN: 2038) */}
+                    {showRegisterDeliveryModal && (
+                        <RegisterClientToDeliveryModal
+                            onClose={() => setShowRegisterDeliveryModal(false)}
+                            customers={customers}
+                            onSubmitted={(newSub) => {
+                                setDeliverySubmissions(prev => {
+                                    const updated = [newSub, ...prev];
+                                    try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(updated)); } catch(e){}
+                                    return updated;
+                                });
+                            }}
+                        />
+                    )}
+
+
+                    {/* 🔔 PENDING DELIVERY SUBMISSIONS MODAL (1-CLICK ADMIN PUNCH-IN) */}
+                    {showPendingSubmissionsModal && (
+                        <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+                            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+                                <div className="bg-slate-900 text-white p-5 flex items-center justify-between border-b border-white/10 shrink-0">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg">
+                                            🔔
+                                        </div>
+                                        <div>
+                                            <h2 className="text-base font-black uppercase tracking-tight text-white">Staged Delivery Submissions Queue</h2>
+                                            <p className="text-[11px] font-bold text-slate-400 mt-0.5">Review submissions from PIN 2038 form &amp; Punch directly into Fleet Inventory</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowPendingSubmissionsModal(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer">
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <div className="p-5 overflow-y-auto flex-1 space-y-4">
+                                    {deliverySubmissions.length === 0 ? (
+                                        <div className="py-12 text-center text-slate-400 space-y-2">
+                                            <p className="text-3xl">📭</p>
+                                            <p className="text-xs font-black uppercase">No delivery submissions in queue</p>
+                                        </div>
+                                    ) : (
+                                        deliverySubmissions.map((sub, idx) => (
+                                            <div key={sub.id || idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200">
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-black text-slate-900 text-sm uppercase">{sub.customerName || sub.customer_name}</span>
+                                                            <span className="font-mono text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">PO: {sub.poNo || sub.po_no}</span>
+                                                        </div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{sub.tenderType || sub.tender_type} · Ref: {sub.id}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${sub.status === 'Punched in System' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                                            {sub.status || 'Pending Approval'}
+                                                        </span>
+                                                        {sub.status !== 'Punched in System' && (
+                                                            <button
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        // 1. Check or create Customer
+                                                                        let custId = customers.find(c => c.name.trim().toUpperCase() === (sub.customerName || sub.customer_name || '').trim().toUpperCase())?.id;
+                                                                        if (!custId) {
+                                                                            const newCustId = 'CUST-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+                                                                            const newCust = {
+                                                                                id: newCustId,
+                                                                                name: sub.customerName || sub.customer_name,
+                                                                                contactPerson: sub.contactPerson || sub.contact_person || '',
+                                                                                phone: sub.phone || '',
+                                                                                email: sub.email || '',
+                                                                                address: sub.address || '',
+                                                                                poDate: sub.poDate || sub.po_date || null
+                                                                            };
+                                                                            setCustomers(prev => [...prev, newCust]);
+                                                                            custId = newCustId;
+                                                                            const sb = window.SupabaseClient;
+                                                                            if (sb) {
+                                                                                try { await sb.from('customers').insert({ id: newCustId, name: newCust.name, contact_person: newCust.contactPerson, phone: newCust.phone, email: newCust.email, address: newCust.address, po_date: newCust.poDate }); } catch(e){}
+                                                                            }
+                                                                        }
+
+                                                                        // 2. Create Truck Delivery
+                                                                        const trkId = 'TRK-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+                                                                        const newTrkPayload = {
+                                                                            id: trkId,
+                                                                            customerId: custId,
+                                                                            poNo: sub.poNo || sub.po_no,
+                                                                            poDate: sub.poDate || sub.po_date || null,
+                                                                            tenderType: sub.tenderType || sub.tender_type,
+                                                                            chassisMake: sub.chassisMake || sub.chassis_make || '',
+                                                                            modelNo: sub.modelNo || sub.model_no || '',
+                                                                            chassisSrNo: sub.chassisSrNo || sub.chassis_sr_no || '',
+                                                                            engineSrNo: sub.engineSrNo || sub.engine_sr_no || '',
+                                                                            deliveryDate: sub.deliveryDate || sub.delivery_date || new Date().toISOString().split('T')[0],
+                                                                            warrantyMonths: parseInt(sub.warrantyMonths || sub.warranty_months) || 24,
+                                                                            pumpMake: sub.pumpMake || sub.pump_make || '',
+                                                                            pumpLpm: sub.pumpLpm || sub.pump_lpm || '',
+                                                                            pumpSrNo: sub.pumpSrNo || sub.pump_sr_no || '',
+                                                                            waterCapacity: sub.waterCapacity || sub.water_capacity || 0,
+                                                                            foamCapacity: sub.foamCapacity || sub.foam_capacity || 0,
+                                                                            uhpPumpMake: sub.uhpPumpMake || sub.uhp_pump_make || null,
+                                                                            uhpPumpLpm: sub.uhpPumpLpm || sub.uhp_pump_lpm || null,
+                                                                            uhpPumpSrNo: sub.uhpPumpSrNo || sub.uhp_pump_sr_no || null,
+                                                                            dcpCapacity: sub.dcpCapacity || sub.dcp_capacity || null,
+                                                                            dcpHptDueDate: sub.dcpHptDueDate || sub.dcp_hpt_due_date || null,
+                                                                            dcpSrNo: sub.dcpSrNo || sub.dcp_sr_no || null,
+                                                                            insuranceCompany: sub.insuranceCompany || sub.insurance_company || '',
+                                                                            insurancePolicyNo: sub.insurancePolicyNo || sub.insurance_policy_no || '',
+                                                                            insuranceExpiryDate: sub.insuranceExpiryDate || sub.insurance_expiry_date || null,
+                                                                            costCenterStatus: 'Not Generated'
+                                                                        };
+
+                                                                        setTrucks(prev => [newTrkPayload, ...prev]);
+
+                                                                        // Mark submission as Punched
+                                                                        const updatedSubs = deliverySubmissions.map(s => (s.id === sub.id) ? { ...s, status: 'Punched in System' } : s);
+                                                                        setDeliverySubmissions(updatedSubs);
+                                                                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(updatedSubs)); } catch(e){}
+
+                                                                        // Sync to Supabase
+                                                                        const sb = window.SupabaseClient;
+                                                                        if (sb) {
+                                                                            try {
+                                                                                await sb.from('trucks').insert({
+                                                                                    id: trkId,
+                                                                                    customer_id: custId,
+                                                                                    po_no: newTrkPayload.poNo,
+                                                                                    po_date: newTrkPayload.poDate,
+                                                                                    tender_type: newTrkPayload.tenderType,
+                                                                                    chassis_make: newTrkPayload.chassisMake,
+                                                                                    model_no: newTrkPayload.modelNo,
+                                                                                    chassis_sr_no: newTrkPayload.chassisSrNo,
+                                                                                    engine_sr_no: newTrkPayload.engineSrNo,
+                                                                                    delivery_date: newTrkPayload.deliveryDate,
+                                                                                    warranty_months: newTrkPayload.warrantyMonths,
+                                                                                    pump_make: newTrkPayload.pumpMake,
+                                                                                    pump_lpm: newTrkPayload.pumpLpm,
+                                                                                    pump_sr_no: newTrkPayload.pumpSrNo,
+                                                                                    water_capacity: newTrkPayload.waterCapacity,
+                                                                                    foam_capacity: newTrkPayload.foamCapacity,
+                                                                                    uhp_pump_make: newTrkPayload.uhpPumpMake,
+                                                                                    uhp_pump_lpm: newTrkPayload.uhpPumpLpm,
+                                                                                    uhp_pump_sr_no: newTrkPayload.uhpPumpSrNo,
+                                                                                    dcp_capacity: newTrkPayload.dcpCapacity,
+                                                                                    dcp_hpt_due_date: newTrkPayload.dcpHptDueDate,
+                                                                                    dcp_sr_no: newTrkPayload.dcpSrNo,
+                                                                                    insurance_company: newTrkPayload.insuranceCompany,
+                                                                                    insurance_policy_no: newTrkPayload.insurancePolicyNo,
+                                                                                    insurance_expiry_date: newTrkPayload.insuranceExpiryDate
+                                                                                });
+                                                                                await sb.from('delivery_submissions').update({ status: 'Punched in System' }).eq('id', sub.id);
+                                                                            } catch(e){}
+                                                                        }
+
+                                                                        alert('🎉 Successfully Punched into Live Fleet Inventory!');
+                                                                    } catch(err) {
+                                                                        console.error('Punch-in error:', err);
+                                                                        alert('Failed to punch in: ' + err.message);
+                                                                    }
+                                                                }}
+                                                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md transition-all cursor-pointer"
+                                                            >
+                                                                <span>🚀</span> Confirm &amp; Punch In
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm('Delete this submission record?')) {
+                                                                    const rem = deliverySubmissions.filter(s => s.id !== sub.id);
+                                                                    setDeliverySubmissions(rem);
+                                                                    try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(rem)); } catch(e){}
+                                                                }
+                                                            }}
+                                                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                                                            title="Delete submission"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Details Grid */}
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                                                    <div className="bg-white p-2 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Contact:</span><span className="font-extrabold text-slate-800">{sub.contactPerson || sub.contact_person || '—'} ({sub.phone || '—'})</span></div>
+                                                    <div className="bg-white p-2 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Delivery Date:</span><span className="font-extrabold text-slate-800">{formatDate(sub.deliveryDate || sub.delivery_date)}</span></div>
+                                                    <div className="bg-white p-2 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Pump / Capacity:</span><span className="font-extrabold text-slate-800">{sub.pumpMake || sub.pump_make || '—'} · {sub.waterCapacity || sub.water_capacity || 0}L/{sub.foamCapacity || sub.foam_capacity || 0}L</span></div>
+                                                    <div className="bg-white p-2 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Auxiliary:</span><span className="font-extrabold text-slate-800">{sub.uhpPumpMake || sub.uhp_pump_make ? '⚡ UHP' : ''} {sub.dcpCapacity || sub.dcp_capacity ? '🧯 DCP' : ''} {!sub.uhpPumpMake && !sub.uhp_pump_make && !sub.dcpCapacity && !sub.dcp_capacity ? 'Standard' : ''}</span></div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* MASTER ADMIN SECURE ACCESS MODAL (AUTO-UNLOCK ON MATCH) */}
                     {showMasterAuthModal && typeof document !== 'undefined' && document.body && ReactDOM.createPortal(
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
@@ -13183,7 +13403,13 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 <form onSubmit={async (e) => {
                                     e.preventDefault();
                                     const role = await verifyPasswordLevel(authPasswordInput);
-                                    if (role === 'master_admin') {
+                                    if (role === 'register_delivery') {
+                                        setShowMasterAuthModal(false);
+                                        setShowAgmAuthModal(false);
+                                        setShowRegisterDeliveryModal(true);
+                                        setAuthPasswordInput('');
+                                        setAuthPasswordError(false);
+                                    } else if (role === 'master_admin') {
                                         setUser({ connected: true });
                                         setAccessMode('master_admin');
                                         setShowMasterAuthModal(false);
@@ -13208,7 +13434,13 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 setAuthPasswordError(false);
                                                 if (val.trim().length >= 4) {
                                                     const role = await verifyPasswordLevel(val.trim());
-                                                    if (role === 'master_admin') {
+                                                    if (role === 'register_delivery') {
+                                                        setShowMasterAuthModal(false);
+                                                        setShowAgmAuthModal(false);
+                                                        setShowRegisterDeliveryModal(true);
+                                                        setAuthPasswordInput('');
+                                                        setAuthPasswordError(false);
+                                                    } else if (role === 'master_admin') {
                                                         setUser({ connected: true });
                                                         setAccessMode('master_admin');
                                                         setShowMasterAuthModal(false);
@@ -13713,7 +13945,22 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         {/* ── TRUCKS ── */}
                         {activeTab==='trucks' && (
                             <div className="space-y-4">
-                                <div className="flex justify-between items-center"><h2 className="text-lg font-black text-slate-900 uppercase">Fleet Inventory</h2><button onClick={()=>{setEditingTruck(null);setNewTrk({customerId:'',poNo:'',poDate:'',ocNo:'',ocDate:'',costCenterNo:'',tenderType:'',pumpMake:'',pumpLpm:'',pumpSrNo:'',foamCapacity:'',waterCapacity:'',chassisMake:'',modelNo:'',deliveryDate:'',warrantyMonths:12,insurancePolicyNo:'',insuranceCompany:'',insuranceExpiryDate:'',costCenterStatus:'Not Generated',poAtGlanceGeneratedAt:null,submittedToAccountsAt:null,costCenterCreatedAt:null});setShowTruckModal(true);}} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[11px] font-black shadow-xl uppercase tracking-widest flex items-center gap-1.5"><Icon name="plus" size={14}/>Add Delivery</button></div>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <h2 className="text-lg font-black text-slate-900 uppercase">Fleet Inventory</h2>
+                                        {deliverySubmissions.filter(s => s.status === 'Pending Approval').length > 0 && (
+                                            <button onClick={() => setShowPendingSubmissionsModal(true)} className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md animate-pulse cursor-pointer">
+                                                <span>🔔</span> {deliverySubmissions.filter(s => s.status === 'Pending Approval').length} Staged Submissions
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => setShowRegisterDeliveryModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-[11px] font-black shadow-md uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+                                            <span>🚚</span> Register Delivery (2038)
+                                        </button>
+                                        <button onClick={()=>{setEditingTruck(null);setNewTrk({customerId:'',poNo:'',poDate:'',ocNo:'',ocDate:'',costCenterNo:'',tenderType:'',pumpMake:'',pumpLpm:'',pumpSrNo:'',foamCapacity:'',waterCapacity:'',chassisMake:'',modelNo:'',deliveryDate:'',warrantyMonths:12,insurancePolicyNo:'',insuranceCompany:'',insuranceExpiryDate:'',costCenterStatus:'Not Generated',poAtGlanceGeneratedAt:null,submittedToAccountsAt:null,costCenterCreatedAt:null});setShowTruckModal(true);}} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[11px] font-black shadow-xl uppercase tracking-widest flex items-center gap-1.5"><Icon name="plus" size={14}/>Add Delivery</button>
+                                    </div>
+                                </div>
                                 <div className="bg-white rounded-3xl border overflow-hidden shadow-sm">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left table-fixed min-w-[950px]">

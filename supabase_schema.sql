@@ -260,6 +260,48 @@ CREATE TABLE IF NOT EXISTS public.pm_schedules (
     updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
 );
 
+
+-- ── 2.8 DELIVERY SUBMISSIONS (STAGED PIN 2038 REGISTRATIONS) ─────────────────
+CREATE TABLE IF NOT EXISTS public.delivery_submissions (
+    id TEXT PRIMARY KEY DEFAULT ('SUB-' || UPPER(SUBSTRING(gen_random_uuid()::TEXT, 1, 8))),
+    customer_name TEXT NOT NULL,
+    contact_person TEXT,
+    phone TEXT,
+    email TEXT,
+    address TEXT,
+    po_no TEXT NOT NULL,
+    po_date DATE,
+    tender_type TEXT NOT NULL,
+    chassis_make TEXT,
+    model_no TEXT,
+    chassis_sr_no TEXT,
+    engine_sr_no TEXT,
+    delivery_date DATE,
+    warranty_months INTEGER DEFAULT 24,
+    pump_make TEXT,
+    pump_lpm NUMERIC,
+    pump_sr_no TEXT,
+    water_capacity NUMERIC DEFAULT 0,
+    foam_capacity NUMERIC DEFAULT 0,
+    uhp_pump_make TEXT,
+    uhp_pump_lpm TEXT,
+    uhp_pump_sr_no TEXT,
+    dcp_capacity TEXT,
+    dcp_hpt_due_date DATE,
+    dcp_sr_no TEXT,
+    insurance_company TEXT,
+    insurance_policy_no TEXT,
+    insurance_expiry_date DATE,
+    status TEXT DEFAULT 'Pending Approval',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
+);
+
+ALTER TABLE public.delivery_submissions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public all on delivery_submissions" ON public.delivery_submissions;
+CREATE POLICY "Allow public all on delivery_submissions" ON public.delivery_submissions FOR ALL USING (true);
+
 -- ==============================================================================
 -- 3. CAPA (CORRECTIVE & PREVENTIVE ACTION) TABLES
 -- ==============================================================================
