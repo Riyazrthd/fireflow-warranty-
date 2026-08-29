@@ -8645,34 +8645,40 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
         // TWO-LEVEL SECURITY & AGM MANAGEMENT VIEW
         // ══════════════════════════════════════════════════════
 
+        // ══════════════════════════════════════════════════════
+        // SECURE CRYPTOGRAPHIC ZERO-KNOWLEDGE PIN VERIFICATION
+        // (Zero plaintext PINs hardcoded in source)
+        // ══════════════════════════════════════════════════════
         const AUTH_SALT = 'FireFlow_IFS_Salt_2026';
-        const MASTER_ADMIN_HASHES = ["55b74f34cdb4e1aec90c53605fde718dae9ea3446f534e12f95e611bc4028767","b4bae3f7732ef9ccddf535696bd2c9b091a59ec955540ef56f4f7dc4ecde2cfc","155a7b13a32d4b93ac1f422cac4bc7441c10bd9f15e69fb6932dc793dcab9a1b","82dd6385ef7f40550b92993306109653fd71797ff52d0190abcda4d1f7ca3ad5"];
-        const AGM_ACCESS_HASHES = ["e422fc038bbddda937cddda58a3a96189bbd018dc85ed045eee8714b0c451619","a4ef8b193c56934b05cb397093565cd4e3966db0a62f3a9f674f4be3741bb664","ad655f8b2e630d9184d402c0d6c1b2d3fd68a7387b6463635647bbf049a576e9"];
+        const MASTER_ADMIN_HASHES = ["55b74f34cdb4e1aec90c53605fde718dae9ea3446f534e12f95e611bc4028767","b4bae3f7732ef9ccddf535696bd2c9b091a59ec955540ef56f4f7dc4ecde2cfc","155a7b13a32d4b93ac1f422cac4bc7441c10bd9f15e69fb6932dc793dcab9a1b","b36909a1c6d5b0f4986588405d5d4dfd2f88687d43875dbde8b3cf16990d3059"];
+        const AGM_ACCESS_HASHES = ["e422fc038bbddda937cddda58a3a96189bbd018dc85ed045eee8714b0c451619","a4ef8b193c56934b05cb397093565cd4e3966db0a62f3a9f674f4be3741bb664","ad655f8b2e630d9184d402c0d6c1b2d3fd68a7387b6463635647bbf049a576e9","fcaee0a6b8ad83ab3570134f160639ca7fb4b6daa5799d36e4801cf2e787825e"];
+        const DELIVERY_ACCESS_HASHES = ["b3f1d3c09ff982664defeaeb4d1556b64b6f139b4e2ba500ef9610084b3200df","432a75ee500d9c8ceb4fb33ab57c19f18b24db5f6806a8ffe2c57cc58ca59f38","dd491e3d4103341305572170497e282271131149d08ff5846a31c10eb3aeecd6"];
 
         const verifyPasswordLevel = async (inputPassword) => {
             if (!inputPassword) return null;
             const str = String(inputPassword).trim();
             let hashHex = '';
             try {
-                if (window.crypto && window.crypto.subtle) {
+                if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
                     const encoder = new TextEncoder();
                     const data = encoder.encode(AUTH_SALT + str + AUTH_SALT);
                     const hashBuf = await window.crypto.subtle.digest('SHA-256', data);
                     const hashArr = Array.from(new Uint8Array(hashBuf));
                     hashHex = hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
+                } else if (typeof require !== 'undefined') {
+                    // Node environment fallback for automated testing
+                    const c = require('crypto');
+                    hashHex = c.createHash('sha256').update(AUTH_SALT + str + AUTH_SALT).digest('hex');
                 }
             } catch(e) {}
 
-            // Check Master Admin (Left Lock: 0706)
-            if (MASTER_ADMIN_HASHES.includes(hashHex) || str === '0706' || str === 'Admin@0706' || str === 'admin0706') {
+            if (MASTER_ADMIN_HASHES.includes(hashHex)) {
                 return 'master_admin';
             }
-            // Check Right Side Read-Only (Right Lock: 2410)
-            if (AGM_ACCESS_HASHES.includes(hashHex) || str === '2410' || str === 'AGM@2026' || str === '2026') {
+            if (AGM_ACCESS_HASHES.includes(hashHex)) {
                 return 'agm';
             }
-            // Check Register Client To Delivery Form (Lock PIN: 2038)
-            if (str === '2038' || str === 'DELIVERY2038') {
+            if (DELIVERY_ACCESS_HASHES.includes(hashHex)) {
                 return 'register_delivery';
             }
             return null;
