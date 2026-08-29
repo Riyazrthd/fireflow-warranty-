@@ -11538,7 +11538,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         <div className="flex items-center gap-2 pb-1 border-b border-slate-200 text-slate-800">
                                             <span className="text-sm font-black uppercase tracking-wider">2. Vehicle &amp; Delivery Details</span>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                                             <div>
                                                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">PO / WO Number *</label>
                                                 <input
@@ -11567,7 +11567,17 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     type="text"
                                                     value={form.chassisMake}
                                                     onChange={e => handleTextChange('chassisMake', e.target.value)}
-                                                    placeholder="E.G. TATA 2828.K / ASHOK LEYLAND"
+                                                    placeholder="E.G. TATA / ASHOK LEYLAND"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Model / Reg No</label>
+                                                <input
+                                                    type="text"
+                                                    value={form.modelNo}
+                                                    onChange={e => handleTextChange('modelNo', e.target.value)}
+                                                    placeholder="E.G. 2828.K / GJ-06-XX"
                                                     className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
                                                 />
                                             </div>
@@ -11736,6 +11746,46 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     onChange={e => handleTextChange('dcpSrNo', e.target.value)}
                                                     placeholder="DCP CYLINDER / SYSTEM NO"
                                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none mt-auto"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                    {/* ── SECTION 5: INSURANCE & LOGISTICS (OPTIONAL) ── */}
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                                        <div className="flex items-center justify-between pb-1 border-b border-slate-200 text-slate-800">
+                                            <span className="text-sm font-black uppercase tracking-wider">5. Insurance &amp; Policy Details</span>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">(Optional)</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Insurance Company</label>
+                                                <input
+                                                    type="text"
+                                                    value={form.insuranceCompany}
+                                                    onChange={e => handleTextChange('insuranceCompany', e.target.value)}
+                                                    placeholder="E.G. NEW INDIA ASSURANCE / ICICI LOMBARD"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Policy Number</label>
+                                                <input
+                                                    type="text"
+                                                    value={form.insurancePolicyNo}
+                                                    onChange={e => handleTextChange('insurancePolicyNo', e.target.value)}
+                                                    placeholder="E.G. POL-2026-88192"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Insurance Expiry Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={form.insuranceExpiryDate}
+                                                    onChange={e => handleTextChange('insuranceExpiryDate', e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none"
                                                 />
                                             </div>
                                         </div>
