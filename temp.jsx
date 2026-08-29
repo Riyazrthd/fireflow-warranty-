@@ -142,6 +142,12 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             costCenterStatus: r.cost_center_status || 'Not Generated',
             poAtGlanceGeneratedAt: r.po_at_glance_generated_at || null,
             submittedToAccountsAt: r.submitted_to_accounts_at || null,
+            uhpPumpMake: r.uhp_pump_make || null,
+            uhpPumpLpm: r.uhp_pump_lpm || null,
+            uhpPumpSrNo: r.uhp_pump_sr_no || null,
+            dcpCapacity: r.dcp_capacity || null,
+            dcpHptDueDate: r.dcp_hpt_due_date || null,
+            dcpSrNo: r.dcp_sr_no || null,
             costCenterCreatedAt: r.cost_center_created_at || null,
             ocNo: r.oc_no || null,
             ocDate: r.oc_date || null,
@@ -5488,21 +5494,45 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                         {/* Details Card */}
                                                         <div className="md:col-span-8 flex flex-col justify-center text-left">
                                                             <div className="grid grid-cols-2 gap-4">
-                                                                {[
-                                                                    { l: 'Customer / Organization', v: cust?.name, i: 'building-2' },
-                                                                    { l: 'PO Number', v: foundTruck.poNo, i: 'hash' },
-                                                                    { l: 'Tender Type / Model', v: foundTruck.tenderType || 'Fire Tender', i: 'shield' },
-                                                                    { l: 'Delivery Date', v: formatDate(foundTruck.deliveryDate), i: 'calendar' },
-                                                                    { l: 'Warranty Expiry', v: formatDate(warrantyExp), i: 'clock' },
-                                                                    { l: 'Chassis Make', v: foundTruck.chassisMake, i: 'truck' },
-                                                                    { l: 'Pump Make & Sr. No.', v: `${foundTruck.pumpMake || 'Standard'} (${foundTruck.pumpSrNo || 'N/A'})`, i: 'activity' },
-                                                                    { l: 'Location', v: cust?.location || 'Gujarat, India', i: 'map-pin' }
-                                                                ].map((it, idx) => (
+                                                                {(() => {
+                                                                    const specs = [
+                                                                        { l: 'Customer / Organization', v: cust?.name, i: 'building-2' },
+                                                                        { l: 'PO Number', v: foundTruck.poNo, i: 'hash' },
+                                                                        { l: 'Tender Type / Model', v: foundTruck.tenderType || 'Fire Tender', i: 'shield' },
+                                                                        { l: 'Delivery Date', v: formatDate(foundTruck.deliveryDate), i: 'calendar' },
+                                                                        { l: 'Warranty Expiry', v: formatDate(warrantyExp), i: 'clock' },
+                                                                        { l: 'Chassis Make', v: foundTruck.chassisMake, i: 'truck' },
+                                                                        { l: 'Pump Make & Sr. No.', v: `${foundTruck.pumpMake || 'Standard'} (${foundTruck.pumpSrNo || 'N/A'})`, i: 'activity' }
+                                                                    ];
+
+                                                                    // Conditionally show UHP Pump if provided
+                                                                    if (foundTruck.uhpPumpMake || foundTruck.uhpPumpSrNo || foundTruck.uhpPumpLpm) {
+                                                                        const uhpDesc = [
+                                                                            foundTruck.uhpPumpMake,
+                                                                            foundTruck.uhpPumpLpm ? `(${foundTruck.uhpPumpLpm})` : '',
+                                                                            foundTruck.uhpPumpSrNo ? `Sr: ${foundTruck.uhpPumpSrNo}` : ''
+                                                                        ].filter(Boolean).join(' ');
+                                                                        specs.push({ l: '⚡ UHP Pump (Make / LPM / Sr)', v: uhpDesc, i: 'zap' });
+                                                                    }
+
+                                                                    // Conditionally show DCP System if provided
+                                                                    if (foundTruck.dcpCapacity || foundTruck.dcpHptDueDate) {
+                                                                        const dcpDesc = [
+                                                                            foundTruck.dcpCapacity ? `${foundTruck.dcpCapacity} Kg Capacity` : 'DCP System',
+                                                                            foundTruck.dcpHptDueDate ? `HPT Due: ${formatDate(foundTruck.dcpHptDueDate)}` : ''
+                                                                        ].filter(Boolean).join(' · ');
+                                                                        specs.push({ l: '🧯 DCP System & HPT Due', v: dcpDesc, i: 'shield' });
+                                                                    }
+
+                                                                    specs.push({ l: 'Location / Plant', v: cust?.address || cust?.location || 'Gujarat, India', i: 'map-pin' });
+
+                                                                    return specs.map((it, idx) => (
                                                                     <div key={idx} className="bg-slate-900/50 p-2.5 rounded-xl border border-white/5">
                                                                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">{it.l}</span>
                                                                         <span className="text-xs font-bold text-slate-100">{it.v || 'N/A'}</span>
                                                                     </div>
-                                                                ))}
+                                                                    ));
+                                                                })()}
                                                             </div>
 
                                                             {/* 🎓 Official Training Sheet & Commissioning Soft Copy Banner */}
@@ -14623,6 +14653,44 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 <div className="grid grid-cols-2 gap-4"><Input label="Water Tank Capacity (Ltrs)" value={newTrk.waterCapacity} onChange={v=>setNewTrk({...newTrk,waterCapacity:v})}/><Input label="Foam Tank Capacity (Ltrs)" value={newTrk.foamCapacity} onChange={v=>setNewTrk({...newTrk,foamCapacity:v})}/></div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="Delivery Date *" type="date" value={newTrk.deliveryDate} onChange={v=>setNewTrk({...newTrk,deliveryDate:v})} required/><Input label="Warranty Months" type="number" value={newTrk.warrantyMonths} onChange={v=>setNewTrk({...newTrk,warrantyMonths:v})}/></div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"><Input label="Insurance Company" value={newTrk.insuranceCompany} onChange={v=>setNewTrk({...newTrk,insuranceCompany:v})}/><Input label="Policy No" value={newTrk.insurancePolicyNo} onChange={v=>setNewTrk({...newTrk,insurancePolicyNo:v})}/><Input label="Insurance Expiry" type="date" value={newTrk.insuranceExpiryDate} onChange={v=>setNewTrk({...newTrk,insuranceExpiryDate:v})}/></div>
+
+                                {/* ═══ OPTIONAL AUXILIARY EQUIPMENT: UHP PUMP & DCP SYSTEM ═══ */}
+                                <div className="border-t border-slate-200 pt-3 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                                            Optional Auxiliary Equipment (UHP Pump &amp; DCP System)
+                                        </span>
+                                        <span className="text-[9px] font-bold text-slate-400">
+                                            Fill only if installed on this vehicle
+                                        </span>
+                                    </div>
+
+                                    {/* Section 1: UHP Pump (Optional) */}
+                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-2.5">
+                                        <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                                            <span>⚡ UHP Pump Details</span>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">(Optional)</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <Input label="UHP Pump Make" placeholder="e.g. Hawk / Interpump / Pratissoli" value={newTrk.uhpPumpMake || ''} onChange={v=>setNewTrk({...newTrk, uhpPumpMake: v})}/>
+                                            <Input label="UHP Pump LPM / Bar" placeholder="e.g. 50 LPM @ 100 Bar" value={newTrk.uhpPumpLpm || ''} onChange={v=>setNewTrk({...newTrk, uhpPumpLpm: v})}/>
+                                            <Input label="UHP Pump Serial No" placeholder="e.g. UHP-2026-901" value={newTrk.uhpPumpSrNo || ''} onChange={v=>setNewTrk({...newTrk, uhpPumpSrNo: v})}/>
+                                        </div>
+                                    </div>
+
+                                    {/* Section 2: DCP System (Optional) */}
+                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-2.5">
+                                        <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+                                            <span>🧯 DCP System Details</span>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">(Optional)</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <Input label="DCP Capacity (Kg)" placeholder="e.g. 50 Kg / 150 Kg / 300 Kg" value={newTrk.dcpCapacity || ''} onChange={v=>setNewTrk({...newTrk, dcpCapacity: v})}/>
+                                            <Input label="DCP HPT Due Date" type="date" value={newTrk.dcpHptDueDate || ''} onChange={v=>setNewTrk({...newTrk, dcpHptDueDate: v})}/>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl mt-2 tracking-widest hover:bg-blue-700">{editingTruck?'Update':'Save & Generate QR ▶'}</button>
                             </form>
                         </Modal>

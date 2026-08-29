@@ -122,6 +122,12 @@ ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS insurance_expiry_date DATE;
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS cost_center_status TEXT DEFAULT 'Not Generated';
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS po_at_glance_generated_at TIMESTAMPTZ;
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS submitted_to_accounts_at TIMESTAMPTZ;
+ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS uhp_pump_make TEXT;
+ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS uhp_pump_lpm TEXT;
+ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS uhp_pump_sr_no TEXT;
+ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS dcp_capacity TEXT;
+ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS dcp_hpt_due_date DATE;
+ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS dcp_sr_no TEXT;
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::TEXT, NOW());
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::TEXT, NOW());
 
