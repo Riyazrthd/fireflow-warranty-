@@ -11469,7 +11469,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                             <div>
                                 <div className="flex items-center gap-2">
                                     <h1 className="text-base font-black uppercase tracking-tight text-white">Register Client To Delivery</h1>
-                                    <span className="bg-amber-400 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded-md shadow-xs">PIN 2038</span>
+                                    <span className="bg-emerald-500 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md shadow-xs">Authorized Access</span>
                                 </div>
                                 <p className="text-[11px] text-slate-400 font-medium">Complete Landscape Delivery Form · All Inputs Automatically Format to UPPERCASE</p>
                             </div>
@@ -11507,7 +11507,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center space-y-1.5">
                                     <p className="text-[10px] font-black uppercase text-slate-400">Submission Reference ID</p>
                                     <p className="text-2xl font-black text-indigo-600 font-mono">{submittedRef}</p>
-                                    <p className="text-xs text-slate-600 pt-2 font-medium">Staged in system queue. Master Admin (PIN: 0706) will review, accept &amp; generate live QR code.</p>
+                                    <p className="text-xs text-slate-600 pt-2 font-medium">Staged in system queue. Master Admin will review, accept &amp; generate live QR code.</p>
                                 </div>
                                 <div className="pt-3 flex gap-3 justify-center">
                                     <button onClick={() => setSubmittedRef(null)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
@@ -11833,7 +11833,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 {/* ── BOTTOM SUBMISSION BAR ── */}
                                 <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
                                     <div className="flex items-center gap-3 text-xs text-slate-500 font-bold">
-                                        <span className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 font-black">PIN: 2038</span>
+                                        <span className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 font-black">Direct Entry</span>
                                         <span>Direct Delivery Entry · UPPERCASE Typing Active</span>
                                     </div>
                                     <div className="flex items-center gap-2.5 w-full sm:w-auto">
@@ -13790,7 +13790,7 @@ function App() {
                                         </div>
                                         <div>
                                             <h2 className="text-base font-black uppercase tracking-tight text-white">Staged Delivery Submissions Queue</h2>
-                                            <p className="text-[11px] font-bold text-slate-400 mt-0.5">Submitted via PIN 2038 · Accept to punch into live system &amp; generate QR code</p>
+                                            <p className="text-[11px] font-bold text-slate-400 mt-0.5">Submitted via Dispatch Entry · Accept to punch into live system &amp; generate QR code</p>
                                         </div>
                                     </div>
                                     <button onClick={() => setShowPendingSubmissionsModal(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer">
@@ -14531,7 +14531,7 @@ function App() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button onClick={() => setShowRegisterDeliveryModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-[11px] font-black shadow-md uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
-                                            <span>🚚</span> Register Delivery (2038)
+                                            <span>🚚</span> Register Delivery
                                         </button>
                                         <button onClick={()=>{setEditingTruck(null);setNewTrk({customerId:'',poNo:'',poDate:'',ocNo:'',ocDate:'',costCenterNo:'',tenderType:'',pumpMake:'',pumpLpm:'',pumpSrNo:'',foamCapacity:'',waterCapacity:'',chassisMake:'',modelNo:'',deliveryDate:'',warrantyMonths:12,insurancePolicyNo:'',insuranceCompany:'',insuranceExpiryDate:'',costCenterStatus:'Not Generated',poAtGlanceGeneratedAt:null,submittedToAccountsAt:null,costCenterCreatedAt:null});setShowTruckModal(true);}} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[11px] font-black shadow-xl uppercase tracking-widest flex items-center gap-1.5"><Icon name="plus" size={14}/>Add Delivery</button>
                                     </div>
