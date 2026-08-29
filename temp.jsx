@@ -11314,6 +11314,10 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
         // ══════════════════════════════════════════════════════════════════════════════
         // 📋 REGISTER CLIENT TO DELIVERY MODAL (PIN: 2038 - ALL UPPERCASE INPUTS)
         // ══════════════════════════════════════════════════════════════════════════════
+        
+        // ══════════════════════════════════════════════════════════════════════════════
+        // 📊 FULL-SCREEN LANDSCAPE EXCEL-STYLE REGISTER CLIENT TO DELIVERY (PIN: 2038)
+        // ══════════════════════════════════════════════════════════════════════════════
         const RegisterClientToDeliveryModal = ({ onClose, onSubmitted, existingCustomers = [] }) => {
             const [form, setForm] = useState({
                 // Client Fields
@@ -11347,6 +11351,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                 dcpHptDueDate: ''
             });
 
+            const [activeField, setActiveField] = useState('organization');
             const [submitting, setSubmitting] = useState(false);
             const [submittedRef, setSubmittedRef] = useState(null);
 
@@ -11355,9 +11360,9 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             };
 
             const handleSubmit = async (e) => {
-                e.preventDefault();
+                if (e) e.preventDefault();
                 if (!form.organization.trim() || !form.poNo.trim() || !form.tenderType.trim()) {
-                    alert('Please enter Organization Name, PO / WO Number, and Tender Type.');
+                    alert('Please enter mandatory fields: Organization Name, PO / WO Number, and Tender Type.');
                     return;
                 }
                 setSubmitting(true);
@@ -11445,375 +11450,427 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             };
 
             const modalContent = (
-                <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-slate-200 flex flex-col max-h-[94vh]">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 flex items-center justify-between border-b border-white/10 shrink-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-black text-lg">
-                                    🚚
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h2 className="text-base font-black uppercase tracking-tight text-white">Register Client To Delivery</h2>
-                                        <span className="bg-amber-500 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">PIN: 2038</span>
-                                    </div>
-                                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">Submit Delivery Request · Admin (0706) will review, accept &amp; generate QR code</p>
-                                </div>
+                <div className="fixed inset-0 z-[9999] w-screen h-screen bg-[#f3f4f6] flex flex-col font-sans select-none overflow-hidden">
+                    {/* ── 1. EXCEL TOP RIBBON & TITLE BAR ── */}
+                    <div className="bg-[#107c41] text-white px-4 py-2 flex items-center justify-between shadow-md shrink-0 border-b border-[#0b582e]">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-black text-white text-base shadow-inner">
+                                📊
                             </div>
-                            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer">
-                                ✕
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-sm font-black uppercase tracking-wider text-white">FIREFLOW_CLIENT_DELIVERY_REGISTER_2038.xlsx</h1>
+                                    <span className="bg-amber-400 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-md shadow-sm">PIN 2038 AUTO-UNLOCKED</span>
+                                    <span className="bg-emerald-900/60 text-emerald-100 text-[9px] font-bold uppercase px-2 py-0.5 rounded border border-emerald-400/30">EXCEL SPREADSHEET DISPATCH VIEW</span>
+                                </div>
+                                <p className="text-[10.5px] text-emerald-100/90 font-medium">Enterprise Full-Screen Landscape Entry · Tab between cells · Auto-Uppercase Enabled</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (confirm('Clear and reset all spreadsheet cells?')) {
+                                        setForm({ organization: '', address: '', contactPerson: '', phone: '', email: '', poDate: new Date().toISOString().split('T')[0], poNo: '', tenderType: '', pumpMake: '', pumpSrNo: '', pumpLpm: '', chassisMake: '', waterCapacity: '', foamCapacity: '', deliveryDate: new Date().toISOString().split('T')[0], warrantyMonths: '12', insuranceCompany: '', insurancePolicyNo: '', insuranceExpiryDate: '', uhpPumpMake: '', uhpPumpLpm: '', uhpPumpSrNo: '', dcpCapacity: '', dcpHptDueDate: '' });
+                                    }
+                                }}
+                                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                            >
+                                ↺ Reset Cells
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-black uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
+                            >
+                                ✕ Exit Excel View
                             </button>
                         </div>
+                    </div>
 
-                        {/* Content */}
-                        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5">
-                            {submittedRef ? (
-                                <div className="text-center py-8 space-y-4">
-                                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto text-3xl font-black shadow-inner">
-                                        ✓
+                    {/* ── 2. EXCEL FORMULA BAR (ACTIVE CELL INSPECTOR) ── */}
+                    <div className="bg-white border-b border-slate-300 px-4 py-1.5 flex items-center gap-3 text-xs shrink-0 shadow-xs">
+                        <div className="flex items-center gap-1 font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
+                            <span>fx</span>
+                        </div>
+                        <div className="font-mono font-bold text-slate-400 text-[11px] uppercase w-36 truncate border-r border-slate-200 pr-2">
+                            CELL: {activeField}
+                        </div>
+                        <div className="font-mono text-slate-800 text-xs font-bold uppercase truncate flex-1">
+                            {form[activeField] || '<EMPTY CELL>'}
+                        </div>
+                    </div>
+
+                    {/* ── 3. EXCEL SPREADSHEET LANDSCAPE WORKSPACE ── */}
+                    <div className="flex-1 overflow-auto p-4 sm:p-6 bg-slate-200/60">
+                        {submittedRef ? (
+                            <div className="max-w-xl mx-auto my-12 bg-white rounded-2xl shadow-2xl p-8 border border-slate-300 text-center space-y-4">
+                                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto text-3xl font-black">
+                                    ✓
+                                </div>
+                                <h2 className="text-xl font-black text-slate-900 uppercase">Spreadsheet Dispatched Successfully!</h2>
+                                <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-center space-y-1">
+                                    <p className="text-[10px] font-black uppercase text-slate-400">Submission Reference ID</p>
+                                    <p className="text-xl font-black text-[#107c41] font-mono">{submittedRef}</p>
+                                    <p className="text-xs text-slate-600 pt-2 font-medium">Staged in database queue. Master Admin (PIN: 0706) will review &amp; generate live QR code.</p>
+                                </div>
+                                <div className="pt-3 flex gap-3 justify-center">
+                                    <button onClick={() => setSubmittedRef(null)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
+                                        + New Spreadsheet Row
+                                    </button>
+                                    <button onClick={onClose} className="px-6 py-2.5 bg-[#107c41] hover:bg-[#0b582e] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer shadow-md">
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleSubmit} className="max-w-7xl mx-auto space-y-5">
+                                {/* ── SHEET SECTION 1: CLIENT / ORGANIZATION MASTER ── */}
+                                <div className="bg-white rounded-xl border border-slate-300 shadow-sm overflow-hidden">
+                                    <div className="bg-slate-100 px-4 py-2 border-b border-slate-300 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="bg-[#107c41] text-white text-[10px] font-black px-2 py-0.5 rounded">TABLE 1</span>
+                                            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Client &amp; Organization Master Details</h3>
+                                        </div>
+                                        <span className="text-[10px] font-mono font-bold text-slate-400">COLS A–F</span>
                                     </div>
-                                    <h3 className="text-xl font-black text-slate-900 uppercase">Registration Submitted Successfully!</h3>
-                                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl max-w-md mx-auto text-center space-y-2">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Submission Reference ID</p>
-                                        <p className="text-lg font-black text-indigo-600 font-mono">{submittedRef}</p>
-                                        <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-[11.5px] font-bold text-amber-900 text-left flex items-start gap-2">
-                                            <span className="text-base">⏳</span>
-                                            <span>This delivery has been staged and sent to the <strong>Master Admin (0706)</strong>. Once accepted in the admin portal, it will be punched into the system and the Warranty QR code will be generated!</span>
+                                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">A1: Organization Name *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={form.organization}
+                                                onFocus={() => setActiveField('organization')}
+                                                onChange={e => handleTextChange('organization', e.target.value)}
+                                                placeholder="ORGANIZATION NAME"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">B1: Site / Plant Address</label>
+                                            <input
+                                                type="text"
+                                                value={form.address}
+                                                onFocus={() => setActiveField('address')}
+                                                onChange={e => handleTextChange('address', e.target.value)}
+                                                placeholder="PLANT / SITE ADDRESS"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">C1: Contact Person</label>
+                                            <input
+                                                type="text"
+                                                value={form.contactPerson}
+                                                onFocus={() => setActiveField('contactPerson')}
+                                                onChange={e => handleTextChange('contactPerson', e.target.value)}
+                                                placeholder="CONTACT PERSON"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">D1: Mobile / Phone</label>
+                                            <input
+                                                type="text"
+                                                value={form.phone}
+                                                onFocus={() => setActiveField('phone')}
+                                                onChange={e => handleTextChange('phone', e.target.value)}
+                                                placeholder="+91 PHONE"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">E1: Contact Email</label>
+                                            <input
+                                                type="email"
+                                                value={form.email}
+                                                onFocus={() => setActiveField('email')}
+                                                onChange={e => handleTextChange('email', e.target.value)}
+                                                placeholder="OFFICER@COMPANY.COM"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">F1: PO Date</label>
+                                            <input
+                                                type="date"
+                                                value={form.poDate}
+                                                onFocus={() => setActiveField('poDate')}
+                                                onChange={e => handleTextChange('poDate', e.target.value)}
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#107c41]"
+                                            />
                                         </div>
                                     </div>
-                                    <div className="pt-2 flex gap-3 justify-center">
-                                        <button onClick={() => { setSubmittedRef(null); }} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
-                                            + Submit Another
+                                </div>
+
+                                {/* ── SHEET SECTION 2: VEHICLE & FIRE TENDER SPECIFICATIONS ── */}
+                                <div className="bg-white rounded-xl border border-slate-300 shadow-sm overflow-hidden">
+                                    <div className="bg-slate-100 px-4 py-2 border-b border-slate-300 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="bg-[#107c41] text-white text-[10px] font-black px-2 py-0.5 rounded">TABLE 2</span>
+                                            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Fire Tender &amp; Vehicle Specifications</h3>
+                                        </div>
+                                        <span className="text-[10px] font-mono font-bold text-slate-400">COLS A–N</span>
+                                    </div>
+                                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">A2: PO / WO Number *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={form.poNo}
+                                                onFocus={() => setActiveField('poNo')}
+                                                onChange={e => handleTextChange('poNo', e.target.value)}
+                                                placeholder="PO / WO NUMBER"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">B2: PO Date *</label>
+                                            <input
+                                                type="date"
+                                                required
+                                                value={form.poDate}
+                                                onFocus={() => setActiveField('poDate')}
+                                                onChange={e => handleTextChange('poDate', e.target.value)}
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#107c41]"
+                                            />
+                                        </div>
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">C2: Tender Type *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={form.tenderType}
+                                                onFocus={() => setActiveField('tenderType')}
+                                                onChange={e => handleTextChange('tenderType', e.target.value)}
+                                                placeholder="TENDER TYPE"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">D2: Pump Make</label>
+                                            <input
+                                                type="text"
+                                                value={form.pumpMake}
+                                                onFocus={() => setActiveField('pumpMake')}
+                                                onChange={e => handleTextChange('pumpMake', e.target.value)}
+                                                placeholder="PUMP MAKE"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">E2: Pump Serial No</label>
+                                            <input
+                                                type="text"
+                                                value={form.pumpSrNo}
+                                                onFocus={() => setActiveField('pumpSrNo')}
+                                                onChange={e => handleTextChange('pumpSrNo', e.target.value)}
+                                                placeholder="PUMP SERIAL NO"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+
+                                        {/* Row 2 of Table 2 */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">F2: LPM Capacity</label>
+                                            <input
+                                                type="text"
+                                                value={form.pumpLpm}
+                                                onFocus={() => setActiveField('pumpLpm')}
+                                                onChange={e => handleTextChange('pumpLpm', e.target.value)}
+                                                placeholder="LPM CAPACITY"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">G2: Chassis Make</label>
+                                            <input
+                                                type="text"
+                                                value={form.chassisMake}
+                                                onFocus={() => setActiveField('chassisMake')}
+                                                onChange={e => handleTextChange('chassisMake', e.target.value)}
+                                                placeholder="CHASSIS MAKE"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">H2: Water Tank (Ltrs)</label>
+                                            <input
+                                                type="text"
+                                                value={form.waterCapacity}
+                                                onFocus={() => setActiveField('waterCapacity')}
+                                                onChange={e => handleTextChange('waterCapacity', e.target.value)}
+                                                placeholder="WATER TANK (LTRS)"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">I2: Foam Tank (Ltrs)</label>
+                                            <input
+                                                type="text"
+                                                value={form.foamCapacity}
+                                                onFocus={() => setActiveField('foamCapacity')}
+                                                onChange={e => handleTextChange('foamCapacity', e.target.value)}
+                                                placeholder="FOAM TANK (LTRS)"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">J2: Delivery Date *</label>
+                                            <input
+                                                type="date"
+                                                required
+                                                value={form.deliveryDate}
+                                                onFocus={() => setActiveField('deliveryDate')}
+                                                onChange={e => handleTextChange('deliveryDate', e.target.value)}
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#107c41]"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">K2: Warranty (Months)</label>
+                                            <input
+                                                type="number"
+                                                value={form.warrantyMonths}
+                                                onFocus={() => setActiveField('warrantyMonths')}
+                                                onChange={e => handleTextChange('warrantyMonths', e.target.value)}
+                                                placeholder="12"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#107c41]"
+                                            />
+                                        </div>
+
+                                        {/* Row 3 of Table 2: Insurance */}
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">L2: Insurance Company</label>
+                                            <input
+                                                type="text"
+                                                value={form.insuranceCompany}
+                                                onFocus={() => setActiveField('insuranceCompany')}
+                                                onChange={e => handleTextChange('insuranceCompany', e.target.value)}
+                                                placeholder="INSURANCE COMPANY"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">M2: Policy Number</label>
+                                            <input
+                                                type="text"
+                                                value={form.insurancePolicyNo}
+                                                onFocus={() => setActiveField('insurancePolicyNo')}
+                                                onChange={e => handleTextChange('insurancePolicyNo', e.target.value)}
+                                                placeholder="POLICY NO"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">N2: Insurance Expiry Date</label>
+                                            <input
+                                                type="date"
+                                                value={form.insuranceExpiryDate}
+                                                onFocus={() => setActiveField('insuranceExpiryDate')}
+                                                onChange={e => handleTextChange('insuranceExpiryDate', e.target.value)}
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#107c41]"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ── SHEET SECTION 3: OPTIONAL AUXILIARY EQUIPMENT ── */}
+                                <div className="bg-white rounded-xl border border-slate-300 shadow-sm overflow-hidden">
+                                    <div className="bg-slate-100 px-4 py-2 border-b border-slate-300 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="bg-[#107c41] text-white text-[10px] font-black px-2 py-0.5 rounded">TABLE 3</span>
+                                            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Optional Auxiliary Equipment (UHP Pump &amp; DCP System)</h3>
+                                        </div>
+                                        <span className="text-[10px] font-mono font-bold text-slate-400">COLS A–E (OPTIONAL)</span>
+                                    </div>
+                                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">A3: ⚡ UHP Pump Make</label>
+                                            <input
+                                                type="text"
+                                                value={form.uhpPumpMake}
+                                                onFocus={() => setActiveField('uhpPumpMake')}
+                                                onChange={e => handleTextChange('uhpPumpMake', e.target.value)}
+                                                placeholder="e.g. Hawk / Interpump"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">B3: ⚡ UHP LPM / Bar</label>
+                                            <input
+                                                type="text"
+                                                value={form.uhpPumpLpm}
+                                                onFocus={() => setActiveField('uhpPumpLpm')}
+                                                onChange={e => handleTextChange('uhpPumpLpm', e.target.value)}
+                                                placeholder="e.g. 50 LPM @ 100 Bar"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">C3: ⚡ UHP Pump Serial No</label>
+                                            <input
+                                                type="text"
+                                                value={form.uhpPumpSrNo}
+                                                onFocus={() => setActiveField('uhpPumpSrNo')}
+                                                onChange={e => handleTextChange('uhpPumpSrNo', e.target.value)}
+                                                placeholder="e.g. UHP-2026-901"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">D3: 🧯 DCP Capacity (Kg)</label>
+                                            <input
+                                                type="text"
+                                                value={form.dcpCapacity}
+                                                onFocus={() => setActiveField('dcpCapacity')}
+                                                onChange={e => handleTextChange('dcpCapacity', e.target.value)}
+                                                placeholder="e.g. 50 Kg / 150 Kg"
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 uppercase focus:bg-emerald-50/50 focus:border-[#107c41] focus:ring-1 focus:ring-[#107c41] outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">E3: 🧯 DCP HPT Due Date</label>
+                                            <input
+                                                type="date"
+                                                value={form.dcpHptDueDate}
+                                                onFocus={() => setActiveField('dcpHptDueDate')}
+                                                onChange={e => handleTextChange('dcpHptDueDate', e.target.value)}
+                                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#107c41]"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ── BOTTOM EXCEL STATUS & SUBMISSION RIBBON ── */}
+                                <div className="bg-white rounded-xl border border-slate-300 p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3 text-xs font-mono text-slate-600">
+                                        <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg text-[#107c41] font-bold">
+                                            <span className="w-2 h-2 rounded-full bg-[#107c41] animate-pulse"></span>
+                                            <span>Sheet1 [Ready]</span>
+                                        </div>
+                                        <span className="hidden sm:inline">· 25 Columns Active · UPPERCASE Enabled</span>
+                                    </div>
+                                    <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
+                                            className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+                                        >
+                                            Cancel
                                         </button>
-                                        <button onClick={onClose} className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
-                                            Close
+                                        <button
+                                            type="submit"
+                                            disabled={submitting}
+                                            className="flex-2 sm:flex-none px-6 py-2.5 bg-[#107c41] hover:bg-[#0b582e] text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                                        >
+                                            {submitting ? 'Dispatching...' : '🚀 SUBMIT REGISTRATION FOR APPROVAL'}
                                         </button>
                                     </div>
                                 </div>
-                            ) : (
-                                <form onSubmit={handleSubmit} className="space-y-5">
-                                    {/* ── 1. REGISTER CLIENT SECTION ── */}
-                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                                        <div className="pb-1 border-b border-slate-200 text-slate-800">
-                                            <span className="text-xs font-black uppercase tracking-wider text-indigo-900">1. Client / Organization Details</span>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Organization *</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    value={form.organization}
-                                                    onChange={e => handleTextChange('organization', e.target.value)}
-                                                    placeholder="ORGANIZATION NAME"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Address</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.address}
-                                                    onChange={e => handleTextChange('address', e.target.value)}
-                                                    placeholder="PLANT / SITE ADDRESS"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Contact Person</label>
-                                                    <input
-                                                        type="text"
-                                                        value={form.contactPerson}
-                                                        onChange={e => handleTextChange('contactPerson', e.target.value)}
-                                                        placeholder="CONTACT PERSON NAME"
-                                                        className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Phone</label>
-                                                    <input
-                                                        type="text"
-                                                        value={form.phone}
-                                                        onChange={e => handleTextChange('phone', e.target.value)}
-                                                        placeholder="PHONE NUMBER"
-                                                        className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Email</label>
-                                                    <input
-                                                        type="email"
-                                                        value={form.email}
-                                                        onChange={e => handleTextChange('email', e.target.value)}
-                                                        placeholder="OFFICER@CLIENT.COM"
-                                                        className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">PO Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={form.poDate}
-                                                        onChange={e => handleTextChange('poDate', e.target.value)}
-                                                        className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* ── 2. DELIVERY DETAILS SECTION ── */}
-                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                                        <div className="pb-1 border-b border-slate-200 text-slate-800">
-                                            <span className="text-xs font-black uppercase tracking-wider text-indigo-900">2. Delivery &amp; Vehicle Specifications</span>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">PO / WO Number *</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    value={form.poNo}
-                                                    onChange={e => handleTextChange('poNo', e.target.value)}
-                                                    placeholder="PO / WO NUMBER"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">PO Date *</label>
-                                                <input
-                                                    type="date"
-                                                    required
-                                                    value={form.poDate}
-                                                    onChange={e => handleTextChange('poDate', e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Tender Type *</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    value={form.tenderType}
-                                                    onChange={e => handleTextChange('tenderType', e.target.value)}
-                                                    placeholder="TENDER TYPE"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:ring-2 focus:ring-indigo-600 outline-none"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Pump Make</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.pumpMake}
-                                                    onChange={e => handleTextChange('pumpMake', e.target.value)}
-                                                    placeholder="PUMP MAKE"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Pump Serial No</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.pumpSrNo}
-                                                    onChange={e => handleTextChange('pumpSrNo', e.target.value)}
-                                                    placeholder="PUMP SERIAL NO"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">LPM Capacity</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.pumpLpm}
-                                                    onChange={e => handleTextChange('pumpLpm', e.target.value)}
-                                                    placeholder="LPM CAPACITY"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Chassis Make</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.chassisMake}
-                                                    onChange={e => handleTextChange('chassisMake', e.target.value)}
-                                                    placeholder="CHASSIS MAKE"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Water Tank Capacity (Ltrs)</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.waterCapacity}
-                                                    onChange={e => handleTextChange('waterCapacity', e.target.value)}
-                                                    placeholder="WATER TANK CAPACITY"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Foam Tank Capacity (Ltrs)</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.foamCapacity}
-                                                    onChange={e => handleTextChange('foamCapacity', e.target.value)}
-                                                    placeholder="FOAM TANK CAPACITY"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Delivery Date *</label>
-                                                <input
-                                                    type="date"
-                                                    required
-                                                    value={form.deliveryDate}
-                                                    onChange={e => handleTextChange('deliveryDate', e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Warranty Months</label>
-                                                <input
-                                                    type="number"
-                                                    value={form.warrantyMonths}
-                                                    onChange={e => handleTextChange('warrantyMonths', e.target.value)}
-                                                    placeholder="12"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Insurance Company</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.insuranceCompany}
-                                                    onChange={e => handleTextChange('insuranceCompany', e.target.value)}
-                                                    placeholder="INSURANCE COMPANY"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Policy No</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.insurancePolicyNo}
-                                                    onChange={e => handleTextChange('insurancePolicyNo', e.target.value)}
-                                                    placeholder="POLICY NO"
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Insurance Expiry</label>
-                                                <input
-                                                    type="date"
-                                                    value={form.insuranceExpiryDate}
-                                                    onChange={e => handleTextChange('insuranceExpiryDate', e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* ── 3. OPTIONAL AUXILIARY EQUIPMENT (UHP & DCP) ── */}
-                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                                        <div className="flex items-center justify-between pb-1 border-b border-slate-200 text-slate-800">
-                                            <span className="text-xs font-black uppercase tracking-wider text-indigo-900">Optional Auxiliary Equipment (UHP Pump &amp; DCP System)</span>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Fill only if installed on this vehicle</span>
-                                        </div>
-
-                                        {/* UHP Details */}
-                                        <div className="p-3 bg-white rounded-xl border border-slate-200/80 space-y-2">
-                                            <span className="text-[11px] font-black text-slate-800 uppercase flex items-center gap-1.5">⚡ UHP Pump Details <span className="text-[9px] font-bold text-slate-400">(Optional)</span></span>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                                <div>
-                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">UHP Pump Make</label>
-                                                    <input
-                                                        type="text"
-                                                        value={form.uhpPumpMake}
-                                                        onChange={e => handleTextChange('uhpPumpMake', e.target.value)}
-                                                        placeholder="e.g. Hawk / Interpump / Pratissoli"
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">UHP Pump LPM / Bar</label>
-                                                    <input
-                                                        type="text"
-                                                        value={form.uhpPumpLpm}
-                                                        onChange={e => handleTextChange('uhpPumpLpm', e.target.value)}
-                                                        placeholder="e.g. 50 LPM @ 100 Bar"
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">UHP Pump Serial No</label>
-                                                    <input
-                                                        type="text"
-                                                        value={form.uhpPumpSrNo}
-                                                        onChange={e => handleTextChange('uhpPumpSrNo', e.target.value)}
-                                                        placeholder="e.g. UHP-2026-901"
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* DCP Details */}
-                                        <div className="p-3 bg-white rounded-xl border border-slate-200/80 space-y-2">
-                                            <span className="text-[11px] font-black text-slate-800 uppercase flex items-center gap-1.5">🧯 DCP System Details <span className="text-[9px] font-bold text-slate-400">(Optional)</span></span>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">DCP Capacity (Kg)</label>
-                                                    <input
-                                                        type="text"
-                                                        value={form.dcpCapacity}
-                                                        onChange={e => handleTextChange('dcpCapacity', e.target.value)}
-                                                        placeholder="e.g. 50 Kg / 150 Kg / 300 Kg"
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 uppercase outline-none"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">DCP HPT Due Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={form.dcpHptDueDate}
-                                                        onChange={e => handleTextChange('dcpHptDueDate', e.target.value)}
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="pt-2 flex gap-3">
-                                        <button type="button" onClick={onClose} className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
-                                            Cancel
-                                        </button>
-                                        <button type="submit" disabled={submitting} className="flex-2 py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-                                            {submitting ? 'Submitting...' : '🚀 SUBMIT REGISTRATION FOR APPROVAL'}
-                                        </button>
-                                    </div>
-                                </form>
-                            )}
-                        </div>
+                            </form>
+                        )}
                     </div>
                 </div>
             );
