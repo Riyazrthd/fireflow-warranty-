@@ -11359,6 +11359,12 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const [submittedRef, setSubmittedRef] = useState(null);
 
             const handleTextChange = (field, val) => {
+                // Strict Numeric Enforcement: Capacity, Warranty, and LPM fields strip all alphabets & symbols (e.g. '1000 ltr' -> '1000')
+                if (['waterCapacity', 'foamCapacity', 'dcpCapacity', 'warrantyMonths', 'pumpLpm'].includes(field)) {
+                    const numericVal = (val || '').replace(/[^0-9]/g, '');
+                    setForm(prev => ({ ...prev, [field]: numericVal }));
+                    return;
+                }
                 setForm(prev => ({ ...prev, [field]: (val || '').toUpperCase() }));
             };
 
@@ -11650,14 +11656,18 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
                                         {/* Row 2 */}
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">LPM Capacity</label>
-                                            <input
-                                                type="text"
-                                                value={form.pumpLpm}
-                                                onChange={e => handleTextChange('pumpLpm', e.target.value)}
-                                                placeholder="LPM CAPACITY"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
-                                            />
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Pump LPM Capacity</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={form.pumpLpm}
+                                                    onChange={e => handleTextChange('pumpLpm', e.target.value)}
+                                                    placeholder="4000"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-12 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono"
+                                                />
+                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">LPM</span>
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Chassis Make</label>
@@ -11670,24 +11680,32 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Water Tank (Ltrs)</label>
-                                            <input
-                                                type="text"
-                                                value={form.waterCapacity}
-                                                onChange={e => handleTextChange('waterCapacity', e.target.value)}
-                                                placeholder="WATER TANK (LTRS)"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
-                                            />
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Water Tank Capacity</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={form.waterCapacity}
+                                                    onChange={e => handleTextChange('waterCapacity', e.target.value)}
+                                                    placeholder="5000"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-14 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono"
+                                                />
+                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">LTRS</span>
+                                            </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Foam Tank (Ltrs)</label>
-                                            <input
-                                                type="text"
-                                                value={form.foamCapacity}
-                                                onChange={e => handleTextChange('foamCapacity', e.target.value)}
-                                                placeholder="FOAM TANK (LTRS)"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
-                                            />
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Foam Tank Capacity</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={form.foamCapacity}
+                                                    onChange={e => handleTextChange('foamCapacity', e.target.value)}
+                                                    placeholder="1000"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-14 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono"
+                                                />
+                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">LTRS</span>
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Delivery Date *</label>
@@ -11700,14 +11718,18 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Warranty (Months)</label>
-                                            <input
-                                                type="number"
-                                                value={form.warrantyMonths}
-                                                onChange={e => handleTextChange('warrantyMonths', e.target.value)}
-                                                placeholder="12"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-indigo-600"
-                                            />
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Warranty Period</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={form.warrantyMonths}
+                                                    onChange={e => handleTextChange('warrantyMonths', e.target.value)}
+                                                    placeholder="12"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-16 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono"
+                                                />
+                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">MONTHS</span>
+                                            </div>
                                         </div>
 
                                         {/* Row 3: Insurance */}
@@ -11783,14 +11805,18 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">🧯 DCP Capacity (Kg)</label>
-                                            <input
-                                                type="text"
-                                                value={form.dcpCapacity}
-                                                onChange={e => handleTextChange('dcpCapacity', e.target.value)}
-                                                placeholder="e.g. 50 Kg / 150 Kg"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
-                                            />
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">🧯 DCP Capacity</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={form.dcpCapacity}
+                                                    onChange={e => handleTextChange('dcpCapacity', e.target.value)}
+                                                    placeholder="150"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-12 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono"
+                                                />
+                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">KG</span>
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">🧯 DCP HPT Due Date</label>
