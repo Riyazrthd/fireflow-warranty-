@@ -11310,7 +11310,11 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
         // ══════════════════════════════════════════════════════════════════════════════
         // 📋 REGISTER CLIENT TO DELIVERY MODAL (PIN: 2038 - ALL UPPERCASE INPUTS)
         // ══════════════════════════════════════════════════════════════════════════════
-        const RegisterClientToDeliveryModal = ({ onClose, onDirectPunch, existingCustomers = [] }) => {
+        
+        // ══════════════════════════════════════════════════════════════════════════════
+        // 📋 REGISTER CLIENT TO DELIVERY MODAL (PIN: 2038 - ALL UPPERCASE INPUTS)
+        // ══════════════════════════════════════════════════════════════════════════════
+        const RegisterClientToDeliveryModal = ({ onClose, onSubmitted, existingCustomers = [] }) => {
             const [form, setForm] = useState({
                 // Client Fields
                 organization: '',
@@ -11344,7 +11348,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             });
 
             const [submitting, setSubmitting] = useState(false);
-            const [createdTruck, setCreatedTruck] = useState(null);
+            const [submittedRef, setSubmittedRef] = useState(null);
 
             const handleTextChange = (field, val) => {
                 setForm(prev => ({ ...prev, [field]: (val || '').toUpperCase() }));
@@ -11358,24 +11362,17 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                 }
                 setSubmitting(true);
                 try {
-                    const custId = 'CUST-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-                    const trkId = 'TRK-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+                    const subId = 'SUB-' + Math.random().toString(36).substring(2, 9).toUpperCase();
 
-                    const newCustomerRecord = {
-                        id: custId,
-                        name: form.organization.trim(),
+                    const newSubmission = {
+                        id: subId,
+                        customerName: form.organization.trim(),
                         address: form.address.trim(),
                         contactPerson: form.contactPerson.trim(),
                         phone: form.phone.trim(),
                         email: form.email.trim(),
-                        poDate: form.poDate || null
-                    };
-
-                    const newTruckRecord = {
-                        id: trkId,
-                        customerId: custId,
-                        poNo: form.poNo.trim(),
                         poDate: form.poDate || null,
+                        poNo: form.poNo.trim(),
                         tenderType: form.tenderType.trim(),
                         pumpMake: form.pumpMake.trim(),
                         pumpSrNo: form.pumpSrNo.trim(),
@@ -11393,59 +11390,55 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         uhpPumpSrNo: form.uhpPumpSrNo.trim() || null,
                         dcpCapacity: form.dcpCapacity.trim() || null,
                         dcpHptDueDate: form.dcpHptDueDate || null,
-                        costCenterStatus: 'Not Generated'
+                        status: 'Pending Approval',
+                        submittedAt: new Date().toISOString()
                     };
 
-                    // Direct Sync to Supabase
+                    // Sync to Supabase delivery_submissions table if available
                     const sb = window.SupabaseClient;
                     if (sb) {
                         try {
-                            await sb.from('customers').insert({
-                                id: custId,
-                                name: newCustomerRecord.name,
-                                address: newCustomerRecord.address,
-                                contact_person: newCustomerRecord.contactPerson,
-                                phone: newCustomerRecord.phone,
-                                email: newCustomerRecord.email,
-                                po_date: newCustomerRecord.poDate
-                            });
-
-                            await sb.from('trucks').insert({
-                                id: trkId,
-                                customer_id: custId,
-                                po_no: newTruckRecord.poNo,
-                                po_date: newTruckRecord.poDate,
-                                tender_type: newTruckRecord.tenderType,
-                                pump_make: newTruckRecord.pumpMake,
-                                pump_sr_no: newTruckRecord.pumpSrNo,
-                                pump_lpm: newTruckRecord.pumpLpm ? parseFloat(newTruckRecord.pumpLpm) : null,
-                                chassis_make: newTruckRecord.chassisMake,
-                                water_capacity: newTruckRecord.waterCapacity,
-                                foam_capacity: newTruckRecord.foamCapacity,
-                                delivery_date: newTruckRecord.deliveryDate,
-                                warranty_months: newTruckRecord.warrantyMonths,
-                                insurance_company: newTruckRecord.insuranceCompany,
-                                insurance_policy_no: newTruckRecord.insurancePolicyNo,
-                                insurance_expiry_date: newTruckRecord.insuranceExpiryDate,
-                                uhp_pump_make: newTruckRecord.uhpPumpMake,
-                                uhp_pump_lpm: newTruckRecord.uhpPumpLpm,
-                                uhp_pump_sr_no: newTruckRecord.uhpPumpSrNo,
-                                dcp_capacity: newTruckRecord.dcpCapacity,
-                                dcp_hpt_due_date: newTruckRecord.dcpHptDueDate
+                            await sb.from('delivery_submissions').insert({
+                                id: subId,
+                                customer_name: newSubmission.customerName,
+                                address: newSubmission.address,
+                                contact_person: newSubmission.contactPerson,
+                                phone: newSubmission.phone,
+                                email: newSubmission.email,
+                                po_date: newSubmission.poDate,
+                                po_no: newSubmission.poNo,
+                                tender_type: newSubmission.tenderType,
+                                pump_make: newSubmission.pumpMake,
+                                pump_sr_no: newSubmission.pumpSrNo,
+                                pump_lpm: newSubmission.pumpLpm ? parseFloat(newSubmission.pumpLpm) : null,
+                                chassis_make: newSubmission.chassisMake,
+                                water_capacity: newSubmission.waterCapacity,
+                                foam_capacity: newSubmission.foamCapacity,
+                                delivery_date: newSubmission.deliveryDate,
+                                warranty_months: newSubmission.warrantyMonths,
+                                insurance_company: newSubmission.insuranceCompany,
+                                insurance_policy_no: newSubmission.insurancePolicyNo,
+                                insurance_expiry_date: newSubmission.insuranceExpiryDate,
+                                uhp_pump_make: newSubmission.uhpPumpMake,
+                                uhp_pump_lpm: newSubmission.uhpPumpLpm,
+                                uhp_pump_sr_no: newSubmission.uhpPumpSrNo,
+                                dcp_capacity: newSubmission.dcpCapacity,
+                                dcp_hpt_due_date: newSubmission.dcpHptDueDate,
+                                status: 'Pending Approval'
                             });
                         } catch (err) {
-                            console.warn('Supabase direct sync note:', err);
+                            console.warn('Supabase submission sync note:', err);
                         }
                     }
 
-                    if (onDirectPunch) {
-                        onDirectPunch(newCustomerRecord, newTruckRecord);
+                    if (onSubmitted) {
+                        onSubmitted(newSubmission);
                     }
 
-                    setCreatedTruck({ ...newTruckRecord, customerName: newCustomerRecord.name });
+                    setSubmittedRef(subId);
                 } catch(err) {
-                    console.error('Direct delivery registration error:', err);
-                    alert('Error saving record: ' + err.message);
+                    console.error('Submission error:', err);
+                    alert('Error submitting registration: ' + err.message);
                 } finally {
                     setSubmitting(false);
                 }
@@ -11465,7 +11458,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         <h2 className="text-base font-black uppercase tracking-tight text-white">Register Client To Delivery</h2>
                                         <span className="bg-amber-500 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">PIN: 2038</span>
                                     </div>
-                                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">Direct System Registration · Punches Directly to Live Customers &amp; Fleet Inventory</p>
+                                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">Submit Delivery Request · Admin (0706) will review, accept &amp; generate QR code</p>
                                 </div>
                             </div>
                             <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer">
@@ -11475,24 +11468,26 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
                         {/* Content */}
                         <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5">
-                            {createdTruck ? (
+                            {submittedRef ? (
                                 <div className="text-center py-8 space-y-4">
                                     <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto text-3xl font-black shadow-inner">
                                         ✓
                                     </div>
-                                    <h3 className="text-xl font-black text-slate-900 uppercase">Punched into System Successfully!</h3>
-                                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl max-w-md mx-auto text-left space-y-1.5 text-xs">
-                                        <p><span className="font-bold text-slate-400 uppercase text-[9px]">Client:</span> <span className="font-black text-slate-900">{createdTruck.customerName}</span></p>
-                                        <p><span className="font-bold text-slate-400 uppercase text-[9px]">PO Number:</span> <span className="font-black text-indigo-600 font-mono">{createdTruck.poNo}</span></p>
-                                        <p><span className="font-bold text-slate-400 uppercase text-[9px]">Tender Type:</span> <span className="font-bold text-slate-800">{createdTruck.tenderType}</span></p>
-                                        <p><span className="font-bold text-slate-400 uppercase text-[9px]">Delivery Date:</span> <span className="font-bold text-slate-800">{formatDate(createdTruck.deliveryDate)}</span></p>
+                                    <h3 className="text-xl font-black text-slate-900 uppercase">Registration Submitted Successfully!</h3>
+                                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl max-w-md mx-auto text-center space-y-2">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Submission Reference ID</p>
+                                        <p className="text-lg font-black text-indigo-600 font-mono">{submittedRef}</p>
+                                        <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-[11.5px] font-bold text-amber-900 text-left flex items-start gap-2">
+                                            <span className="text-base">⏳</span>
+                                            <span>This delivery has been staged and sent to the <strong>Master Admin (0706)</strong>. Once accepted in the admin portal, it will be punched into the system and the Warranty QR code will be generated!</span>
+                                        </div>
                                     </div>
                                     <div className="pt-2 flex gap-3 justify-center">
-                                        <button onClick={() => { setCreatedTruck(null); }} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
-                                            + Register Another
+                                        <button onClick={() => { setSubmittedRef(null); }} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
+                                            + Submit Another
                                         </button>
                                         <button onClick={onClose} className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
-                                            Close Form
+                                            Close
                                         </button>
                                     </div>
                                 </div>
@@ -11813,7 +11808,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             Cancel
                                         </button>
                                         <button type="submit" disabled={submitting} className="flex-2 py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-                                            {submitting ? 'Registering...' : '💾 SAVE & REGISTER DELIVERY'}
+                                            {submitting ? 'Submitting...' : '🚀 SUBMIT REGISTRATION FOR APPROVAL'}
                                         </button>
                                     </div>
                                 </form>
@@ -13720,6 +13715,13 @@ function App() {
                         <RegisterClientToDeliveryModal
                             onClose={() => setShowRegisterDeliveryModal(false)}
                             existingCustomers={customers}
+                            onSubmitted={(newSub) => {
+                                setDeliverySubmissions(prev => {
+                                    const updated = [newSub, ...prev];
+                                    try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(updated)); } catch(e){}
+                                    return updated;
+                                });
+                            }}
                             onDirectPunch={(newCust, newTrk) => {
                                 setCustomers(prev => {
                                     const updated = [...prev, newCust];
@@ -13736,18 +13738,18 @@ function App() {
                     )}
 
 
-                    {/* 🔔 PENDING DELIVERY SUBMISSIONS MODAL (1-CLICK ADMIN PUNCH-IN) */}
+                                        {/* 🔔 PENDING DELIVERY SUBMISSIONS MODAL (0706 ADMIN ACCEPT & INSTANT QR CODE) */}
                     {showPendingSubmissionsModal && (
                         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-                            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
-                                <div className="bg-slate-900 text-white p-5 flex items-center justify-between border-b border-white/10 shrink-0">
+                            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-slate-200 flex flex-col max-h-[92vh]">
+                                <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 flex items-center justify-between border-b border-white/10 shrink-0">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg">
                                             🔔
                                         </div>
                                         <div>
                                             <h2 className="text-base font-black uppercase tracking-tight text-white">Staged Delivery Submissions Queue</h2>
-                                            <p className="text-[11px] font-bold text-slate-400 mt-0.5">Review submissions from PIN 2038 form &amp; Punch directly into Fleet Inventory</p>
+                                            <p className="text-[11px] font-bold text-slate-400 mt-0.5">Submitted via PIN 2038 · Accept to punch into live system &amp; generate QR code</p>
                                         </div>
                                     </div>
                                     <button onClick={() => setShowPendingSubmissionsModal(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer">
@@ -13782,9 +13784,10 @@ function App() {
                                                                     try {
                                                                         // 1. Check or create Customer
                                                                         let custId = customers.find(c => c.name.trim().toUpperCase() === (sub.customerName || sub.customer_name || '').trim().toUpperCase())?.id;
+                                                                        let custRecord = null;
                                                                         if (!custId) {
                                                                             const newCustId = 'CUST-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-                                                                            const newCust = {
+                                                                            custRecord = {
                                                                                 id: newCustId,
                                                                                 name: sub.customerName || sub.customer_name,
                                                                                 contactPerson: sub.contactPerson || sub.contact_person || '',
@@ -13793,11 +13796,11 @@ function App() {
                                                                                 address: sub.address || '',
                                                                                 poDate: sub.poDate || sub.po_date || null
                                                                             };
-                                                                            setCustomers(prev => [...prev, newCust]);
+                                                                            setCustomers(prev => [...prev, custRecord]);
                                                                             custId = newCustId;
                                                                             const sb = window.SupabaseClient;
                                                                             if (sb) {
-                                                                                try { await sb.from('customers').insert({ id: newCustId, name: newCust.name, contact_person: newCust.contactPerson, phone: newCust.phone, email: newCust.email, address: newCust.address, po_date: newCust.poDate }); } catch(e){}
+                                                                                try { await sb.from('customers').insert({ id: newCustId, name: custRecord.name, contact_person: custRecord.contactPerson, phone: custRecord.phone, email: custRecord.email, address: custRecord.address, po_date: custRecord.poDate }); } catch(e){}
                                                                             }
                                                                         }
 
@@ -13814,7 +13817,7 @@ function App() {
                                                                             chassisSrNo: sub.chassisSrNo || sub.chassis_sr_no || '',
                                                                             engineSrNo: sub.engineSrNo || sub.engine_sr_no || '',
                                                                             deliveryDate: sub.deliveryDate || sub.delivery_date || new Date().toISOString().split('T')[0],
-                                                                            warrantyMonths: parseInt(sub.warrantyMonths || sub.warranty_months) || 24,
+                                                                            warrantyMonths: parseInt(sub.warrantyMonths || sub.warranty_months) || 12,
                                                                             pumpMake: sub.pumpMake || sub.pump_make || '',
                                                                             pumpLpm: sub.pumpLpm || sub.pump_lpm || '',
                                                                             pumpSrNo: sub.pumpSrNo || sub.pump_sr_no || '',
@@ -13825,7 +13828,6 @@ function App() {
                                                                             uhpPumpSrNo: sub.uhpPumpSrNo || sub.uhp_pump_sr_no || null,
                                                                             dcpCapacity: sub.dcpCapacity || sub.dcp_capacity || null,
                                                                             dcpHptDueDate: sub.dcpHptDueDate || sub.dcp_hpt_due_date || null,
-                                                                            dcpSrNo: sub.dcpSrNo || sub.dcp_sr_no || null,
                                                                             insuranceCompany: sub.insuranceCompany || sub.insurance_company || '',
                                                                             insurancePolicyNo: sub.insurancePolicyNo || sub.insurance_policy_no || '',
                                                                             insuranceExpiryDate: sub.insuranceExpiryDate || sub.insurance_expiry_date || null,
@@ -13856,7 +13858,7 @@ function App() {
                                                                                     delivery_date: newTrkPayload.deliveryDate,
                                                                                     warranty_months: newTrkPayload.warrantyMonths,
                                                                                     pump_make: newTrkPayload.pumpMake,
-                                                                                    pump_lpm: newTrkPayload.pumpLpm,
+                                                                                    pump_lpm: newTrkPayload.pumpLpm ? parseFloat(newTrkPayload.pumpLpm) : null,
                                                                                     pump_sr_no: newTrkPayload.pumpSrNo,
                                                                                     water_capacity: newTrkPayload.waterCapacity,
                                                                                     foam_capacity: newTrkPayload.foamCapacity,
@@ -13865,7 +13867,6 @@ function App() {
                                                                                     uhp_pump_sr_no: newTrkPayload.uhpPumpSrNo,
                                                                                     dcp_capacity: newTrkPayload.dcpCapacity,
                                                                                     dcp_hpt_due_date: newTrkPayload.dcpHptDueDate,
-                                                                                    dcp_sr_no: newTrkPayload.dcpSrNo,
                                                                                     insurance_company: newTrkPayload.insuranceCompany,
                                                                                     insurance_policy_no: newTrkPayload.insurancePolicyNo,
                                                                                     insurance_expiry_date: newTrkPayload.insuranceExpiryDate
@@ -13874,15 +13875,18 @@ function App() {
                                                                             } catch(e){}
                                                                         }
 
-                                                                        alert('🎉 Successfully Punched into Live Fleet Inventory!');
+                                                                        // Automatically open QR Code Modal for this newly punched tender!
+                                                                        setQrTruck(newTrkPayload);
+                                                                        setShowPendingSubmissionsModal(false);
+                                                                        setShowQrModal(true);
                                                                     } catch(err) {
                                                                         console.error('Punch-in error:', err);
                                                                         alert('Failed to punch in: ' + err.message);
                                                                     }
                                                                 }}
-                                                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md transition-all cursor-pointer"
+                                                                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10.5px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
                                                             >
-                                                                <span>🚀</span> Confirm &amp; Punch In
+                                                                <span>🚀</span> Accept &amp; Generate QR
                                                             </button>
                                                         )}
                                                         <button
@@ -13903,10 +13907,10 @@ function App() {
 
                                                 {/* Details Grid */}
                                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                                                    <div className="bg-white p-2 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Contact:</span><span className="font-extrabold text-slate-800">{sub.contactPerson || sub.contact_person || '—'} ({sub.phone || '—'})</span></div>
-                                                    <div className="bg-white p-2 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Delivery Date:</span><span className="font-extrabold text-slate-800">{formatDate(sub.deliveryDate || sub.delivery_date)}</span></div>
-                                                    <div className="bg-white p-2 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Pump / Capacity:</span><span className="font-extrabold text-slate-800">{sub.pumpMake || sub.pump_make || '—'} · {sub.waterCapacity || sub.water_capacity || 0}L/{sub.foamCapacity || sub.foam_capacity || 0}L</span></div>
-                                                    <div className="bg-white p-2 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Auxiliary:</span><span className="font-extrabold text-slate-800">{sub.uhpPumpMake || sub.uhp_pump_make ? '⚡ UHP' : ''} {sub.dcpCapacity || sub.dcp_capacity ? '🧯 DCP' : ''} {!sub.uhpPumpMake && !sub.uhp_pump_make && !sub.dcpCapacity && !sub.dcp_capacity ? 'Standard' : ''}</span></div>
+                                                    <div className="bg-white p-2.5 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Contact:</span><span className="font-extrabold text-slate-800">{sub.contactPerson || sub.contact_person || '—'} ({sub.phone || '—'})</span></div>
+                                                    <div className="bg-white p-2.5 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Delivery Date:</span><span className="font-extrabold text-slate-800">{formatDate(sub.deliveryDate || sub.delivery_date)}</span></div>
+                                                    <div className="bg-white p-2.5 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Pump / Capacity:</span><span className="font-extrabold text-slate-800">{sub.pumpMake || sub.pump_make || '—'} · {sub.waterCapacity || sub.water_capacity || 0}L/{sub.foamCapacity || sub.foam_capacity || 0}L</span></div>
+                                                    <div className="bg-white p-2.5 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Auxiliary:</span><span className="font-extrabold text-slate-800">{sub.uhpPumpMake || sub.uhp_pump_make ? '⚡ UHP' : ''} {sub.dcpCapacity || sub.dcp_capacity ? '🧯 DCP' : ''} {!sub.uhpPumpMake && !sub.uhp_pump_make && !sub.dcpCapacity && !sub.dcp_capacity ? 'Standard' : ''}</span></div>
                                                 </div>
                                             </div>
                                         ))
