@@ -9603,19 +9603,19 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     </span>
                                 </div>
 
-                                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                                <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
                                     <div className="overflow-x-auto">
-                                        <table className="w-full text-left table-fixed min-w-[950px]">
-                                            <thead className="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200 border-slate-200">
-                                                <tr>
-                                                    <th className="px-4 py-4 w-[28%]">PO / Vehicle</th>
-                                                    <th className="px-4 py-4 w-[24%]">Pump Details</th>
-                                                    <th className="px-4 py-4 w-[18%] text-center">Insurance</th>
-                                                    <th className="px-4 py-4 w-[16%] text-center">Warranty</th>
-                                                    <th className="px-4 py-4 w-[14%] text-right">QR Access</th>
+                                        <table className="w-full text-left table-fixed min-w-[950px] border-collapse text-xs">
+                                            <thead>
+                                                <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-slate-500 border-b border-slate-200">
+                                                    <th className="px-3.5 py-2.5 w-[28%] font-medium">PO / Vehicle &amp; Client</th>
+                                                    <th className="px-3.5 py-2.5 w-[24%] font-medium">Pump &amp; Capacity Specs</th>
+                                                    <th className="px-3.5 py-2.5 w-[18%] text-center font-medium">Insurance Policy</th>
+                                                    <th className="px-3.5 py-2.5 w-[16%] text-center font-medium">Warranty Coverage</th>
+                                                    <th className="px-3.5 py-2.5 w-[14%] text-right pr-4 font-medium">QR Access</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-100 text-[11px] font-bold text-slate-700">
+                                            <tbody className="divide-y divide-slate-100/90 bg-white">
                                                 {filteredTrucks.map(t => {
                                                     const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
                                                     const wRem = calculateDaysRemaining(wExp);
@@ -9623,223 +9623,93 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     const custObj = customers.find(c => c.id === t.customerId);
 
                                                     return (
-                                                        <tr key={t.id} className="hover:bg-slate-50/60 transition-colors">
-                                                            <td className="px-4 py-4 space-y-0.5">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <p className="font-black text-blue-600 uppercase">PO: {t.poNo || 'N/A'}</p>
-                                                                    {t.poDate && <span className="text-[9px] text-slate-400 font-extrabold">({formatDate(t.poDate)})</span>}
+                                                        <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
+                                                            <td className="px-3.5 py-3">
+                                                                <div className="flex items-center gap-1.5 mb-1">
+                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
+                                                                        PO: {t.poNo || 'N/A'}
+                                                                    </span>
+                                                                    {t.poDate && (
+                                                                        <span className="text-[10.5px] text-slate-400 font-mono">
+                                                                            ({formatDate(t.poDate)})
+                                                                        </span>
+                                                                    )}
                                                                 </div>
-                                                                <p className="font-black text-slate-900 uppercase truncate">{t.tenderType}</p>
-                                                                <p className="text-[9px] text-slate-400 font-bold uppercase truncate">{custObj?.name}</p>
+                                                                <p className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate font-heading">
+                                                                    {t.tenderType || 'Vehicle'}
+                                                                </p>
+                                                                <p className="text-[11px] font-normal text-slate-400 truncate mt-0.5">
+                                                                    {custObj?.name || 'Client Org Not Linked'}
+                                                                </p>
                                                             </td>
 
-                                                            <td className="px-4 py-4 space-y-0.5">
-                                                                <p className="font-black text-slate-800 uppercase">{t.pumpMake || 'Standard'}</p>
-                                                                <p className="text-[9px] text-slate-400 font-bold uppercase">{t.pumpLpm || 'N/A'} LPM · SN: {t.pumpSrNo || 'N/A'}</p>
+                                                            <td className="px-3.5 py-3">
+                                                                <p className="text-slate-800 font-medium text-xs">
+                                                                    {t.pumpMake || 'Standard Pump'}
+                                                                </p>
+                                                                <p className="text-[11px] font-mono text-slate-400 mt-0.5 truncate">
+                                                                    {t.pumpLpm ? `${t.pumpLpm} LPM` : 'N/A'}{t.pumpSrNo ? ` · SN: ${t.pumpSrNo}` : ''}
+                                                                </p>
                                                             </td>
 
-                                                            <td className="px-4 py-4 text-center space-y-0.5">
-                                                                <p className="font-black text-slate-800 uppercase truncate">{t.insuranceCompany || 'N/A'}</p>
-                                                                <span className={`px-2 py-0.5 rounded-full font-black text-[9px] inline-block ${iRem > 30 ? 'bg-indigo-50 text-indigo-600' : 'bg-rose-50 text-rose-600'}`}>
-                                                                    {iRem > 0 ? `${iRem}d` : 'EXP'}
-                                                                </span>
+                                                            <td className="px-3.5 py-3 text-center">
+                                                                <p className="text-slate-700 font-medium text-xs truncate max-w-[150px] mx-auto" title={t.insuranceCompany || 'N/A'}>
+                                                                    {t.insuranceCompany || '—'}
+                                                                </p>
+                                                                <div className="mt-1">
+                                                                    {iRem > 30 ? (
+                                                                        <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-teal-50 text-[#0B6B63] border border-teal-100/70">
+                                                                            {iRem}d left
+                                                                        </span>
+                                                                    ) : iRem > 0 ? (
+                                                                        <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-100/70">
+                                                                            {iRem}d left
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200/60">
+                                                                            Expired
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </td>
 
-                                                            <td className="px-4 py-4 text-center">
-                                                                <Badge color={wRem > 0 ? (wRem < 60 ? 'yellow' : 'green') : 'red'}>
-                                                                    {wRem > 0 ? `${wRem}d Active` : 'Expired'}
-                                                                </Badge>
-                                                                <p className="text-[8px] text-slate-400 font-bold mt-1">Exp: {formatDate(wExp)}</p>
+                                                            <td className="px-3.5 py-3 text-center">
+                                                                {wRem > 60 ? (
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/70 whitespace-nowrap">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                        {wRem}d Active
+                                                                    </span>
+                                                                ) : wRem > 0 ? (
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-amber-50 text-amber-800 border border-amber-200/70 whitespace-nowrap">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                        {wRem}d Left
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-slate-100 text-slate-600 border border-slate-200/70 whitespace-nowrap">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                                                        Expired
+                                                                    </span>
+                                                                )}
+                                                                {wExp && (
+                                                                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                                                        Exp: {formatDate(wExp)}
+                                                                    </p>
+                                                                )}
                                                             </td>
 
-                                                            <td className="px-4 py-4 text-right">
+                                                            <td className="px-3.5 py-3 text-right pr-4">
                                                                 <button
                                                                     onClick={() => setQrTruck(t)}
-                                                                    className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                                                                    className="h-7 px-2.5 bg-teal-50 hover:bg-teal-100 text-[#0B6B63] border border-teal-200/80 rounded-md text-[11px] font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
                                                                     title="View QR Code"
                                                                 >
-                                                                    <Icon name="qr-code" size={12}/> QR Code
+                                                                    <Icon name="qr-code" size={13}/>
+                                                                    <span>QR</span>
                                                                 </button>
                                                             </td>
                                                         </tr>
                                                     );
                                                 })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    {filteredTrucks.length === 0 && (
-                                        <div className="py-16 text-center opacity-40">
-                                            <Icon name="truck" size={32} className="mx-auto mb-2"/>
-                                            <p className="text-xs font-black uppercase tracking-widest">No fleet records found</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── TAB 4: COMPLAINTS (OPEN & CLOSED) ── */}
-                        {activeTab === 'complaints' && (
-                            <div className="space-y-4 fade-up">
-                                {/* Search, Status Filter & Category Filter Strip */}
-                                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-                                    <div className="relative flex-1 w-full">
-                                        <input
-                                            type="text"
-                                            value={compSearch}
-                                            onChange={e => setCompSearch(e.target.value)}
-                                            placeholder="Search Ticket ID, Client, PO, Fault description, Engineer, Diagnosis..."
-                                            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-amber-500"
-                                        />
-                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                            <Icon name="search" size={14}/>
-                                        </div>
-                                    </div>
-
-                                    {/* Status Filter: All / Open / Resolved */}
-                                    <div className="w-full sm:w-48">
-                                        <select
-                                            value={compStatus}
-                                            onChange={e => setCompStatus(e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-black text-slate-700 outline-none focus:ring-2 focus:ring-amber-500 bg-white"
-                                        >
-                                            <option value="All">All Statuses ({complaints.length})</option>
-                                            <option value="Open">Open Pending ({openComplaintsCount})</option>
-                                            <option value="Resolved">Resolved / Closed ({resolvedComplaintsCount})</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Category Filter */}
-                                    <div className="w-full sm:w-48">
-                                        <select
-                                            value={compCat}
-                                            onChange={e => setCompCat(e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-black text-slate-700 outline-none focus:ring-2 focus:ring-amber-500 bg-white"
-                                        >
-                                            <option value="All">All Categories</option>
-                                            {DEFAULT_CATEGORIES.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {(compSearch || compStatus !== 'All' || compCat !== 'All') && (
-                                        <button
-                                            onClick={() => { setCompSearch(''); setCompStatus('All'); setCompCat('All'); }}
-                                            className="text-[10px] font-black text-slate-400 hover:text-amber-600 uppercase tracking-widest transition-colors cursor-pointer shrink-0"
-                                        >
-                                            ✕ Reset
-                                        </button>
-                                    )}
-                                </div>
-
-                                {/* Complaints Master Table (Open & Resolved) */}
-                                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left min-w-[950px]">
-                                            <thead className="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200 border-slate-200">
-                                                <tr>
-                                                    <th className="px-4 py-4 w-[18%]">Ticket &amp; Date</th>
-                                                    <th className="px-4 py-4 w-[22%]">Customer &amp; PO</th>
-                                                    <th className="px-4 py-4 w-[18%]">Vehicle / Category</th>
-                                                    <th className="px-4 py-4 w-[10%] text-center">Status</th>
-                                                    <th className="px-4 py-4 w-[10%] text-center">Aging</th>
-                                                    <th className="px-4 py-4 w-[14%]">Engineer / Action</th>
-                                                    <th className="px-4 py-4 w-[8%] text-right">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-700">
-                                                {filteredComplaints.length > 0 ? filteredComplaints.map(c => {
-                                                    const trk = trucks.find(t => t.id === c.truckId);
-                                                    const cust = trk ? customers.find(cu => cu.id === trk.customerId) : null;
-                                                    const agingDays = calculateLifeCount(c.dateReceived);
-                                                    const isResolved = c.status === 'Resolved';
-
-                                                    return (
-                                                        <tr key={c.id} className="hover:bg-amber-50/20 transition-colors">
-                                                            <td className="px-4 py-4 space-y-0.5">
-                                                                <span className="font-black text-slate-900 text-xs uppercase block">
-                                                                    {c.complaintId}
-                                                                </span>
-                                                                <span className="text-[10px] font-bold text-slate-400 block">
-                                                                    {formatDate(c.dateReceived)}
-                                                                </span>
-                                                                <span className="text-[8px] font-extrabold uppercase text-slate-500 bg-slate-100 px-2 py-0.5 rounded inline-block">
-                                                                    {c.mode || 'Portal'}
-                                                                </span>
-                                                            </td>
-
-                                                            <td className="px-4 py-4 space-y-0.5">
-                                                                <p className="font-black text-slate-800 text-xs uppercase truncate max-w-[200px]" title={cust?.name}>
-                                                                    {cust?.name || 'Customer Organization'}
-                                                                </p>
-                                                                <p className="text-[10px] font-extrabold text-blue-600">
-                                                                    PO: {trk?.poNo || 'N/A'}
-                                                                </p>
-                                                            </td>
-
-                                                            <td className="px-4 py-4 space-y-0.5">
-                                                                <p className="font-extrabold text-slate-800 text-xs truncate max-w-[180px]">
-                                                                    {trk?.tenderType || 'Fire Tender'}
-                                                                </p>
-                                                                <span className="text-[9px] font-black uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded inline-block">
-                                                                    {c.category}
-                                                                </span>
-                                                            </td>
-
-                                                            <td className="px-4 py-4 text-center">
-                                                                <Badge color={isResolved ? 'green' : 'red'}>
-                                                                    {c.status}
-                                                                </Badge>
-                                                            </td>
-
-                                                            <td className="px-4 py-4 text-center">
-                                                                <span className={`text-[10px] font-black px-2.5 py-1 rounded-full inline-block ${
-                                                                    isResolved
-                                                                        ? 'bg-emerald-50 text-emerald-700'
-                                                                        : (agingDays > 15 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700')
-                                                                }`}>
-                                                                    {agingDays}d
-                                                                </span>
-                                                            </td>
-
-                                                            <td className="px-4 py-4 space-y-0.5">
-                                                                {c.closedBy ? (
-                                                                    <div>
-                                                                        <div className="flex items-center gap-1 text-emerald-700 text-xs font-black">
-                                                                            <Icon name="user-check" size={12}/>
-                                                                            <span>{c.closedBy}</span>
-                                                                        </div>
-                                                                        {c.closedDate && (
-                                                                            <p className="text-[9px] font-bold text-slate-400">
-                                                                                {isResolved ? 'Closed: ' : 'Visit: '}{formatDate(c.closedDate)}
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
-                                                                ) : (
-                                                                    <span className="text-[10px] font-bold text-slate-400 italic">
-                                                                        Pending Assignment
-                                                                    </span>
-                                                                )}
-                                                            </td>
-
-                                                            <td className="px-4 py-4 text-right">
-                                                                <button
-                                                                    onClick={() => setSelectedComplaint(c)}
-                                                                    className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 ml-auto cursor-pointer"
-                                                                    title="View Details"
-                                                                >
-                                                                    <Icon name="eye" size={12}/> View
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                }) : (
-                                                    <tr>
-                                                        <td colSpan="7" className="py-16 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
-                                                            No complaints match your search criteria.
-                                                        </td>
-                                                    </tr>
-                                                )}
                                             </tbody>
                                         </table>
                                     </div>
@@ -14883,71 +14753,217 @@ function App() {
                             />
                         )}
 
-                        {/* ── TRUCKS ── */}
+                        {/* ── TRUCKS (FLEET INVENTORY & WARRANTY) ── */}
                         {activeTab==='trucks' && (
-                            <div className="space-y-4">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <h2 className="text-lg font-black text-slate-900 uppercase">Fleet Inventory</h2>
+                            <div className="space-y-3.5 fade-up select-none">
+                                {/* Compact Header & Action Bar */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center shrink-0">
+                                            <Icon name="truck" size={15}/>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-slate-800 text-[13.5px] tracking-[-0.1px] font-heading">
+                                                Fleet Inventory &amp; Warranty
+                                            </h3>
+                                            <p className="text-[11px] font-normal text-slate-400 mt-0.5">
+                                                Total registered: {trucks.length} Units · {activeUnits.length} in Active Coverage
+                                            </p>
+                                        </div>
                                         {deliverySubmissions.filter(s => s.status === 'Pending Approval').length > 0 && (
-                                            <button onClick={() => setShowPendingSubmissionsModal(true)} className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md animate-pulse cursor-pointer">
-                                                <span>🔔</span> {deliverySubmissions.filter(s => s.status === 'Pending Approval').length} Staged Submissions
+                                            <button
+                                                onClick={() => setShowPendingSubmissionsModal(true)}
+                                                className="ml-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                                            >
+                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                <span>{deliverySubmissions.filter(s => s.status === 'Pending Approval').length} Staged Submissions</span>
                                             </button>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={() => setShowRegisterDeliveryModal(true)} className="bg-white hover:bg-slate-50 text-[#111827] border border-slate-200 px-3.5 py-2 rounded-lg text-xs font-medium tracking-wide flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer">
-                                            <span>🚚</span> Register Delivery
+                                        <button
+                                            onClick={() => setShowRegisterDeliveryModal(true)}
+                                            className="h-8 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
+                                        >
+                                            <Icon name="truck" size={13.5} className="text-slate-500"/>
+                                            <span>Register Delivery</span>
                                         </button>
-                                        <button onClick={()=>{setEditingTruck(null);setNewTrk({customerId:'',poNo:'',poDate:'',ocNo:'',ocDate:'',costCenterNo:'',tenderType:'',pumpMake:'',pumpLpm:'',pumpSrNo:'',foamCapacity:'',waterCapacity:'',chassisMake:'',modelNo:'',deliveryDate:'',warrantyMonths:12,insurancePolicyNo:'',insuranceCompany:'',insuranceExpiryDate:'',costCenterStatus:'Not Generated',poAtGlanceGeneratedAt:null,submittedToAccountsAt:null,costCenterCreatedAt:null});setShowTruckModal(true);}} className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-4 py-2 rounded-lg text-xs font-medium tracking-wide flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"><Icon name="plus" size={14}/>Add Delivery</button>
+                                        <button
+                                            onClick={() => {
+                                                setEditingTruck(null);
+                                                setNewTrk({
+                                                    customerId: '', poNo: '', poDate: '', ocNo: '', ocDate: '',
+                                                    costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
+                                                    foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
+                                                    deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
+                                                    insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
+                                                    submittedToAccountsAt: null, costCenterCreatedAt: null
+                                                });
+                                                setShowTruckModal(true);
+                                            }}
+                                            className="h-8 px-3.5 rounded-lg bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
+                                        >
+                                            <Icon name="plus" size={13.5}/>
+                                            <span>Add Delivery</span>
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left table-fixed min-w-[950px]">
-                                        <thead className="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200">
-                                            <tr>
-                                                <th className="px-4 py-4 w-[28%]">PO / Vehicle</th>
-                                                <th className="px-4 py-4 w-[22%]">Pump Details</th>
-                                                <th className="px-4 py-4 w-[18%] text-center">Insurance</th>
-                                                <th className="px-4 py-4 w-[16%] text-center">Warranty</th>
-                                                <th className="px-4 py-4 w-[16%] text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50 text-[11px]">
-                                            {trucks.map(t=>{
-                                                const wExp=calculateWarrantyExpiry(t.deliveryDate,t.warrantyMonths); const wRem=calculateDaysRemaining(wExp); const iRem=calculateDaysRemaining(t.insuranceExpiryDate);
-                                                const custObj = customers.find(c=>c.id===t.customerId);
-                                                return <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="px-4 py-4">
-                                                        <div className="flex items-center gap-1.5 mb-0.5">
-                                                            <p className="font-black text-blue-600 uppercase">PO: {t.poNo||'N/A'}</p>
-                                                            {t.poDate && <span className="text-[9px] text-slate-400 font-extrabold">({formatDate(t.poDate)})</span>}
-                                                        </div>
-                                                        <p className="font-black text-slate-900 uppercase truncate">{t.tenderType}</p>
-                                                        <p className="text-[9px] text-slate-400 font-bold uppercase truncate">{custObj?.name}</p>
-                                                    </td>
-                                                    <td className="px-4 py-4"><p className="font-black text-slate-800 uppercase">{t.pumpMake}</p><p className="text-[9px] text-slate-400 font-bold uppercase">{t.pumpLpm || 'N/A'} LPM</p></td>
-                                                    <td className="px-4 py-4 text-center"><p className="font-black text-slate-800 uppercase truncate">{t.insuranceCompany||'N/A'}</p><span className={`px-2 py-0.5 rounded-full font-black text-[9px] inline-block mt-1 ${iRem>30?'bg-indigo-50 text-indigo-600':'bg-rose-50 text-rose-600'}`}>{iRem>0?`${iRem}d`:'EXP'}</span></td>
-                                                    <td className="px-4 py-4 text-center"><Badge color={wRem>0?(wRem<60?'yellow':'green'):'red'}>{wRem>0?`${wRem}d`:'EXP'}</Badge></td>
-                                                    <td className="px-4 py-4 text-right"><div className="flex items-center justify-end gap-1">
-                                                        <button title="Commissioning & Driver Training Certificate" onClick={()=>{
-                                                            const cust = customers.find(c => c.id === t.customerId);
-                                                            const existingCert = (commCerts || []).find(c => c.truckId === t.id);
-                                                            setSelectedCommissioningTruck({ truck: t, customer: cust, cert: existingCert });
-                                                        }} className="text-slate-400 hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-50 transition-all cursor-pointer"><Icon name="award" size={14}/></button>
-                                                        <button title="View / Print QR Code" onClick={()=>{setQrTruck(t);setShowQrModal(true);}} className="text-slate-400 hover:text-purple-600 p-1.5 rounded-lg hover:bg-purple-50 transition-all"><Icon name="qr-code" size={14}/></button>
-                                                        <button title="View Complaints History" onClick={()=>setShowViewComplaintsModal({customerId:t.customerId,orgName:customers.find(c=>c.id===t.customerId)?.name||'Org'})} className="text-slate-400 hover:text-indigo-600 p-1.5 rounded-lg hover:bg-indigo-50 transition-all"><Icon name="history" size={14}/></button>
-                                                        <button title="Edit Delivery" onClick={()=>{setEditingTruck(t);setNewTrk({...t});setShowTruckModal(true);}} className="text-slate-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-all"><Icon name="pencil" size={14}/></button>
-                                                        <button title="Delete Record" onClick={()=>setDeleteStep({type:'tender',data:t,step:1})} className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all"><Icon name="trash-2" size={14}/></button>
-                                                    </div></td>
-                                                </tr>;
-                                            })}
-                                        </tbody>
-                                    </table>
 
+                                {/* World-Class Lightweight Fleet Table */}
+                                <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left table-fixed min-w-[950px] border-collapse text-xs">
+                                            <thead>
+                                                <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-slate-500 border-b border-slate-200">
+                                                    <th className="px-3.5 py-2.5 w-[28%] font-medium">PO / Vehicle &amp; Client</th>
+                                                    <th className="px-3.5 py-2.5 w-[22%] font-medium">Pump &amp; Capacity Specs</th>
+                                                    <th className="px-3.5 py-2.5 w-[18%] text-center font-medium">Insurance Policy</th>
+                                                    <th className="px-3.5 py-2.5 w-[18%] text-center font-medium">Warranty Coverage</th>
+                                                    <th className="px-3.5 py-2.5 w-[14%] text-right pr-4 font-medium">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100/90 bg-white">
+                                                {trucks.map(t => {
+                                                    const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                                                    const wRem = calculateDaysRemaining(wExp);
+                                                    const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
+                                                    const custObj = customers.find(c => c.id === t.customerId);
+
+                                                    return (
+                                                        <tr key={t.id} className="hover:bg-slate-50/70 transition-colors group">
+                                                            {/* PO / Vehicle & Client */}
+                                                            <td className="px-3.5 py-3">
+                                                                <div className="flex items-center gap-1.5 mb-1">
+                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
+                                                                        PO: {t.poNo || 'N/A'}
+                                                                    </span>
+                                                                    {t.poDate && (
+                                                                        <span className="text-[10.5px] text-slate-400 font-mono">
+                                                                            ({formatDate(t.poDate)})
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate font-heading">
+                                                                    {t.tenderType || 'Vehicle'}
+                                                                </p>
+                                                                <p className="text-[11px] font-normal text-slate-400 truncate mt-0.5">
+                                                                    {custObj?.name || 'Client Org Not Linked'}
+                                                                </p>
+                                                            </td>
+
+                                                            {/* Pump Specs */}
+                                                            <td className="px-3.5 py-3">
+                                                                <p className="text-slate-800 font-medium text-xs">
+                                                                    {t.pumpMake || 'Standard Pump'}
+                                                                </p>
+                                                                <p className="text-[11px] font-mono text-slate-400 mt-0.5 truncate">
+                                                                    {t.pumpLpm ? `${t.pumpLpm} LPM` : 'N/A'}{t.pumpSrNo ? ` · SN: ${t.pumpSrNo}` : ''}
+                                                                </p>
+                                                            </td>
+
+                                                            {/* Insurance */}
+                                                            <td className="px-3.5 py-3 text-center">
+                                                                <p className="text-slate-700 font-medium text-xs truncate max-w-[150px] mx-auto" title={t.insuranceCompany || 'N/A'}>
+                                                                    {t.insuranceCompany || '—'}
+                                                                </p>
+                                                                <div className="mt-1">
+                                                                    {iRem > 30 ? (
+                                                                        <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-teal-50 text-[#0B6B63] border border-teal-100/70">
+                                                                            {iRem}d left
+                                                                        </span>
+                                                                    ) : iRem > 0 ? (
+                                                                        <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-100/70">
+                                                                            {iRem}d left
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200/60">
+                                                                            Expired
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+
+                                                            {/* Warranty */}
+                                                            <td className="px-3.5 py-3 text-center">
+                                                                {wRem > 60 ? (
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/70 whitespace-nowrap">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                        {wRem}d Active
+                                                                    </span>
+                                                                ) : wRem > 0 ? (
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-amber-50 text-amber-800 border border-amber-200/70 whitespace-nowrap">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                        {wRem}d Left
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-slate-100 text-slate-600 border border-slate-200/70 whitespace-nowrap">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                                                        Expired
+                                                                    </span>
+                                                                )}
+                                                                {wExp && (
+                                                                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                                                        Exp: {formatDate(wExp)}
+                                                                    </p>
+                                                                )}
+                                                            </td>
+
+                                                            {/* Actions */}
+                                                            <td className="px-3.5 py-3 text-right pr-4">
+                                                                <div className="flex items-center justify-end gap-1 opacity-75 group-hover:opacity-100 transition-opacity">
+                                                                    <button
+                                                                        title="Commissioning & Driver Training Certificate"
+                                                                        onClick={() => {
+                                                                            const cust = customers.find(c => c.id === t.customerId);
+                                                                            const existingCert = (commCerts || []).find(c => c.truckId === t.id);
+                                                                            setSelectedCommissioningTruck({ truck: t, customer: cust, cert: existingCert });
+                                                                        }}
+                                                                        className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors cursor-pointer"
+                                                                    >
+                                                                        <Icon name="award" size={13.5}/>
+                                                                    </button>
+                                                                    <button
+                                                                        title="View / Print QR Code"
+                                                                        onClick={() => { setQrTruck(t); setShowQrModal(true); }}
+                                                                        className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-[#0B6B63] hover:bg-teal-50 rounded-md transition-colors cursor-pointer"
+                                                                    >
+                                                                        <Icon name="qr-code" size={13.5}/>
+                                                                    </button>
+                                                                    <button
+                                                                        title="View Complaints History"
+                                                                        onClick={() => setShowViewComplaintsModal({ customerId: t.customerId, orgName: customers.find(c => c.id === t.customerId)?.name || 'Org' })}
+                                                                        className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors cursor-pointer"
+                                                                    >
+                                                                        <Icon name="history" size={13.5}/>
+                                                                    </button>
+                                                                    <button
+                                                                        title="Edit Delivery"
+                                                                        onClick={() => { setEditingTruck(t); setNewTrk({ ...t }); setShowTruckModal(true); }}
+                                                                        className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
+                                                                    >
+                                                                        <Icon name="pencil" size={13.5}/>
+                                                                    </button>
+                                                                    <button
+                                                                        title="Delete Record"
+                                                                        onClick={() => setDeleteStep({ type: 'tender', data: t, step: 1 })}
+                                                                        className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
+                                                                    >
+                                                                        <Icon name="trash-2" size={13.5}/>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    {trucks.length===0 && <div className="py-16 text-center opacity-30"><Icon name="truck" size={32} className="mx-auto mb-3"/><p className="text-[11px] font-black uppercase">No vehicles recorded</p></div>}
+                                    {trucks.length === 0 && (
+                                        <div className="py-16 text-center text-slate-400">
+                                            <Icon name="truck" size={28} className="mx-auto mb-2 text-slate-300"/>
+                                            <p className="text-xs font-medium">No vehicles registered in inventory</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
