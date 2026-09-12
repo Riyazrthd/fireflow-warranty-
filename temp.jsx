@@ -1213,29 +1213,30 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const currentAvg = data.length > 0 ? data[data.length - 1].value : 0;
 
             return (
-                <div className="bg-white p-4.5 sm:p-5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-[310px] select-none">
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center shrink-0">
-                                <Icon name="clock" size={15}/>
+                <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-[270px] select-none">
+                    {/* Compact Single-Line Header */}
+                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-6.5 h-6.5 rounded-md bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center shrink-0">
+                                <Icon name="clock" size={13}/>
                             </div>
-                            <div>
-                                <h3 className="font-semibold text-slate-800 text-[13px] tracking-[-0.1px] font-heading">
+                            <div className="min-w-0">
+                                <h3 className="font-semibold text-slate-800 text-xs tracking-tight truncate whitespace-nowrap">
                                     Resolution Speed
                                 </h3>
-                                <p className="text-[11px] font-normal text-slate-400 mt-0.5">
-                                    Average days to close resolved cases
+                                <p className="text-[10px] text-slate-400 truncate whitespace-nowrap">
+                                    Avg days to close
                                 </p>
                             </div>
                         </div>
-                        <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md bg-teal-50 text-[#0B6B63] border border-teal-100/70">
+                        <span className="whitespace-nowrap shrink-0 inline-flex items-center font-mono text-[10.5px] font-semibold px-2 py-0.5 rounded-md bg-teal-50 text-[#0B6B63] border border-teal-100/70">
                             ~{currentAvg}d avg
                         </span>
                     </div>
 
-                    <div className="flex-1 min-h-0 pt-1">
+                    <div className="flex-1 min-h-0 pt-0.5">
                         <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={data} margin={{ top: 8, right: 10, left: -22, bottom: 0 }}>
+                            <ComposedChart data={data} margin={{ top: 4, right: 6, left: -24, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="speedTealGradient" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="0%" stopColor="#0B6B63" stopOpacity={0.25}/>
@@ -1247,24 +1248,24 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     dataKey="display"
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 10, fontWeight: 500, fill: '#94a3b8' }}
-                                    dy={6}
+                                    tick={{ fontSize: 9.5, fontWeight: 500, fill: '#94a3b8' }}
+                                    dy={4}
                                 />
                                 <YAxis
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 10, fontWeight: 500, fill: '#94a3b8' }}
+                                    tick={{ fontSize: 9.5, fontWeight: 500, fill: '#94a3b8' }}
                                 />
-                                <Tooltip cursor={{ fill: '#f8fafc', radius: 6 }} content={<AnalyticsTooltip/>}/>
-                                <Bar name="Avg Days" dataKey="value" fill="url(#speedTealGradient)" radius={[4, 4, 0, 0]} barSize={16}/>
+                                <Tooltip cursor={{ fill: '#f8fafc', radius: 4 }} content={<AnalyticsTooltip/>}/>
+                                <Bar name="Avg Days" dataKey="value" fill="url(#speedTealGradient)" radius={[3, 3, 0, 0]} barSize={14}/>
                                 <Line
                                     name="Speed Trend"
                                     type="monotone"
                                     dataKey="value"
                                     stroke="#0B6B63"
-                                    strokeWidth={2}
-                                    dot={{ r: 3, fill: '#0B6B63', stroke: '#ffffff', strokeWidth: 1.5 }}
-                                    activeDot={{ r: 5, fill: '#0B6B63', stroke: '#ffffff', strokeWidth: 2 }}
+                                    strokeWidth={1.75}
+                                    dot={{ r: 2.5, fill: '#0B6B63', stroke: '#ffffff', strokeWidth: 1.5 }}
+                                    activeDot={{ r: 4, fill: '#0B6B63', stroke: '#ffffff', strokeWidth: 2 }}
                                 />
                             </ComposedChart>
                         </ResponsiveContainer>
@@ -1285,11 +1286,11 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                     }
                 });
                 const total = feedbacks.length;
-                const avg = total > 0 ? (sum / total).toFixed(1) : '4.8';
+                const avg = total > 0 ? (sum / total).toFixed(1) : '5.0';
                 
                 const list = [5, 4, 3, 2, 1].map(stars => {
-                    const count = total > 0 ? counts[stars] : (stars === 5 ? 14 : stars === 4 ? 4 : stars === 3 ? 1 : 0);
-                    const effectiveTotal = total > 0 ? total : 19;
+                    const count = total > 0 ? counts[stars] : (stars === 5 ? 18 : stars === 4 ? 3 : stars === 3 ? 1 : 0);
+                    const effectiveTotal = total > 0 ? total : 22;
                     const pct = Math.round((count / effectiveTotal) * 100);
                     return { stars, count, pct };
                 });
@@ -1298,34 +1299,35 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             }, [feedbacks]);
 
             return (
-                <div className="bg-white p-4.5 sm:p-5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-[310px] select-none">
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 border border-amber-100/80 flex items-center justify-center shrink-0">
-                                <Icon name="star" size={15}/>
+                <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-[270px] select-none">
+                    {/* Compact Single-Line Header */}
+                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-6.5 h-6.5 rounded-md bg-amber-50 text-amber-600 border border-amber-100/80 flex items-center justify-center shrink-0">
+                                <Icon name="star" size={13}/>
                             </div>
-                            <div>
-                                <h3 className="font-semibold text-slate-800 text-[13px] tracking-[-0.1px] font-heading">
+                            <div className="min-w-0">
+                                <h3 className="font-semibold text-slate-800 text-xs tracking-tight truncate whitespace-nowrap">
                                     Customer Satisfaction
                                 </h3>
-                                <p className="text-[11px] font-normal text-slate-400 mt-0.5">
-                                    Rating breakdown & CSAT performance
+                                <p className="text-[10px] text-slate-400 truncate whitespace-nowrap">
+                                    Rating breakdown
                                 </p>
                             </div>
                         </div>
-                        <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/70">
+                        <span className="whitespace-nowrap shrink-0 inline-flex items-center gap-1 font-mono text-[10.5px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/70">
                             ★ {avgScore} / 5.0
                         </span>
                     </div>
 
-                    <div className="flex-1 flex flex-col justify-center space-y-2.5 pt-1">
+                    <div className="flex-1 flex flex-col justify-center space-y-1.5 pt-0.5">
                         {data.map((item) => (
-                            <div key={item.stars} className="flex items-center gap-2.5 group">
-                                <div className="flex items-center gap-1 w-11 shrink-0 text-slate-600 text-[11.5px] font-medium font-mono">
+                            <div key={item.stars} className="flex items-center gap-2 group">
+                                <div className="flex items-center gap-0.5 w-8 shrink-0 text-slate-600 text-[11px] font-medium font-mono">
                                     <span>{item.stars}</span>
-                                    <span className="text-amber-400 text-xs">★</span>
+                                    <span className="text-amber-400 text-[10.5px]">★</span>
                                 </div>
-                                <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                                     <div
                                         className={`h-full rounded-full transition-all duration-300 ${
                                             item.stars >= 4
@@ -1338,8 +1340,8 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     ></div>
                                 </div>
                                 <div className="w-14 text-right shrink-0">
-                                    <span className="font-mono text-[11px] font-medium text-slate-500 group-hover:text-slate-800 transition-colors">
-                                        {item.count} <span className="text-[10px] text-slate-400 font-normal">({item.pct}%)</span>
+                                    <span className="font-mono text-[10.5px] font-medium text-slate-500 group-hover:text-slate-800 transition-colors whitespace-nowrap">
+                                        {item.count} <span className="text-[9.5px] text-slate-400 font-normal">({item.pct}%)</span>
                                     </span>
                                 </div>
                             </div>
@@ -1386,43 +1388,44 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             }, [trucks]);
 
             return (
-                <div className="bg-white p-4.5 sm:p-5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-[310px] select-none">
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center shrink-0">
-                                <Icon name="truck" size={15}/>
+                <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col h-[270px] select-none">
+                    {/* Compact Single-Line Header */}
+                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-6.5 h-6.5 rounded-md bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center shrink-0">
+                                <Icon name="truck" size={13}/>
                             </div>
-                            <div>
-                                <h3 className="font-semibold text-slate-800 text-[13px] tracking-[-0.1px] font-heading">
+                            <div className="min-w-0">
+                                <h3 className="font-semibold text-slate-800 text-xs tracking-tight truncate whitespace-nowrap">
                                     Fleet Composition
                                 </h3>
-                                <p className="text-[11px] font-normal text-slate-400 mt-0.5">
-                                    By vehicle tender category
+                                <p className="text-[10px] text-slate-400 truncate whitespace-nowrap">
+                                    By tender category
                                 </p>
                             </div>
                         </div>
-                        <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200/60">
+                        <span className="whitespace-nowrap shrink-0 inline-flex items-center font-mono text-[10.5px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200/60">
                             {totalCount} Units
                         </span>
                     </div>
 
-                    <div className="flex-1 flex flex-col justify-center space-y-2.5 pt-1">
+                    <div className="flex-1 flex flex-col justify-center space-y-1.5 pt-0.5">
                         {data.map((item) => (
-                            <div key={item.name} className="flex items-center gap-2.5 group">
-                                <div className="w-28 sm:w-32 shrink-0 truncate">
-                                    <span className="text-[11.5px] font-medium text-slate-700 group-hover:text-[#0B6B63] transition-colors truncate block" title={item.name}>
+                            <div key={item.name} className="flex items-center gap-2 group">
+                                <div className="w-24 sm:w-28 shrink-0 truncate">
+                                    <span className="text-[11px] font-medium text-slate-700 group-hover:text-[#0B6B63] transition-colors truncate block" title={item.name}>
                                         {item.name}
                                     </span>
                                 </div>
-                                <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                                     <div
                                         className="h-full rounded-full bg-gradient-to-r from-teal-500 to-[#0B6B63] transition-all duration-300"
                                         style={{ width: `${item.pct}%` }}
                                     ></div>
                                 </div>
                                 <div className="w-14 text-right shrink-0">
-                                    <span className="font-mono text-[11px] font-medium text-slate-500 group-hover:text-slate-800 transition-colors">
-                                        {item.value} <span className="text-[10px] text-slate-400 font-normal">({item.pct}%)</span>
+                                    <span className="font-mono text-[10.5px] font-medium text-slate-500 group-hover:text-slate-800 transition-colors whitespace-nowrap">
+                                        {item.value} <span className="text-[9.5px] text-slate-400 font-normal">({item.pct}%)</span>
                                     </span>
                                 </div>
                             </div>
@@ -14727,7 +14730,7 @@ function App() {
                                 {/* Expiry & Queue Widgets */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                     {/* Warranty Expiry Radar */}
-                                    <div className="bg-white p-4.5 sm:p-5 rounded-xl border border-slate-200/90 shadow-2xs h-[310px] flex flex-col select-none">
+                                    <div className="bg-white p-4.5 sm:p-5 rounded-xl border border-slate-200/90 shadow-2xs h-[270px] flex flex-col select-none">
                                         <div className="flex items-center justify-between gap-2 mb-3">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-7.5 h-7.5 rounded-lg bg-amber-50 text-amber-600 border border-amber-100/80 flex items-center justify-center shrink-0">
