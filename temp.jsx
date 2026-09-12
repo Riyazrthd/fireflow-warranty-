@@ -9608,11 +9608,12 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         <table className="w-full text-left table-fixed min-w-[950px] border-collapse text-xs">
                                             <thead>
                                                 <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-slate-500 border-b border-slate-200">
-                                                    <th className="px-3.5 py-2.5 w-[28%] font-medium">PO / Vehicle &amp; Client</th>
-                                                    <th className="px-3.5 py-2.5 w-[24%] font-medium">Pump &amp; Capacity Specs</th>
-                                                    <th className="px-3.5 py-2.5 w-[18%] text-center font-medium">Insurance Policy</th>
-                                                    <th className="px-3.5 py-2.5 w-[16%] text-center font-medium">Warranty Coverage</th>
-                                                    <th className="px-3.5 py-2.5 w-[14%] text-right pr-4 font-medium">QR Access</th>
+                                                    <th className="px-3.5 py-2.5 w-[26%] font-medium">Client Organization</th>
+                                                    <th className="px-3.5 py-2.5 w-[18%] font-medium">PO Number</th>
+                                                    <th className="px-3.5 py-2.5 w-[20%] font-medium">Type Of Fire Tender</th>
+                                                    <th className="px-3.5 py-2.5 w-[14%] text-center font-medium">Insurance Policy</th>
+                                                    <th className="px-3.5 py-2.5 w-[12%] text-center font-medium">Warranty Coverage</th>
+                                                    <th className="px-3.5 py-2.5 w-[10%] text-right pr-4 font-medium">QR Access</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100/90 bg-white">
@@ -9621,39 +9622,55 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     const wRem = calculateDaysRemaining(wExp);
                                                     const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
                                                     const custObj = customers.find(c => c.id === t.customerId);
+                                                    const initials = (custObj?.name || 'IFS').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
                                                     return (
                                                         <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
+                                                            {/* 1. Client Name */}
                                                             <td className="px-3.5 py-3">
-                                                                <div className="flex items-center gap-1.5 mb-1">
-                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
+                                                                <div className="flex items-center gap-2.5">
+                                                                    <div className="w-7.5 h-7.5 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center font-semibold text-[11px] shrink-0 font-mono">
+                                                                        {initials}
+                                                                    </div>
+                                                                    <div className="min-w-0">
+                                                                        <p className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate font-heading hover:text-[#0B6B63] transition-colors" title={custObj?.name || 'Client Not Linked'}>
+                                                                            {custObj?.name || 'Client Not Linked'}
+                                                                        </p>
+                                                                        <p className="text-[11px] font-normal text-slate-400 flex items-center gap-1 mt-0.5 truncate">
+                                                                            <Icon name="map-pin" size={10.5} className="text-slate-400 shrink-0"/>
+                                                                            <span>{custObj?.address || 'Site location not recorded'}</span>
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+
+                                                            {/* 2. PO Number */}
+                                                            <td className="px-3.5 py-3">
+                                                                <div className="space-y-0.5">
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
                                                                         PO: {t.poNo || 'N/A'}
                                                                     </span>
-                                                                    {t.poDate && (
-                                                                        <span className="text-[10.5px] text-slate-400 font-mono">
-                                                                            ({formatDate(t.poDate)})
-                                                                        </span>
-                                                                    )}
+                                                                    <p className="text-[10.5px] text-slate-400 font-mono">
+                                                                        {t.poDate ? formatDate(t.poDate) : 'Date not set'}
+                                                                    </p>
                                                                 </div>
-                                                                <p className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate font-heading">
-                                                                    {t.tenderType || 'Vehicle'}
-                                                                </p>
-                                                                <p className="text-[11px] font-normal text-slate-400 truncate mt-0.5">
-                                                                    {custObj?.name || 'Client Org Not Linked'}
-                                                                </p>
                                                             </td>
 
+                                                            {/* 3. Type Of Fire Tender */}
                                                             <td className="px-3.5 py-3">
-                                                                <p className="text-slate-800 font-medium text-xs">
-                                                                    {t.pumpMake || 'Standard Pump'}
-                                                                </p>
-                                                                <p className="text-[11px] font-mono text-slate-400 mt-0.5 truncate">
-                                                                    {t.pumpLpm ? `${t.pumpLpm} LPM` : 'N/A'}{t.pumpSrNo ? ` · SN: ${t.pumpSrNo}` : ''}
-                                                                </p>
+                                                                <div className="space-y-0.5">
+                                                                    <p className="font-semibold text-slate-800 text-[12.5px] tracking-tight truncate font-heading" title={t.tenderType}>
+                                                                        {t.tenderType || 'Fire Tender'}
+                                                                    </p>
+                                                                    <p className="text-[11px] font-normal text-slate-400 truncate">
+                                                                        {t.chassisMake ? `${t.chassisMake}${t.modelNo ? ` · ${t.modelNo}` : ''}` : (t.pumpMake ? `${t.pumpMake} ${t.pumpLpm ? `${t.pumpLpm} LPM` : ''}` : 'Standard Unit')}
+                                                                    </p>
+                                                                </div>
                                                             </td>
 
+                                                            {/* 4. Insurance Policy */}
                                                             <td className="px-3.5 py-3 text-center">
-                                                                <p className="text-slate-700 font-medium text-xs truncate max-w-[150px] mx-auto" title={t.insuranceCompany || 'N/A'}>
+                                                                <p className="text-slate-700 font-medium text-xs truncate max-w-[140px] mx-auto" title={t.insuranceCompany || 'N/A'}>
                                                                     {t.insuranceCompany || '—'}
                                                                 </p>
                                                                 <div className="mt-1">
@@ -9673,6 +9690,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                                 </div>
                                                             </td>
 
+                                                            {/* 5. Warranty Coverage */}
                                                             <td className="px-3.5 py-3 text-center">
                                                                 {wRem > 60 ? (
                                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/70 whitespace-nowrap">
@@ -9697,6 +9715,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                                 )}
                                                             </td>
 
+                                                            {/* 6. Actions */}
                                                             <td className="px-3.5 py-3 text-right pr-4">
                                                                 <button
                                                                     onClick={() => setQrTruck(t)}
