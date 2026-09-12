@@ -9321,99 +9321,102 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     </span>
                                 </div>
 
-                                <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                                <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
                                     <div className="overflow-x-auto">
-                                        <table className="w-full text-left min-w-[900px] border-collapse">
+                                        <table className="w-full text-left min-w-[900px] border-collapse text-xs">
                                             <thead>
-                                                <tr className="bg-slate-50/90 text-[9.5px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200">
-                                                    <th className="px-4 py-3.5 w-12 text-center">#</th>
-                                                    <th className="px-4 py-3.5">Client Organization &amp; Site</th>
-                                                    <th className="px-4 py-3.5">Contact Person &amp; Phone</th>
-                                                    <th className="px-4 py-3.5 text-center">Fleet Deployed</th>
-                                                    <th className="px-4 py-3.5 text-center">Warranty Status</th>
-                                                    <th className="px-4 py-3.5 text-center">PO Date</th>
-                                                    <th className="px-4 py-3.5 text-right w-20">Details</th>
+                                                <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-slate-500 border-b border-slate-200">
+                                                    <th className="px-3.5 py-2.5 w-10 text-center font-medium">#</th>
+                                                    <th className="px-3.5 py-2.5 font-medium">Client Organization &amp; Site</th>
+                                                    <th className="px-3.5 py-2.5 font-medium">Contact Person &amp; Phone</th>
+                                                    <th className="px-3.5 py-2.5 text-center font-medium">Fleet Deployed</th>
+                                                    <th className="px-3.5 py-2.5 text-center font-medium">Warranty Coverage</th>
+                                                    <th className="px-3.5 py-2.5 text-center font-medium">PO Date</th>
+                                                    <th className="px-3.5 py-2.5 text-right w-20 pr-4 font-medium">Details</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-100 text-xs">
+                                            <tbody className="divide-y divide-slate-100/90 bg-white">
                                                 {filteredCustomers.map((c, idx) => {
                                                     const cTrucks = trucks.filter(t => t.customerId === c.id);
                                                     const isInWarranty = activeUnits.some(t => t.customerId === c.id);
-                                                    const initials = (c.name || 'IFS').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                                                    const initials = (c.name || 'IFS').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
                                                     return (
                                                         <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
-                                                            <td className="px-4 py-3.5 text-center font-bold text-slate-400 text-[11px]">
+                                                            <td className="px-3.5 py-2.5 text-center font-mono text-slate-400 text-[11px]">
                                                                 {idx + 1}
                                                             </td>
-                                                            <td className="px-4 py-3.5">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center font-black text-xs shrink-0 shadow-2xs">
+                                                            <td className="px-3.5 py-2.5">
+                                                                <div className="flex items-center gap-2.5">
+                                                                    <div className="w-7.5 h-7.5 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center font-semibold text-[11px] shrink-0 font-mono">
                                                                         {initials}
                                                                     </div>
                                                                     <div className="min-w-0">
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => setSelectedCustDetail(c)}
-                                                                            className="font-black text-slate-900 text-xs uppercase tracking-tight truncate max-w-[280px] hover:text-indigo-600 text-left transition-colors cursor-pointer block"
+                                                                            className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate max-w-[280px] hover:text-[#0B6B63] text-left transition-colors cursor-pointer block font-heading"
                                                                             title="View full customer details & email"
                                                                         >
                                                                             {c.name}
                                                                         </button>
-                                                                        <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5 truncate max-w-[280px]">
-                                                                            <Icon name="map-pin" size={11} className="text-slate-400 shrink-0"/>
+                                                                        <p className="text-[11px] font-normal text-slate-400 flex items-center gap-1 mt-0.5 truncate max-w-[280px]">
+                                                                            <Icon name="map-pin" size={10.5} className="text-slate-400 shrink-0"/>
                                                                             <span>{c.address || 'Location not recorded'}</span>
                                                                         </p>
                                                                     </div>
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-3.5">
+                                                            <td className="px-3.5 py-2.5">
                                                                 <div className="space-y-0.5">
-                                                                    <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                                                                        <Icon name="user" size={12} className="text-slate-400 shrink-0"/>
-                                                                        <span>{c.contactPerson || 'N/A'}</span>
+                                                                    <p className="text-slate-700 text-xs font-medium flex items-center gap-1.5">
+                                                                        <Icon name="user" size={11.5} className="text-slate-400 shrink-0"/>
+                                                                        <span>{c.contactPerson || '—'}</span>
                                                                     </p>
-                                                                    <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
-                                                                        <Icon name="phone" size={11} className="text-slate-400 shrink-0"/>
+                                                                    <p className="text-[11px] font-mono text-slate-500 flex items-center gap-1.5">
+                                                                        <Icon name="phone" size={10.5} className="text-slate-400 shrink-0"/>
                                                                         {c.phone ? (
-                                                                            <a href={`tel:${c.phone}`} className="hover:text-indigo-600 hover:underline">
+                                                                            <a href={`tel:${c.phone}`} className="hover:text-[#0B6B63] hover:underline">
                                                                                 {c.phone}
                                                                             </a>
-                                                                        ) : 'N/A'}
+                                                                        ) : '—'}
                                                                     </p>
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-3.5 text-center">
+                                                            <td className="px-3.5 py-2.5 text-center">
                                                                 <div className="flex items-center justify-center">
-                                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/90 text-slate-800 text-xs font-black border border-slate-200 shadow-2xs whitespace-nowrap">
-                                                                        <Icon name="truck" size={13} className="text-slate-500 shrink-0"/>
-                                                                        <span>{cTrucks.length} Unit{cTrucks.length !== 1 ? 's' : ''}</span>
+                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-50 text-slate-700 text-[11.5px] font-medium font-mono border border-slate-200/80 whitespace-nowrap">
+                                                                        <Icon name="truck" size={11.5} className="text-slate-500 shrink-0"/>
+                                                                        <span>{cTrucks.length} {cTrucks.length === 1 ? 'Unit' : 'Units'}</span>
                                                                     </span>
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-3.5 text-center">
+                                                            <td className="px-3.5 py-2.5 text-center">
                                                                 <div className="flex items-center justify-center">
-                                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-2xs whitespace-nowrap ${
-                                                                        isInWarranty
-                                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                                            : 'bg-slate-100 text-slate-500 border-slate-200'
-                                                                    }`}>
-                                                                        <span className={`w-2 h-2 rounded-full shrink-0 ${isInWarranty ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                                                                        <span>{isInWarranty ? 'In Warranty' : 'Expired'}</span>
-                                                                    </span>
+                                                                    {isInWarranty ? (
+                                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/70 whitespace-nowrap">
+                                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                            In Warranty
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200/70 whitespace-nowrap">
+                                                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                                                            Expired
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-3.5 text-center text-slate-600 font-bold text-[11px] whitespace-nowrap">
+                                                            <td className="px-3.5 py-2.5 text-center text-slate-500 font-mono text-[11.5px] whitespace-nowrap">
                                                                 {c.poDate ? formatDate(c.poDate) : '—'}
                                                             </td>
-                                                            <td className="px-4 py-3.5 text-right">
+                                                            <td className="px-3.5 py-2.5 text-right pr-4">
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => setSelectedCustDetail(c)}
-                                                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                                                                    className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-[#0B6B63] hover:bg-teal-50 rounded-md transition-colors cursor-pointer"
                                                                     title="View Customer Details & Email"
                                                                 >
-                                                                    <Icon name="eye" size={14}/>
+                                                                    <Icon name="eye" size={13.5}/>
                                                                 </button>
                                                             </td>
                                                         </tr>
@@ -11047,28 +11050,28 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             return (
                 <div className="space-y-4 fade-up">
                     {/* Action & Filter Toolbar */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
                             <div className="relative flex-1 max-w-md">
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
                                     placeholder="Search client organization, contact person, phone, site location..."
-                                    className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-slate-900 transition-all"
+                                    className="w-full pl-8.5 pr-7 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-normal text-slate-800 placeholder-slate-400 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
                                 />
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                    <Icon name="search" size={14}/>
+                                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <Icon name="search" size={13}/>
                                 </div>
                                 {searchQuery && (
-                                    <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-black">
+                                    <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-semibold">
                                         ✕
                                     </button>
                                 )}
                             </div>
 
-                            {/* Status Filter Chips */}
-                            <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-[9.5px] font-black uppercase">
+                            {/* Status Filter Tabs */}
+                            <div className="hidden sm:flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 text-[11px] font-medium">
                                 {[
                                     { id: 'All', label: `All (${customers.length})` },
                                     { id: 'in_warranty', label: 'In Warranty' },
@@ -11078,10 +11081,10 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         key={f.id}
                                         type="button"
                                         onClick={() => setStatusFilter(f.id)}
-                                        className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                                             statusFilter === f.id
-                                                ? 'bg-white text-slate-900 shadow-2xs font-black'
-                                                : 'text-slate-500 hover:text-slate-800 font-bold'
+                                                ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                                                : 'text-slate-500 hover:text-slate-800'
                                         }`}
                                     >
                                         {f.label}
@@ -11092,26 +11095,26 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
                         {/* View Mode & Register CTA */}
                         <div className="flex items-center gap-2 shrink-0">
-                            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                            <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/80">
                                 <button
                                     type="button"
                                     onClick={() => setCustViewMode('table')}
-                                    className={`px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 ${
-                                        custViewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                                    className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                                        custViewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'
                                     }`}
                                     title="Table View"
                                 >
-                                    <Icon name="list" size={13}/> Table
+                                    <Icon name="list" size={12.5}/> Table
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setCustViewMode('grid')}
-                                    className={`px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 ${
-                                        custViewMode === 'grid' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                                    className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                                        custViewMode === 'grid' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'
                                     }`}
                                     title="Cards Grid View"
                                 >
-                                    <Icon name="layout-grid" size={13}/> Cards
+                                    <Icon name="layout-grid" size={12.5}/> Cards
                                 </button>
                             </div>
 
@@ -11122,134 +11125,141 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     setNewCust({ name:'', address:'', contactPerson:'', phone:'', email:'', poDate:'' });
                                     setShowCustomerModal(true);
                                 }}
-                                className="bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                                className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-3.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
                             >
-                                <Icon name="plus" size={14}/> Register Client
+                                <Icon name="plus" size={13.5}/> Register Client
                             </button>
                         </div>
                     </div>
 
-                    {/* ── VIEW 1: MODERN ENTERPRISE DATA TABLE (DEFAULT) ── */}
+                    {/* ── VIEW 1: LIGHTWEIGHT WORLD-CLASS ENTERPRISE DATA TABLE ── */}
                     {custViewMode === 'table' && (
-                        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                        <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left min-w-[950px] border-collapse">
+                                <table className="w-full text-left min-w-[950px] border-collapse text-xs">
                                     <thead>
-                                        <tr className="bg-slate-50/90 text-[9.5px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200">
-                                            <th className="px-4 py-3.5 w-12 text-center">#</th>
-                                            <th className="px-4 py-3.5">Client Organization &amp; Site</th>
-                                            <th className="px-4 py-3.5">Contact Person &amp; Phone</th>
-                                            <th className="px-4 py-3.5 text-center">Fleet Deployed</th>
-                                            <th className="px-4 py-3.5 text-center">Warranty Status</th>
-                                            <th className="px-4 py-3.5 text-center">PO Date</th>
-                                            <th className="px-4 py-3.5 text-right w-28">Actions</th>
+                                        <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-slate-500 border-b border-slate-200">
+                                            <th className="px-3.5 py-2.5 w-10 text-center font-medium">#</th>
+                                            <th className="px-3.5 py-2.5 font-medium">Client Organization &amp; Site</th>
+                                            <th className="px-3.5 py-2.5 font-medium">Contact Person &amp; Phone</th>
+                                            <th className="px-3.5 py-2.5 text-center font-medium">Fleet Deployed</th>
+                                            <th className="px-3.5 py-2.5 text-center font-medium">Warranty Coverage</th>
+                                            <th className="px-3.5 py-2.5 text-center font-medium">PO Date</th>
+                                            <th className="px-3.5 py-2.5 text-right w-24 pr-4 font-medium">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 text-xs">
+                                    <tbody className="divide-y divide-slate-100/90 bg-white">
                                         {filtered.map((c, idx) => {
                                             const cTrucks = trucks.filter(t => t.customerId === c.id);
                                             const isInWarranty = activeUnits.some(t => t.customerId === c.id);
-                                            const initials = (c.name || 'IFS').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                                            const initials = (c.name || 'IFS').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
                                             return (
                                                 <tr key={c.id} className="hover:bg-slate-50/70 transition-colors group">
-                                                    <td className="px-4 py-3.5 text-center font-bold text-slate-400 text-[11px]">
+                                                    {/* Index */}
+                                                    <td className="px-3.5 py-2.5 text-center font-mono text-slate-400 text-[11px]">
                                                         {idx + 1}
                                                     </td>
 
-                                                    <td className="px-4 py-3.5">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center font-black text-xs shrink-0 shadow-2xs">
+                                                    {/* Client Name & Location */}
+                                                    <td className="px-3.5 py-2.5">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className="w-7.5 h-7.5 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center font-semibold text-[11px] shrink-0 font-mono">
                                                                 {initials}
                                                             </div>
                                                             <div className="min-w-0">
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => setSelectedCustomerForDetails(c)}
-                                                                    className="font-black text-slate-900 text-xs uppercase tracking-tight truncate max-w-[280px] hover:text-indigo-600 text-left transition-colors cursor-pointer block"
+                                                                    className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate max-w-[280px] hover:text-[#0B6B63] text-left transition-colors cursor-pointer block font-heading"
                                                                     title="Click to view full customer details & email"
                                                                 >
                                                                     {c.name}
                                                                 </button>
-                                                                <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5 truncate max-w-[280px]">
-                                                                    <Icon name="map-pin" size={11} className="text-slate-400 shrink-0"/>
+                                                                <p className="text-[11px] font-normal text-slate-400 flex items-center gap-1 mt-0.5 truncate max-w-[280px]">
+                                                                    <Icon name="map-pin" size={10.5} className="text-slate-400 shrink-0"/>
                                                                     <span>{c.address || 'Location not recorded'}</span>
                                                                 </p>
                                                             </div>
                                                         </div>
                                                     </td>
 
-                                                    {/* Contact Name & Phone ONLY (Email in Detail Modal) */}
-                                                    <td className="px-4 py-3.5">
+                                                    {/* Contact Name & Phone */}
+                                                    <td className="px-3.5 py-2.5">
                                                         <div className="space-y-0.5">
-                                                            <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                                                                <Icon name="user" size={12} className="text-slate-400 shrink-0"/>
-                                                                <span>{c.contactPerson || 'N/A'}</span>
+                                                            <p className="text-slate-700 text-xs font-medium flex items-center gap-1.5">
+                                                                <Icon name="user" size={11.5} className="text-slate-400 shrink-0"/>
+                                                                <span>{c.contactPerson || '—'}</span>
                                                             </p>
-                                                            <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
-                                                                <Icon name="phone" size={11} className="text-slate-400 shrink-0"/>
+                                                            <p className="text-[11px] font-mono text-slate-500 flex items-center gap-1.5">
+                                                                <Icon name="phone" size={10.5} className="text-slate-400 shrink-0"/>
                                                                 {c.phone ? (
-                                                                    <a href={`tel:${c.phone}`} className="hover:text-indigo-600 hover:underline">
+                                                                    <a href={`tel:${c.phone}`} className="hover:text-[#0B6B63] hover:underline">
                                                                         {c.phone}
                                                                     </a>
-                                                                ) : 'N/A'}
+                                                                ) : '—'}
                                                             </p>
                                                         </div>
                                                     </td>
 
-                                                    {/* Redesigned Fleet Deployed (Sleek Horizontal Pill) */}
-                                                    <td className="px-4 py-3.5 text-center">
+                                                    {/* Fleet Deployed */}
+                                                    <td className="px-3.5 py-2.5 text-center">
                                                         <div className="flex items-center justify-center">
-                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/90 text-slate-800 text-xs font-black border border-slate-200 shadow-2xs whitespace-nowrap">
-                                                                <Icon name="truck" size={13} className="text-slate-500 shrink-0"/>
-                                                                <span>{cTrucks.length} Unit{cTrucks.length !== 1 ? 's' : ''}</span>
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-50 text-slate-700 text-[11.5px] font-medium font-mono border border-slate-200/80 whitespace-nowrap">
+                                                                <Icon name="truck" size={11.5} className="text-slate-400 shrink-0"/>
+                                                                <span>{cTrucks.length} {cTrucks.length === 1 ? 'Unit' : 'Units'}</span>
                                                             </span>
                                                         </div>
                                                     </td>
 
-                                                    {/* Redesigned Warranty Status (Sleek Single-Line Badge with Pulse Dot) */}
-                                                    <td className="px-4 py-3.5 text-center">
+                                                    {/* Warranty Status */}
+                                                    <td className="px-3.5 py-2.5 text-center">
                                                         <div className="flex items-center justify-center">
-                                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-2xs whitespace-nowrap ${
-                                                                isInWarranty
-                                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                                    : 'bg-slate-100 text-slate-500 border-slate-200'
-                                                            }`}>
-                                                                <span className={`w-2 h-2 rounded-full shrink-0 ${isInWarranty ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                                                                <span>{isInWarranty ? 'In Warranty' : 'Expired'}</span>
-                                                            </span>
+                                                            {isInWarranty ? (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/70 whitespace-nowrap">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                    In Warranty
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200/70 whitespace-nowrap">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                                                    Expired
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </td>
 
-                                                    <td className="px-4 py-3.5 text-center text-slate-600 font-bold text-[11px] whitespace-nowrap">
+                                                    {/* PO Date */}
+                                                    <td className="px-3.5 py-2.5 text-center text-slate-500 font-mono text-[11.5px] whitespace-nowrap">
                                                         {c.poDate ? formatDate(c.poDate) : '—'}
                                                     </td>
 
-                                                    <td className="px-4 py-3.5 text-right">
-                                                        <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                                    {/* Actions */}
+                                                    <td className="px-3.5 py-2.5 text-right pr-4">
+                                                        <div className="flex items-center justify-end gap-1 opacity-75 group-hover:opacity-100 transition-opacity">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setSelectedCustomerForDetails(c)}
-                                                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                                                                className="h-7 w-7 flex items-center justify-center text-slate-400 hover:text-[#0B6B63] hover:bg-teal-50 rounded-md transition-colors cursor-pointer"
                                                                 title="View Customer Details & Email"
                                                             >
-                                                                <Icon name="eye" size={14}/>
+                                                                <Icon name="eye" size={13.5}/>
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => { setEditingCustomer(c); setNewCust({ ...c }); setShowCustomerModal(true); }}
-                                                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                                                className="h-7 w-7 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
                                                                 title="Edit Customer"
                                                             >
-                                                                <Icon name="pencil" size={14}/>
+                                                                <Icon name="pencil" size={13.5}/>
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setDeleteStep({ type: 'customer', data: c, step: 1 })}
-                                                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                                                className="h-7 w-7 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
                                                                 title="Delete Customer"
                                                             >
-                                                                <Icon name="trash-2" size={14}/>
+                                                                <Icon name="trash-2" size={13.5}/>
                                                             </button>
                                                         </div>
                                                     </td>
@@ -11264,92 +11274,95 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
                     {/* ── VIEW 2: COMPACT MODERN CARDS GRID ── */}
                     {custViewMode === 'grid' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                             {filtered.map(c => {
                                 const cTrucks = trucks.filter(t => t.customerId === c.id);
                                 const isInWarranty = activeUnits.some(t => t.customerId === c.id);
-                                const initials = (c.name || 'IFS').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                                const initials = (c.name || 'IFS').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
                                 return (
-                                    <div key={c.id} className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all flex flex-col justify-between group">
+                                    <div key={c.id} className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs hover:border-teal-300 hover:shadow-xs transition-all flex flex-col justify-between group">
                                         <div>
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="w-10 h-10 rounded-2xl bg-slate-900 text-amber-400 flex items-center justify-center font-black text-sm shadow-2xs">
+                                            <div className="flex justify-between items-start mb-2.5">
+                                                <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center font-semibold text-xs font-mono shrink-0">
                                                     {initials}
                                                 </div>
-                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center gap-1 opacity-75 group-hover:opacity-100 transition-opacity">
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelectedCustomerForDetails(c)}
-                                                        className="text-slate-400 hover:text-indigo-600 p-1.5 rounded-lg hover:bg-indigo-50 transition-all cursor-pointer"
+                                                        className="text-slate-400 hover:text-[#0B6B63] p-1 rounded hover:bg-teal-50 transition-colors cursor-pointer"
                                                         title="View Details"
                                                     >
-                                                        <Icon name="eye" size={14}/>
+                                                        <Icon name="eye" size={13}/>
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => { setEditingCustomer(c); setNewCust({ ...c }); setShowCustomerModal(true); }}
-                                                        className="text-slate-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-all cursor-pointer"
+                                                        className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors cursor-pointer"
+                                                        title="Edit Customer"
                                                     >
-                                                        <Icon name="pencil" size={14}/>
+                                                        <Icon name="pencil" size={13}/>
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => setDeleteStep({ type: 'customer', data: c, step: 1 })}
-                                                        className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
+                                                        className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                                                        title="Delete Customer"
                                                     >
-                                                        <Icon name="trash-2" size={14}/>
+                                                        <Icon name="trash-2" size={13}/>
                                                     </button>
                                                 </div>
                                             </div>
 
                                             <h4
                                                 onClick={() => setSelectedCustomerForDetails(c)}
-                                                className="font-black text-slate-900 text-xs uppercase tracking-tight truncate hover:text-indigo-600 cursor-pointer"
+                                                className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate hover:text-[#0B6B63] cursor-pointer block font-heading"
                                                 title={c.name}
                                             >
                                                 {c.name}
                                             </h4>
-                                            <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5 truncate">
-                                                <Icon name="map-pin" size={11} className="text-slate-400 shrink-0"/>
+                                            <p className="text-[11px] font-normal text-slate-400 flex items-center gap-1 mt-0.5 truncate">
+                                                <Icon name="map-pin" size={10.5} className="text-slate-400 shrink-0"/>
                                                 <span>{c.address || 'Location not recorded'}</span>
                                             </p>
 
-                                            <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-[11px] font-bold text-slate-600">
+                                            <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1 text-xs text-slate-600 font-medium">
                                                 <p className="flex items-center gap-2 truncate">
-                                                    <Icon name="user" size={12} className="text-slate-400"/>
-                                                    <span>{c.contactPerson || 'N/A'}</span>
+                                                    <Icon name="user" size={11.5} className="text-slate-400"/>
+                                                    <span>{c.contactPerson || '—'}</span>
                                                 </p>
-                                                <p className="flex items-center gap-2 truncate">
-                                                    <Icon name="phone" size={12} className="text-slate-400"/>
-                                                    <span>{c.phone || 'N/A'}</span>
+                                                <p className="flex items-center gap-2 truncate font-mono text-[11px]">
+                                                    <Icon name="phone" size={10.5} className="text-slate-400"/>
+                                                    <span>{c.phone || '—'}</span>
                                                 </p>
                                                 {c.poDate && (
-                                                    <p className="flex items-center gap-2 text-blue-600 font-extrabold">
-                                                        <Icon name="calendar" size={12}/> PO Date: {formatDate(c.poDate)}
+                                                    <p className="flex items-center gap-2 text-slate-500 font-mono text-[10.5px]">
+                                                        <Icon name="calendar" size={10.5} className="text-slate-400"/> PO: {formatDate(c.poDate)}
                                                     </p>
                                                 )}
                                             </div>
                                         </div>
 
-                                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                                            <span className="text-[9.5px] font-black text-slate-400 uppercase">
-                                                {cTrucks.length} Vehicle(s)
+                                        <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                                            <span className="text-[11px] font-mono text-slate-500">
+                                                {cTrucks.length} {cTrucks.length === 1 ? 'Unit' : 'Units'}
                                             </span>
-                                            <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
-                                                isInWarranty
-                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                    : 'bg-slate-100 text-slate-500 border-slate-200'
-                                            }`}>
-                                                {isInWarranty ? 'In Warranty' : 'Expired'}
-                                            </span>
+                                            {isInWarranty ? (
+                                                <span className="text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                                                    In Warranty
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/70">
+                                                    Expired
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
                     )}
-
                     {/* Empty Search State */}
                     {filtered.length === 0 && (
                         <div className="py-20 text-center bg-white rounded-3xl border border-slate-200/80 shadow-2xs space-y-2">
