@@ -772,58 +772,211 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const totalReceived = data.reduce((acc, curr) => acc + curr.received, 0);
             const totalClosed = data.reduce((acc, curr) => acc + curr.closed, 0);
             const currentOpen = data.length > 0 ? data[data.length - 1].closing : 0;
+            const netPeriodChange = totalReceived - totalClosed;
+            const initialBacklog = data.length > 0 ? data[0].opening : 0;
+            const totalAvailableDemand = initialBacklog + totalReceived;
+            const overallClearanceRate = totalAvailableDemand > 0 ? Math.round((totalClosed / totalAvailableDemand) * 100) : (totalReceived > 0 ? Math.round((totalClosed / totalReceived) * 100) : 100);
             
             const handleDownloadCSV = () => {
-                const headers = ['Month', 'Opening', 'Received', 'Closed', 'Closing'];
-                const rows = data.map(d => [`"${d.display}"`, d.opening, d.received, d.closed, d.closing]);
+                const headers = ['Month Period', 'Opening Backlog', 'Received Inflow', 'Closed Resolved', 'Net Change', 'Closing Backlog', 'Clearance Rate (%)'];
+                const rows = data.map(d => {
+                    const net = d.received - d.closed;
+                    const available = d.opening + d.received;
+                    const rate = available > 0 ? Math.round((d.closed / available) * 100) : (d.received > 0 ? Math.round((d.closed / d.received) * 100) : 100);
+                    return [`"${d.display}"`, d.opening, d.received, d.closed, net > 0 ? `+${net}` : net, d.closing, `${rate}%`];
+                });
                 const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url; a.download = `complaints_trend_${new Date().toISOString().slice(0,10)}.csv`;
+                a.href = url;
+                a.download = `complaints_monthly_trend_${new Date().toISOString().slice(0, 10)}.csv`;
                 a.click();
                 URL.revokeObjectURL(url);
             };
+
             return (
-                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm mt-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Icon name="list" size={18}/></div>
-                            <div><h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Monthly Trend Data</h3><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Tabular View</p></div>
+                <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs mt-4 overflow-hidden select-none">
+                    {/* Header */}
+                    <div className="px-4 sm:px-5 py-3.5 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center shrink-0">
+                                <Icon name="bar-chart-2" size={15}/>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-slate-800 text-[13.5px] tracking-[-0.1px] font-heading">
+                                    Monthly Inflow & Resolution Data
+                                </h3>
+                                <p className="text-[11.5px] font-normal text-slate-400 mt-0.5">
+                                    Historical flow breakdown · Opening backlog, monthly inflow, resolved cases & net backlog
+                                </p>
+                            </div>
                         </div>
-                        <button onClick={handleDownloadCSV} className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm border border-slate-200">
-                            <Icon name="download" size={14}/> CSV Export
-                        </button>
+
+                        {/* Summary Badges & CSV Export */}
+                        <div className="flex items-center flex-wrap gap-2">
+                            <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-slate-500 mr-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-100/70">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#0B6B63]"></span>
+                                    Inflow: <strong className="font-semibold font-mono">{totalReceived}</strong>
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-100/70">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    Resolved: <strong className="font-semibold font-mono">{totalClosed}</strong>
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 border border-rose-100/70">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                    Backlog: <strong className="font-semibold font-mono">{currentOpen}</strong>
+                                </span>
+                            </div>
+
+                            <button
+                                onClick={handleDownloadCSV}
+                                className="h-7.5 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-[11.5px] font-medium flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer active:scale-95"
+                                title="Export monthly trend dataset as CSV"
+                            >
+                                <Icon name="download" size={12.5} className="text-slate-500"/>
+                                <span>Export CSV</span>
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Modern Executive Table */}
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse text-xs">
                             <thead>
-                                <tr className="border-b border-slate-100">
-                                    <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Month</th>
-                                    <th className="px-4 py-3 text-[10px] font-black text-amber-500 uppercase tracking-widest text-right">Opening</th>
-                                    <th className="px-4 py-3 text-[10px] font-black text-indigo-500 uppercase tracking-widest text-right">Received</th>
-                                    <th className="px-4 py-3 text-[10px] font-black text-emerald-500 uppercase tracking-widest text-right">Closed</th>
-                                    <th className="px-4 py-3 text-[10px] font-black text-rose-500 uppercase tracking-widest text-right">Closing</th>
+                                <tr className="bg-slate-50/75 border-b border-slate-200/80 text-[11px] font-medium text-slate-500">
+                                    <th className="px-4 py-2.5 font-semibold text-slate-600 tracking-tight">Month Period</th>
+                                    <th className="px-3.5 py-2.5 font-semibold text-slate-600 tracking-tight text-right">Opening Backlog</th>
+                                    <th className="px-3.5 py-2.5 font-semibold text-teal-800 tracking-tight text-right">New Inflow (+)</th>
+                                    <th className="px-3.5 py-2.5 font-semibold text-emerald-800 tracking-tight text-right">Resolved (✓)</th>
+                                    <th className="px-3.5 py-2.5 font-semibold text-slate-600 tracking-tight text-right">Net Monthly Flow</th>
+                                    <th className="px-3.5 py-2.5 font-semibold text-rose-800 tracking-tight text-right">Closing Backlog</th>
+                                    <th className="px-4 py-2.5 font-semibold text-slate-600 tracking-tight text-right">Clearance Rate</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {data.map((d, i) => (
-                                    <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-4 py-3 text-xs font-black text-slate-700">{d.display}</td>
-                                        <td className="px-4 py-3 text-xs font-bold text-slate-600 text-right">{d.opening}</td>
-                                        <td className="px-4 py-3 text-xs font-bold text-slate-600 text-right">{d.received}</td>
-                                        <td className="px-4 py-3 text-xs font-bold text-slate-600 text-right">{d.closed}</td>
-                                        <td className="px-4 py-3 text-xs font-black text-rose-600 text-right">{d.closing}</td>
+                            <tbody className="divide-y divide-slate-100/90 bg-white">
+                                {data.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-4 py-8 text-center text-slate-400 font-medium">
+                                            No monthly trend data recorded in the selected date range.
+                                        </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    data.map((d, i) => {
+                                        const net = d.received - d.closed;
+                                        const availableDemand = d.opening + d.received;
+                                        const clearanceRate = availableDemand > 0 ? Math.round((d.closed / availableDemand) * 100) : (d.received > 0 ? Math.round((d.closed / d.received) * 100) : 100);
+
+                                        return (
+                                            <tr key={i} className="hover:bg-slate-50/70 transition-colors group">
+                                                {/* Month */}
+                                                <td className="px-4 py-2.5 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#0B6B63] transition-colors"></span>
+                                                        <span className="font-semibold text-slate-800 text-[12.5px] tracking-tight">{d.display}</span>
+                                                    </div>
+                                                </td>
+
+                                                {/* Opening */}
+                                                <td className="px-3.5 py-2.5 whitespace-nowrap text-right">
+                                                    <span className="font-mono text-slate-600 text-[12px] font-medium">{d.opening}</span>
+                                                </td>
+
+                                                {/* Inflow Received */}
+                                                <td className="px-3.5 py-2.5 whitespace-nowrap text-right">
+                                                    <span className="inline-flex items-center justify-center min-w-[34px] px-2 py-0.5 rounded-md bg-teal-50 text-[#0B6B63] font-mono text-[11.5px] font-semibold border border-teal-100/70">
+                                                        +{d.received}
+                                                    </span>
+                                                </td>
+
+                                                {/* Closed Resolved */}
+                                                <td className="px-3.5 py-2.5 whitespace-nowrap text-right">
+                                                    <span className="inline-flex items-center justify-center min-w-[34px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-mono text-[11.5px] font-semibold border border-emerald-100/70">
+                                                        ✓ {d.closed}
+                                                    </span>
+                                                </td>
+
+                                                {/* Net Flow */}
+                                                <td className="px-3.5 py-2.5 whitespace-nowrap text-right">
+                                                    {net > 0 ? (
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-medium text-amber-700 bg-amber-50/80 border border-amber-200/60">
+                                                            +{net} backlog
+                                                        </span>
+                                                    ) : net < 0 ? (
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-medium text-emerald-700 bg-emerald-50/80 border border-emerald-200/60">
+                                                            {net} cleared
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-medium text-slate-500 bg-slate-100/80 border border-slate-200/50">
+                                                            0 net
+                                                        </span>
+                                                    )}
+                                                </td>
+
+                                                {/* Closing Backlog */}
+                                                <td className="px-3.5 py-2.5 whitespace-nowrap text-right">
+                                                    <span className={`inline-flex items-center justify-center min-w-[34px] px-2 py-0.5 rounded-md font-mono text-[11.5px] font-semibold ${d.closing > 0 ? 'bg-rose-50 text-rose-700 border border-rose-100/80' : 'bg-slate-50 text-slate-500 border border-slate-200/60'}`}>
+                                                        {d.closing}
+                                                    </span>
+                                                </td>
+
+                                                {/* Clearance Rate */}
+                                                <td className="px-4 py-2.5 whitespace-nowrap text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <div className="w-14 sm:w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden shrink-0">
+                                                            <div
+                                                                className={`h-full rounded-full transition-all duration-300 ${clearanceRate >= 80 ? 'bg-emerald-500' : clearanceRate >= 60 ? 'bg-[#0B6B63]' : clearanceRate >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                                                style={{ width: `${Math.min(100, Math.max(0, clearanceRate))}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <span className="font-mono text-[11.5px] font-medium text-slate-700 w-8 text-right">
+                                                            {clearanceRate}%
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
                             </tbody>
-                            <tfoot>
-                                <tr className="border-t-2 border-slate-100 bg-slate-50/50">
-                                    <td className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</td>
-                                    <td className="px-4 py-3 text-xs font-bold text-slate-400 text-right">-</td>
-                                    <td className="px-4 py-3 text-xs font-black text-indigo-600 text-right">{totalReceived}</td>
-                                    <td className="px-4 py-3 text-xs font-black text-emerald-600 text-right">{totalClosed}</td>
-                                    <td className="px-4 py-3 text-xs font-black text-rose-600 text-right">{currentOpen}</td>
+                            <tfoot className="bg-slate-50/85 border-t border-slate-200/90 text-[11.5px] font-semibold text-slate-800">
+                                <tr>
+                                    <td className="px-4 py-2.5 text-slate-700 tracking-tight">
+                                        Total Period Summary
+                                    </td>
+                                    <td className="px-3.5 py-2.5 text-right font-mono text-slate-400 font-normal">
+                                        —
+                                    </td>
+                                    <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-teal-100/70 text-[#0B6B63] font-mono text-[11.5px] font-bold border border-teal-200/80">
+                                            +{totalReceived} Total
+                                        </span>
+                                    </td>
+                                    <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-emerald-100/70 text-emerald-800 font-mono text-[11.5px] font-bold border border-emerald-200/80">
+                                            ✓ {totalClosed} Total
+                                        </span>
+                                    </td>
+                                    <td className="px-3.5 py-2.5 text-right whitespace-nowrap font-mono text-[11px]">
+                                        {netPeriodChange > 0 ? (
+                                            <span className="text-amber-700 font-bold">+{netPeriodChange} Net</span>
+                                        ) : netPeriodChange < 0 ? (
+                                            <span className="text-emerald-700 font-bold">{netPeriodChange} Net</span>
+                                        ) : (
+                                            <span className="text-slate-500 font-medium">0 Net</span>
+                                        )}
+                                    </td>
+                                    <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-rose-100/70 text-rose-800 font-mono text-[11.5px] font-bold border border-rose-200/80">
+                                            {currentOpen} Active
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                                        <span className="inline-flex items-center gap-1 font-mono text-[11.5px] font-bold text-slate-800">
+                                            {overallClearanceRate}% Avg
+                                        </span>
+                                    </td>
                                 </tr>
                             </tfoot>
                         </table>
