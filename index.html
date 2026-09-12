@@ -16,36 +16,78 @@
     <link rel="icon" type="image/png" href="icons/favicon.png">
     
     <!-- Core UI & React Dependencies -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        teal: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0b6b63',
+                            800: '#09544e',
+                            900: '#042f2e'
+                        },
+                        brand: {
+                            DEFAULT: '#0b6b63',
+                            hover: '#09544e',
+                            light: '#f0fdfa'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        heading: ['Archivo', 'Inter', 'sans-serif'],
+                        mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;950&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        body { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; background-color: #f8fafc; }
+        @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #111827; }
         .modal-animate { animation: zoomIn 0.2s ease-out; }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes slideInFromRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         .animate-slide-in { animation: slideInFromRight 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); } 70% { box-shadow: 0 0 0 10px rgba(245,158,11,0); } 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); } }
-        .fade-up { animation: fadeUp 0.35s ease both; }
-        .slide-in-right { animation: slideInRight 0.3s ease both; }
-        * { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
+        .fade-up { animation: fadeUp 0.25s ease both; }
+        .slide-in-right { animation: slideInRight 0.25s ease both; }
+        
+        /* Modern Thin Scrollbars (6px width, #CBD5E1 thumb, 999px radius) */
+        * { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
         textarea { overflow-y: auto !important; }
         select.scroll-select { max-height: 12rem; overflow-y: auto; }
+        
+        /* Smooth Sliding Sidebar Active Indicator */
+        .nav-slider-highlight {
+            transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease;
+            will-change: transform;
+        }
+        .nav-item-transition {
+            transition: color 200ms ease, background-color 200ms ease;
+        }
+
+        /* Reduced Motion Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            .nav-slider-highlight, .nav-item-transition, .modal-animate, .fade-up, .slide-in-right, .animate-slide-in, * {
+                transition-duration: 0.01ms !important;
+                animation-duration: 0.01ms !important;
+            }
+        }
+
         .tl-step { position: relative; padding-left: 2.2rem; }
         .tl-step::before { content: ''; position: absolute; left: 10px; top: 24px; bottom: -8px; width: 2px; background: #e2e8f0; }
         .tl-step:last-child::before { display: none; }
@@ -54,20 +96,15 @@
         .star-btn:hover { transform: scale(1.2); }
         .faq-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; }
         .faq-body.open { max-height: 500px; }
-        .portal-glow { box-shadow: 0 4px 20px rgba(0,0,0,0.02), 0 0 0 1px rgba(0,0,0,0.04); }
-        .cust-tab-active { background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .cust-tab-inactive { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
-        .status-badge-active { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-        .status-badge-expiring { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
-        .status-badge-expired { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+        .portal-glow { box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px #e2e8f0; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body class="bg-[#F8FAFC] text-[#111827] antialiased selection:bg-teal-100 selection:text-teal-900">
     <div id="root">
-        <div id="initial-preloader" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0f172a;color:white;font-family:'Plus Jakarta Sans',sans-serif;">
-            <div style="width:44px;height:44px;border:3px solid rgba(245,158,11,0.2);border-top-color:#f59e0b;border-radius:50%;animation:pwa-spin 0.75s linear infinite;margin-bottom:14px;"></div>
-            <div style="font-size:12.5px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:#f59e0b;">FireFlow Enterprise</div>
-            <div style="font-size:10px;font-weight:700;color:#94a3b8;margin-top:4px;letter-spacing:0.5px;">Loading Technical Portal...</div>
+        <div id="initial-preloader" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0f172a;color:white;font-family:'Inter',sans-serif;">
+            <div style="width:40px;height:40px;border:3px solid rgba(11,107,99,0.25);border-top-color:#0b6b63;border-radius:50%;animation:pwa-spin 0.75s linear infinite;margin-bottom:14px;"></div>
+            <div style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f8fafc;">FireFlow Enterprise</div>
+            <div style="font-size:11px;font-weight:500;color:#94a3b8;margin-top:4px;letter-spacing:0.3px;">Technical Warranty &amp; Quality System</div>
         </div>
         <style>@keyframes pwa-spin{to{transform:rotate(360deg)}}</style>
     </div>

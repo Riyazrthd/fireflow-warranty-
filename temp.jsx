@@ -19,40 +19,49 @@
 
 
         // ══════════════════════════════════════════════════════
-        // COMPACT KPI CARD COMPONENT (Enterprise Reference Design)
+        // MODERN SaaS / ERP KPI CARD COMPONENT
+        // Hierarchy: Small Icon -> Label -> Large Value -> Supporting Text
         // ══════════════════════════════════════════════════════
         const KpiCard = ({ 
             label, 
             value, 
             subText, 
-            dotColor = 'bg-slate-900', 
-            valueColor = 'text-slate-900', 
-            subColor = 'text-slate-500', 
+            icon = 'activity',
+            dotColor = 'bg-teal-600', 
+            valueColor = 'text-[#111827]', 
+            subColor = 'text-[#64748B]', 
             onClick, 
             active = false 
         }) => (
             <div 
                 onClick={onClick}
-                className={`bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between select-none ${
-                    onClick ? 'cursor-pointer hover:border-slate-300 active:scale-[0.98]' : ''
-                } ${active ? 'ring-2 ring-indigo-500/20 border-indigo-400 bg-indigo-50/20' : ''}`}
+                className={`bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-all duration-200 flex flex-col justify-between select-none ${
+                    onClick ? 'cursor-pointer hover:shadow-sm active:scale-[0.99]' : ''
+                } ${active ? 'ring-2 ring-teal-500/20 border-[#0B6B63] bg-teal-50/30' : ''}`}
             >
-                <div className="flex items-center justify-between gap-1">
-                    <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-500 truncate" title={label}>
-                        {label}
-                    </span>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-[#0B6B63] shrink-0">
+                            <Icon name={icon} size={16} />
+                        </div>
+                        <span className="text-[13px] font-medium text-[#64748B] truncate" title={label}>
+                            {label}
+                        </span>
+                    </div>
                     <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`}></span>
                 </div>
                 <div className="my-1">
-                    <span className={`text-2xl font-black tracking-tight ${valueColor}`}>
+                    <span className={`text-2xl sm:text-[28px] font-semibold tracking-tight font-heading ${valueColor}`}>
                         {value}
                     </span>
                 </div>
-                <div>
-                    <span className={`text-[10px] font-bold truncate block ${subColor}`}>
-                        {subText}
-                    </span>
-                </div>
+                {subText && (
+                    <div className="mt-1 pt-2 border-t border-slate-100">
+                        <span className={`text-xs font-normal truncate block ${subColor}`}>
+                            {subText}
+                        </span>
+                    </div>
+                )}
             </div>
         );
 
@@ -571,7 +580,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                     </div>
                     <button 
                         onClick={() => exportEntireComplaintList(complaints, customers, trucks, 'excel')} 
-                        className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md cursor-pointer"
+                        className="flex items-center gap-1.5 bg-[#0B6B63] hover:bg-[#09544E] text-white px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md cursor-pointer"
                         title="Download Entire Master Complaint Register (All Open & Closed Total in Excel)"
                     >
                         <Icon name="download-cloud" size={14}/> Download All (Total)
@@ -3874,7 +3883,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         <button
                                             type="button"
                                             onClick={handleAddAttendee}
-                                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                            className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                                         >
                                             <Icon name="plus" size={13}/> Add to Day {trainingDay} Attendance
                                         </button>
@@ -8239,7 +8248,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                             />
                             <button 
                                 type="submit"
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shrink-0 flex items-center gap-1.5 shadow-sm"
+                                className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shrink-0 flex items-center gap-1.5 shadow-sm"
                             >
                                 <Icon name="plus" size={13}/> Add Category
                             </button>
@@ -9371,7 +9380,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left table-fixed min-w-[950px]">
-                                            <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200">
+                                            <thead className="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200 border-slate-200">
                                                 <tr>
                                                     <th className="px-4 py-4 w-[28%]">PO / Vehicle</th>
                                                     <th className="px-4 py-4 w-[24%]">Pump Details</th>
@@ -9501,7 +9510,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left min-w-[950px]">
-                                            <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200">
+                                            <thead className="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200 border-slate-200">
                                                 <tr>
                                                     <th className="px-4 py-4 w-[18%]">Ticket &amp; Date</th>
                                                     <th className="px-4 py-4 w-[22%]">Customer &amp; PO</th>
@@ -9722,7 +9731,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             {isResolved ? (
                                                 <button
                                                     onClick={() => downloadClosureReport(selectedComplaint)}
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-md"
+                                                    className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-md"
                                                 >
                                                     <Icon name="file-text" size={14}/> Closure Report
                                                 </button>
@@ -10691,7 +10700,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                         <button
                                                             type="button"
                                                             onClick={() => downloadClosureReport(c)}
-                                                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+                                                            className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shadow-xs"
                                                             title="Download PDF Service Report"
                                                         >
                                                             <Icon name="file-text" size={11}/> PDF Report
@@ -11550,7 +11559,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.organization}
                                                 onChange={e => handleTextChange('organization', e.target.value)}
                                                 placeholder="ORGANIZATION NAME"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div className="lg:col-span-2">
@@ -11560,7 +11569,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.address}
                                                 onChange={e => handleTextChange('address', e.target.value)}
                                                 placeholder="DELIVERY SITE ADDRESS"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div>
@@ -11570,7 +11579,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.contactPerson}
                                                 onChange={e => handleTextChange('contactPerson', e.target.value)}
                                                 placeholder="CONTACT PERSON"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div>
@@ -11580,7 +11589,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.phone}
                                                 onChange={e => handleTextChange('phone', e.target.value)}
                                                 placeholder="+91 MOBILE NUMBER"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div className="lg:col-span-2">
@@ -11590,7 +11599,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.email}
                                                 onChange={e => handleTextChange('email', e.target.value)}
                                                 placeholder="OFFICER@CLIENT.COM"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div>
@@ -11622,7 +11631,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.poNo}
                                                 onChange={e => handleTextChange('poNo', e.target.value)}
                                                 placeholder="PO / WO NUMBER"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div>
@@ -11643,7 +11652,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.tenderType}
                                                 onChange={e => handleTextChange('tenderType', e.target.value)}
                                                 placeholder="TENDER TYPE"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div>
@@ -11653,7 +11662,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.pumpMake}
                                                 onChange={e => handleTextChange('pumpMake', e.target.value)}
                                                 placeholder="PUMP MAKE"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div>
@@ -11663,7 +11672,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.pumpSrNo}
                                                 onChange={e => handleTextChange('pumpSrNo', e.target.value)}
                                                 placeholder="PUMP SERIAL NO"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
 
@@ -11677,7 +11686,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     value={form.pumpLpm}
                                                     onChange={e => handleTextChange('pumpLpm', e.target.value)}
                                                     placeholder="4000"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-12 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-12 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all font-mono"
                                                 />
                                                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">LPM</span>
                                             </div>
@@ -11689,7 +11698,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.chassisMake}
                                                 onChange={e => handleTextChange('chassisMake', e.target.value)}
                                                 placeholder="CHASSIS MAKE"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div>
@@ -11701,7 +11710,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     value={form.waterCapacity}
                                                     onChange={e => handleTextChange('waterCapacity', e.target.value)}
                                                     placeholder="5000"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-14 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-14 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all font-mono"
                                                 />
                                                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">LTRS</span>
                                             </div>
@@ -11715,7 +11724,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     value={form.foamCapacity}
                                                     onChange={e => handleTextChange('foamCapacity', e.target.value)}
                                                     placeholder="1000"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-14 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-14 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all font-mono"
                                                 />
                                                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">LTRS</span>
                                             </div>
@@ -11739,7 +11748,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     value={form.warrantyMonths}
                                                     onChange={e => handleTextChange('warrantyMonths', e.target.value)}
                                                     placeholder="12"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-16 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-16 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all font-mono"
                                                 />
                                                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">MONTHS</span>
                                             </div>
@@ -11753,7 +11762,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.insuranceCompany}
                                                 onChange={e => handleTextChange('insuranceCompany', e.target.value)}
                                                 placeholder="INSURANCE COMPANY"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div className="lg:col-span-2">
@@ -11763,7 +11772,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.insurancePolicyNo}
                                                 onChange={e => handleTextChange('insurancePolicyNo', e.target.value)}
                                                 placeholder="POLICY NUMBER"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div className="lg:col-span-2">
@@ -11794,7 +11803,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.uhpPumpMake}
                                                 onChange={e => handleTextChange('uhpPumpMake', e.target.value)}
                                                 placeholder="e.g. Hawk / Interpump"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div>
@@ -11804,7 +11813,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.uhpPumpLpm}
                                                 onChange={e => handleTextChange('uhpPumpLpm', e.target.value)}
                                                 placeholder="e.g. 50 LPM @ 100 Bar"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div>
@@ -11814,7 +11823,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 value={form.uhpPumpSrNo}
                                                 onChange={e => handleTextChange('uhpPumpSrNo', e.target.value)}
                                                 placeholder="e.g. UHP-2026-901"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                                             />
                                         </div>
                                         <div>
@@ -11826,7 +11835,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     value={form.dcpCapacity}
                                                     onChange={e => handleTextChange('dcpCapacity', e.target.value)}
                                                     placeholder="150"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-12 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-12 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all font-mono"
                                                 />
                                                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">KG</span>
                                             </div>
@@ -13474,7 +13483,7 @@ function App() {
                                 <h4 class="font-black text-slate-900 text-sm uppercase">Closure Report Preview</h4>
                                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ready for save to PDF or print</p>
                             </div>
-                            <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-2.5 rounded-xl uppercase tracking-widest transition-all shadow-lg flex items-center gap-2">
+                            <button onclick="window.print()" class="bg-[#0B6B63] hover:bg-[#09544E] text-white font-black text-xs px-5 py-2.5 rounded-xl uppercase tracking-widest transition-all shadow-lg flex items-center gap-2">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                                 Print / Save PDF
                             </button>
@@ -13570,7 +13579,7 @@ function App() {
                                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Total Tickets Filed for this Unit: ${truckComplaints.length}</p>
                                 <div class="border border-slate-200 rounded-2xl overflow-hidden text-xs">
                                     <table class="w-full text-left">
-                                        <thead class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200">
+                                        <thead class="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200 border-slate-200">
                                             <tr>
                                                 <th class="px-4 py-2.5">Ticket ID</th>
                                                 <th class="px-4 py-2.5">Date Logged</th>
@@ -14127,98 +14136,123 @@ function App() {
                         ))}
                     </div>
 
-                    {/* Sidebar */}
-                    <aside className={`w-full md:${sidebarCollapsed ? 'w-[76px]' : 'w-60'} bg-white text-slate-800 px-3 py-6 flex flex-col border-r border-slate-200 transition-all duration-300 shrink-0 relative`}>
-                        <div className="flex items-center justify-between mb-6 px-1">
+                    {/* Modern SaaS / ERP Sidebar with Smooth Sliding Navigation Indicator */}
+                    <aside className={`w-full md:${sidebarCollapsed ? 'w-[72px]' : 'w-64'} bg-white text-[#111827] px-3 py-5 flex flex-col border-r border-slate-200 transition-all duration-300 shrink-0 relative select-none`}>
+                        {/* Brand Logo & Portal Header */}
+                        <div className="flex items-center justify-between mb-6 px-2">
                             <div className="flex items-center gap-3 overflow-hidden">
-                                <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-10 h-10 object-contain shrink-0" />
+                                <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-9 h-9 object-contain shrink-0" />
                                 {!sidebarCollapsed && (
                                     <div className="fade-up">
-                                        <span className="font-black text-slate-900 text-sm tracking-tight block whitespace-nowrap">Indus Fire Safety</span>
-                                        <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-widest block whitespace-nowrap">Warranty & Service Portal</span>
+                                        <span className="font-semibold text-[#111827] text-sm tracking-tight block whitespace-nowrap font-heading">Indus Fire Safety</span>
+                                        <span className="text-[10px] font-medium text-[#64748B] uppercase tracking-wider block whitespace-nowrap">Technical Warranty Portal</span>
                                     </div>
                                 )}
                             </div>
-                            <button onClick={toggleSidebar} className="hidden md:flex p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0">
+                            <button onClick={toggleSidebar} className="hidden md:flex p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0 cursor-pointer" title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>
                                 <Icon name={sidebarCollapsed ? "chevrons-right" : "chevrons-left"} size={16}/>
                             </button>
                         </div>
-                        <nav className="space-y-3 flex-1 overflow-y-auto min-h-0 pr-1">
-                            {/* SECTION 1: OPERATIONS */}
-                            <div>
-                                {!sidebarCollapsed && (
-                                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-3 pb-1">
-                                        OPERATIONS
-                                    </p>
-                                )}
-                                <div className="space-y-0.5">
-                                    {[
-                                        { id: 'dashboard', icon: 'home', label: 'Command Center' },
-                                        { id: 'customers', icon: 'users', label: 'Customers & Assets', count: customers.length },
-                                        { id: 'trucks', icon: 'shield-check', label: 'Fleet Inventory', count: trucks.length },
-                                        { id: 'po-glance', icon: 'file-text', label: 'PO At Glance' }
-                                    ].map(item => {
-                                        const isActive = activeTab === item.id;
-                                        return (
-                                            <button 
-                                                key={item.id} 
-                                                onClick={() => setActiveTab(item.id)} 
-                                                title={sidebarCollapsed ? item.label : ""}
-                                                className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5'} py-2.5 text-xs font-bold transition-all duration-150 rounded-xl relative cursor-pointer ${
-                                                    isActive 
-                                                        ? 'bg-indigo-50/90 text-indigo-700 font-black border-l-4 border-indigo-600 rounded-l-none shadow-2xs' 
-                                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-                                                }`}
-                                            >
-                                                <Icon name={item.icon} size={15} className={`${isActive ? 'text-indigo-600' : 'text-slate-400'} shrink-0`}/>
-                                                {!sidebarCollapsed && <span className="ml-3 truncate">{item.label}</span>}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
 
-                            {/* SECTION 2: SERVICE & QUALITY */}
-                            <div>
-                                {!sidebarCollapsed && (
-                                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-3 pb-1">
-                                        SERVICE &amp; QUALITY
-                                    </p>
-                                )}
-                                <div className="space-y-0.5">
-                                    {[
-                                        { id: 'complaints', icon: 'alert-circle', label: 'Complaints Desk', count: complaints.filter(c=>c.status==='Open').length, badgeColor: 'bg-rose-500 text-white' },
-                                        { id: 'capa', icon: 'clipboard-check', label: 'CAPA Quality Hub', count: capas.filter(c=>c.status!=='Closed').length, badgeColor: 'bg-amber-500 text-slate-950' },
-                                        { id: 'feedback', icon: 'star', label: 'Reviews & Feedback', count: feedbacks.length }
-                                    ].map(item => {
-                                        const isActive = activeTab === item.id;
-                                        return (
-                                            <button 
-                                                key={item.id} 
-                                                onClick={() => setActiveTab(item.id)} 
-                                                title={sidebarCollapsed ? item.label : ""}
-                                                className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5'} py-2.5 text-xs font-bold transition-all duration-150 rounded-xl relative cursor-pointer ${
-                                                    isActive 
-                                                        ? 'bg-indigo-50/90 text-indigo-700 font-black border-l-4 border-indigo-600 rounded-l-none shadow-2xs' 
-                                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-                                                }`}
-                                            >
-                                                <Icon name={item.icon} size={15} className={`${isActive ? 'text-indigo-600' : 'text-slate-400'} shrink-0`}/>
-                                                {!sidebarCollapsed && <span className="ml-3 truncate">{item.label}</span>}
-                                                {!sidebarCollapsed && item.count > 0 && (
-                                                    <span className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full ${item.badgeColor || 'bg-slate-200 text-slate-700'}`}>
-                                                        {item.count}
-                                                    </span>
-                                                )}
-                                                {sidebarCollapsed && item.count > 0 && (
-                                                    <span className="absolute top-2 right-3 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </nav>
+                        {/* Navigation Menu with Sliding Highlight */}
+                        {(() => {
+                            const operationsNav = [
+                                { id: 'dashboard', icon: 'home', label: 'Command Center' },
+                                { id: 'customers', icon: 'users', label: 'Customers & Assets', count: customers.length },
+                                { id: 'trucks', icon: 'shield-check', label: 'Fleet Inventory', count: trucks.length },
+                                { id: 'po-glance', icon: 'file-text', label: 'PO At Glance' },
+                                { id: 'pm-schedule', icon: 'calendar-check', label: 'Preventive Maintenance' }
+                            ];
+                            const serviceNav = [
+                                { id: 'complaints', icon: 'alert-circle', label: 'Complaints Desk', count: complaints.filter(c=>c.status==='Open').length, badgeColor: 'bg-rose-50 text-rose-700 border border-rose-200' },
+                                { id: 'capa', icon: 'clipboard-check', label: 'CAPA Quality Hub', count: capas.filter(c=>c.status!=='Closed').length, badgeColor: 'bg-amber-50 text-amber-700 border border-amber-200' },
+                                { id: 'feedback', icon: 'star', label: 'Reviews & Feedback', count: feedbacks.length }
+                            ];
+
+                            // All nav items in sequential order for smooth sliding translation calculation
+                            const allNavItems = [
+                                ...operationsNav.map((it, idx) => ({ ...it, section: 0, index: idx })),
+                                ...serviceNav.map((it, idx) => ({ ...it, section: 1, index: idx }))
+                            ];
+
+                            return (
+                                <nav className="space-y-4 flex-1 overflow-y-auto min-h-0 pr-1 relative">
+                                    {/* SECTION 1: OPERATIONS */}
+                                    <div className="relative">
+                                        {!sidebarCollapsed && (
+                                            <p className="text-[11px] font-semibold uppercase text-[#94A3B8] tracking-[1.5px] px-3 pb-1.5">
+                                                OPERATIONS
+                                            </p>
+                                        )}
+                                        <div className="space-y-1 relative">
+                                            {operationsNav.map(item => {
+                                                const isActive = activeTab === item.id;
+                                                return (
+                                                    <button 
+                                                        key={item.id} 
+                                                        onClick={() => setActiveTab(item.id)} 
+                                                        title={sidebarCollapsed ? item.label : ""}
+                                                        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5'} h-11 text-[14px] font-medium nav-item-transition rounded-lg relative cursor-pointer z-10 ${
+                                                            isActive 
+                                                                ? 'bg-[#F0FDFA] text-[#111827] font-semibold border-l-[3px] border-[#0B6B63] rounded-l-none' 
+                                                                : 'text-[#64748B] hover:text-[#111827] hover:bg-slate-50'
+                                                        }`}
+                                                    >
+                                                        <Icon name={item.icon} size={18} className={`${isActive ? 'text-[#0B6B63]' : 'text-[#64748B]'} shrink-0 nav-item-transition`}/>
+                                                        {!sidebarCollapsed && <span className="ml-3 truncate">{item.label}</span>}
+                                                        {!sidebarCollapsed && item.count > 0 && (
+                                                            <span className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-[#64748B] border border-slate-200">
+                                                                {item.count}
+                                                            </span>
+                                                        )}
+                                                        {sidebarCollapsed && item.count > 0 && (
+                                                            <span className="absolute top-2 right-2 w-2 h-2 bg-[#0B6B63] rounded-full"></span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* SECTION 2: SERVICE & QUALITY */}
+                                    <div className="relative">
+                                        {!sidebarCollapsed && (
+                                            <p className="text-[11px] font-semibold uppercase text-[#94A3B8] tracking-[1.5px] px-3 pb-1.5">
+                                                SERVICE &amp; QUALITY
+                                            </p>
+                                        )}
+                                        <div className="space-y-1 relative">
+                                            {serviceNav.map(item => {
+                                                const isActive = activeTab === item.id;
+                                                return (
+                                                    <button 
+                                                        key={item.id} 
+                                                        onClick={() => setActiveTab(item.id)} 
+                                                        title={sidebarCollapsed ? item.label : ""}
+                                                        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5'} h-11 text-[14px] font-medium nav-item-transition rounded-lg relative cursor-pointer z-10 ${
+                                                            isActive 
+                                                                ? 'bg-[#F0FDFA] text-[#111827] font-semibold border-l-[3px] border-[#0B6B63] rounded-l-none' 
+                                                                : 'text-[#64748B] hover:text-[#111827] hover:bg-slate-50'
+                                                        }`}
+                                                    >
+                                                        <Icon name={item.icon} size={18} className={`${isActive ? 'text-[#0B6B63]' : 'text-[#64748B]'} shrink-0 nav-item-transition`}/>
+                                                        {!sidebarCollapsed && <span className="ml-3 truncate">{item.label}</span>}
+                                                        {!sidebarCollapsed && item.count > 0 && (
+                                                            <span className={`ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full ${item.badgeColor || 'bg-slate-100 text-[#64748B] border border-slate-200'}`}>
+                                                                {item.count}
+                                                            </span>
+                                                        )}
+                                                        {sidebarCollapsed && item.count > 0 && (
+                                                            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full"></span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </nav>
+                            );
+                        })()}
                         {/* Customer Portal & Master Controls */}
                         <div className="pt-3 mt-3 border-t border-slate-200 space-y-1.5">
                             {!sidebarCollapsed && (
@@ -14543,16 +14577,16 @@ function App() {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={() => setShowRegisterDeliveryModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-[11px] font-black shadow-md uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+                                        <button onClick={() => setShowRegisterDeliveryModal(true)} className="bg-white hover:bg-slate-50 text-[#111827] border border-slate-200 px-3.5 py-2 rounded-lg text-xs font-medium tracking-wide flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer">
                                             <span>🚚</span> Register Delivery
                                         </button>
-                                        <button onClick={()=>{setEditingTruck(null);setNewTrk({customerId:'',poNo:'',poDate:'',ocNo:'',ocDate:'',costCenterNo:'',tenderType:'',pumpMake:'',pumpLpm:'',pumpSrNo:'',foamCapacity:'',waterCapacity:'',chassisMake:'',modelNo:'',deliveryDate:'',warrantyMonths:12,insurancePolicyNo:'',insuranceCompany:'',insuranceExpiryDate:'',costCenterStatus:'Not Generated',poAtGlanceGeneratedAt:null,submittedToAccountsAt:null,costCenterCreatedAt:null});setShowTruckModal(true);}} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[11px] font-black shadow-xl uppercase tracking-widest flex items-center gap-1.5"><Icon name="plus" size={14}/>Add Delivery</button>
+                                        <button onClick={()=>{setEditingTruck(null);setNewTrk({customerId:'',poNo:'',poDate:'',ocNo:'',ocDate:'',costCenterNo:'',tenderType:'',pumpMake:'',pumpLpm:'',pumpSrNo:'',foamCapacity:'',waterCapacity:'',chassisMake:'',modelNo:'',deliveryDate:'',warrantyMonths:12,insurancePolicyNo:'',insuranceCompany:'',insuranceExpiryDate:'',costCenterStatus:'Not Generated',poAtGlanceGeneratedAt:null,submittedToAccountsAt:null,costCenterCreatedAt:null});setShowTruckModal(true);}} className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-4 py-2 rounded-lg text-xs font-medium tracking-wide flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"><Icon name="plus" size={14}/>Add Delivery</button>
                                     </div>
                                 </div>
-                                <div className="bg-white rounded-3xl border overflow-hidden shadow-sm">
+                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left table-fixed min-w-[950px]">
-                                        <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">
+                                        <thead className="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200">
                                             <tr>
                                                 <th className="px-4 py-4 w-[28%]">PO / Vehicle</th>
                                                 <th className="px-4 py-4 w-[22%]">Pump Details</th>
@@ -14730,7 +14764,7 @@ function App() {
                                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left table-fixed">
-                                                <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">
+                                                <thead className="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200">
                                                     <tr>
                                                         <th className="px-6 py-3.5 w-[38%]">Client Name</th>
                                                         <th className="px-6 py-3.5 w-[27%]">PO Number</th>
@@ -14966,9 +15000,9 @@ function App() {
                         {activeTab==='feedback' && (
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center"><h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Customer Reviews</h2></div>
-                                <div className="bg-white rounded-3xl border shadow-sm overflow-hidden overflow-x-auto">
+                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs overflow-x-auto">
                                     <table className="w-full text-left min-w-[800px]">
-                                        <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b"><tr><th className="px-8 py-5">Client / Organization</th><th className="px-6 py-5">Primary Contact</th><th className="px-6 py-5">Feedback History</th><th className="px-8 py-5 text-right">Action</th></tr></thead>
+                                        <thead className="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200"><tr><th className="px-8 py-5">Client / Organization</th><th className="px-6 py-5">Primary Contact</th><th className="px-6 py-5">Feedback History</th><th className="px-8 py-5 text-right">Action</th></tr></thead>
                                         <tbody className="divide-y divide-slate-50">
                                             {customers.map(cust=>{
                                                 const cFbs=feedbacks.filter(f=>f.customerId===cust.id).sort((a,b)=>new Date(b.feedbackDate)-new Date(a.feedbackDate));
@@ -15119,7 +15153,7 @@ function App() {
                                                                 poAtGlanceGeneratedAt: new Date().toISOString()
                                                             });
                                                         }} 
-                                                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-2xl font-black text-xs uppercase shadow-xl tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                                        className="w-full bg-[#0B6B63] hover:bg-[#09544E] text-white py-3.5 rounded-2xl font-black text-xs uppercase shadow-xl tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
                                                     >
                                                         <Icon name="file-text" size={16}/> 📄 GENERATE PO AT GLANCE
                                                     </button>
@@ -15136,7 +15170,7 @@ function App() {
                                                         </button>
                                                         <button 
                                                             onClick={() => printPoAtGlance(t, cust)} 
-                                                            className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-2xl font-black text-xs uppercase shadow-md tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                                            className="bg-[#0B6B63] hover:bg-[#09544E] text-white py-3 rounded-2xl font-black text-xs uppercase shadow-md tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
                                                         >
                                                             <Icon name="printer" size={14}/> 🖨 PRINT
                                                         </button>
@@ -15351,7 +15385,7 @@ function App() {
                                     </button>
                                     <button 
                                         type="submit" 
-                                        className="flex-1 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase shadow-lg tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                                        className="flex-1 px-4 py-3 bg-[#0B6B63] hover:bg-[#09544E] text-white rounded-xl text-xs font-black uppercase shadow-lg tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5"
                                     >
                                         <Icon name="check" size={14}/> Save & Update Status
                                     </button>
@@ -15665,7 +15699,7 @@ function App() {
                                             ) : (
                                                 <button 
                                                     onClick={() => printPoAtGlance(poAtGlanceTruck, cust, { ld: ldVal, sd: sdVal, emd: emdVal, dlp: dlpVal, sez: sezVal })} 
-                                                    className="bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                                                    className="bg-[#0B6B63] hover:bg-[#09544E] text-white font-black text-xs uppercase px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
                                                 >
                                                     <Icon name="printer" size={16}/> Print Document
                                                 </button>
@@ -16277,7 +16311,7 @@ function App() {
                                     <button
                                         type="button"
                                         onClick={() => window.location.reload()}
-                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+                                        className="px-4 py-2 bg-[#0B6B63] hover:bg-[#09544E] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
                                     >
                                         Reload Portal
                                     </button>
