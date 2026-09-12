@@ -19,45 +19,39 @@
 
 
         // ══════════════════════════════════════════════════════
-        // MODERN SaaS / ERP KPI CARD COMPONENT
-        // Hierarchy: Small Icon -> Label -> Large Value -> Supporting Text
+        // LIGHTWEIGHT & READABLE MODERN ERP KPI CARD COMPONENT
+        // Clean, small, normal/medium weight typography
         // ══════════════════════════════════════════════════════
         const KpiCard = ({ 
             label, 
             value, 
             subText, 
-            icon = 'activity',
             dotColor = 'bg-teal-600', 
-            valueColor = 'text-[#111827]', 
-            subColor = 'text-[#64748B]', 
+            valueColor = 'text-slate-800', 
+            subColor = 'text-slate-500', 
             onClick, 
             active = false 
         }) => (
             <div 
                 onClick={onClick}
-                className={`bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-all duration-200 flex flex-col justify-between select-none ${
-                    onClick ? 'cursor-pointer hover:shadow-sm active:scale-[0.99]' : ''
-                } ${active ? 'ring-2 ring-teal-500/20 border-[#0B6B63] bg-teal-50/30' : ''}`}
+                className={`bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 hover:bg-slate-50/50 transition-all duration-150 flex flex-col justify-between select-none ${
+                    onClick ? 'cursor-pointer active:scale-[0.99]' : ''
+                } ${active ? 'ring-1 ring-teal-500 border-teal-600 bg-teal-50/20' : ''}`}
             >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-[#0B6B63] shrink-0">
-                            <Icon name={icon} size={16} />
-                        </div>
-                        <span className="text-[13px] font-medium text-[#64748B] truncate" title={label}>
-                            {label}
-                        </span>
-                    </div>
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`}></span>
+                <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                    <span className="text-[11.5px] font-medium text-slate-500 truncate" title={label}>
+                        {label}
+                    </span>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`}></span>
                 </div>
-                <div className="my-1">
-                    <span className={`text-2xl sm:text-[28px] font-semibold tracking-tight font-heading ${valueColor}`}>
+                <div className="my-0.5">
+                    <span className={`text-xl sm:text-[22px] font-semibold tracking-tight ${valueColor}`}>
                         {value}
                     </span>
                 </div>
                 {subText && (
-                    <div className="mt-1 pt-2 border-t border-slate-100">
-                        <span className={`text-xs font-normal truncate block ${subColor}`}>
+                    <div className="mt-1 pt-1.5 border-t border-slate-100/80">
+                        <span className={`text-[11px] font-normal truncate block ${subColor}`}>
                             {subText}
                         </span>
                     </div>
@@ -8931,7 +8925,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             subText={`+${trucks.length} Active Vehicles`}
                                             dotColor="bg-slate-900"
                                             valueColor="text-slate-900"
-                                            subColor="text-emerald-600 font-extrabold"
+                                            subColor="text-emerald-600"
                                             onClick={() => setActiveTab('trucks')}
                                         />
                                         <KpiCard
@@ -8958,7 +8952,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             subText={`${overdueCount} Delayed Tickets`}
                                             dotColor="bg-rose-500"
                                             valueColor="text-rose-600"
-                                            subColor="text-rose-600 font-extrabold"
+                                            subColor="text-rose-600"
                                             onClick={() => { setActiveTab('complaints'); setCompStatus('Open'); }}
                                         />
                                         <KpiCard
@@ -8967,7 +8961,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             subText="Needs Manpower"
                                             dotColor="bg-purple-500"
                                             valueColor="text-slate-900"
-                                            subColor="text-purple-600 font-extrabold"
+                                            subColor="text-indigo-600"
                                             onClick={() => { setActiveTab('complaints'); setCompStatus('Open'); }}
                                         />
                                         <KpiCard
@@ -8976,7 +8970,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             subText="Active Site Work"
                                             dotColor="bg-blue-500"
                                             valueColor="text-blue-600"
-                                            subColor="text-blue-600 font-extrabold"
+                                            subColor="text-sky-600"
                                             onClick={() => { setActiveTab('complaints'); setCompStatus('Open'); }}
                                         />
                                     </div>
@@ -8997,7 +8991,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             subText="SLA Compliance"
                                             dotColor="bg-emerald-500"
                                             valueColor="text-emerald-600"
-                                            subColor="text-emerald-700 font-extrabold"
+                                            subColor="text-emerald-700"
                                         />
                                         <KpiCard
                                             label="AVG TURNAROUND"
@@ -14361,7 +14355,7 @@ function App() {
                                                     subText={`+${trucks.length} Active Vehicles`}
                                                     dotColor="bg-slate-900"
                                                     valueColor="text-slate-900"
-                                                    subColor="text-emerald-600 font-extrabold"
+                                                    subColor="text-emerald-600"
                                                     onClick={() => setActiveTab('trucks')}
                                                 />
                                                 <KpiCard
@@ -14388,7 +14382,7 @@ function App() {
                                                     subText={`${overdueCount} Delayed Tickets`}
                                                     dotColor="bg-rose-500"
                                                     valueColor="text-rose-600"
-                                                    subColor="text-rose-600 font-extrabold"
+                                                    subColor="text-rose-600"
                                                     onClick={() => { setActiveTab('complaints'); setCompStatus('Open'); }}
                                                 />
                                                 <KpiCard
@@ -14397,7 +14391,7 @@ function App() {
                                                     subText="Needs Manpower"
                                                     dotColor="bg-purple-500"
                                                     valueColor="text-slate-900"
-                                                    subColor="text-purple-600 font-extrabold"
+                                                    subColor="text-indigo-600"
                                                     onClick={() => { setActiveTab('complaints'); setCompStatus('Open'); }}
                                                 />
                                                 <KpiCard
@@ -14406,7 +14400,7 @@ function App() {
                                                     subText="Active Site Work"
                                                     dotColor="bg-blue-500"
                                                     valueColor="text-blue-600"
-                                                    subColor="text-blue-600 font-extrabold"
+                                                    subColor="text-sky-600"
                                                     onClick={() => { setActiveTab('complaints'); setCompStatus('Open'); }}
                                                 />
                                             </div>
@@ -14428,7 +14422,7 @@ function App() {
                                                     subText="SLA Compliance"
                                                     dotColor="bg-emerald-500"
                                                     valueColor="text-emerald-600"
-                                                    subColor="text-emerald-700 font-extrabold"
+                                                    subColor="text-emerald-700"
                                                 />
                                                 <KpiCard
                                                     label="AVG RESOLUTION"
@@ -14453,7 +14447,7 @@ function App() {
                                                     subText={`${capas.filter(c=>c.status!=='Closed').length} In-Progress`}
                                                     dotColor="bg-purple-500"
                                                     valueColor="text-slate-900"
-                                                    subColor="text-purple-600 font-extrabold"
+                                                    subColor="text-indigo-600"
                                                     onClick={() => setActiveTab('capa')}
                                                 />
                                                 <KpiCard
