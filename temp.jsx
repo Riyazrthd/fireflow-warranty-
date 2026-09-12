@@ -10397,6 +10397,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
         // ENTERPRISE CUSTOMER DIRECTORY COMPONENT (TABLE & CARDS)
         // ══════════════════════════════════════════════════════
         // ══════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════
         // 📋 ENTERPRISE COMPLAINT MASTER DATA TABLE COMPONENT
         // ══════════════════════════════════════════════════════
         const ComplaintsMasterSection = ({
@@ -10464,52 +10465,57 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const resolvedCount = complaints.filter(c => c.status === 'Resolved').length;
 
             return (
-                <div className="space-y-4 fade-up">
+                <div className="space-y-3.5 fade-up">
                     {/* Header Controls Strip */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200/90 shadow-2xs">
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">
-                                    Service Desk &amp; Complaint Master
-                                </h2>
-                                <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                                    {filtered.length} of {complaints.length} Records
-                                </span>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+                        <div className="flex items-start sm:items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-100/80 text-[#0B6B63] flex items-center justify-center shrink-0">
+                                <Icon name="alert-circle" size={18} />
                             </div>
-                            <p className="text-[10.5px] font-bold text-slate-400 mt-0.5">
-                                Real-time ticket lifecycle tracking · {openCount} Open Pending · {resolvedCount} Resolved
-                            </p>
+                            <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <h2 className="text-base font-semibold text-slate-800 tracking-tight font-heading">
+                                        Service Desk &amp; Complaint Master
+                                    </h2>
+                                    <span className="text-[10px] font-medium font-mono text-[#0B6B63] bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-md">
+                                        {filtered.length} of {complaints.length} Records
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-400 font-normal mt-0.5">
+                                    Real-time ticket lifecycle tracking · <span className="text-rose-600 font-medium">{openCount} Open Pending</span> · <span className="text-emerald-600 font-medium">{resolvedCount} Resolved</span>
+                                </p>
+                            </div>
                         </div>
 
                         <div className="flex items-center gap-2 flex-wrap">
                             {/* View Switcher */}
-                            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                            <div className="flex items-center gap-0.5 bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/80">
                                 <button
                                     type="button"
                                     onClick={() => setViewMode('table')}
-                                    className={`px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 ${
-                                        viewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                                    className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                                        viewMode === 'table' ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
                                     }`}
                                     title="Table View"
                                 >
-                                    <Icon name="list" size={13}/> Table
+                                    <Icon name="list" size={12}/> Table
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setViewMode('cards')}
-                                    className={`px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 ${
-                                        viewMode === 'cards' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                                    className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                                        viewMode === 'cards' ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
                                     }`}
                                     title="Cards Grid View"
                                 >
-                                    <Icon name="layout-grid" size={13}/> Cards
+                                    <Icon name="layout-grid" size={12}/> Cards
                                 </button>
                             </div>
 
                             <button
                                 type="button"
                                 onClick={() => exportEntireComplaintList(complaints, customers, trucks, 'excel')}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-2xs transition-all uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                                className="h-8 px-2.5 rounded-lg border border-emerald-200/80 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/80 text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer"
                                 title="Export Complaint Master to Excel"
                             >
                                 <Icon name="download" size={13}/> Excel
@@ -10518,7 +10524,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                             <button
                                 type="button"
                                 onClick={() => exportEntireComplaintList(complaints, customers, trucks, 'pdf')}
-                                className="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-2xs transition-all uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                                className="h-8 px-2.5 rounded-lg border border-slate-200/80 bg-slate-50 text-slate-700 hover:bg-slate-100 text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer"
                                 title="Export Complaint Master to PDF"
                             >
                                 <Icon name="file-text" size={13}/> PDF
@@ -10530,28 +10536,28 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     setSelectedCompCust('');
                                     setShowComplaintModal(true);
                                 }}
-                                className="bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-black shadow-sm transition-all uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                                className="h-8 px-3 rounded-lg bg-[#0B6B63] hover:bg-[#09544e] text-white text-xs font-medium shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
                                 title="Raise New Support Ticket"
                             >
-                                <Icon name="plus" size={14}/> Raise Ticket
+                                <Icon name="plus" size={13}/> Raise Ticket
                             </button>
                         </div>
                     </div>
 
                     {/* Filters Strip */}
-                    <div className="bg-white p-3.5 sm:p-4 rounded-3xl border border-slate-200/90 shadow-2xs">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+                    <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
                             {/* Search */}
                             <div className="lg:col-span-5 relative">
                                 <input
                                     type="text"
                                     value={compSearch}
                                     onChange={e => setCompSearch(e.target.value)}
-                                    placeholder="Search Ticket ID, Client Organization, PO No, Issue, Category, Engineer..."
-                                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-slate-900 transition-all"
+                                    placeholder="Search Ticket ID, Client Organization, PO No, Issue, Category..."
+                                    className="w-full pl-8 pr-3 py-1.5 bg-slate-50/40 border border-slate-200/80 rounded-lg text-xs font-normal text-slate-800 placeholder-slate-400 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
                                 />
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                    <Icon name="search" size={14}/>
+                                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                    <Icon name="search" size={13}/>
                                 </div>
                             </div>
 
@@ -10560,7 +10566,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 <select
                                     value={compStatus}
                                     onChange={e => setCompStatus(e.target.value)}
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-700 outline-none focus:ring-2 focus:ring-slate-900 cursor-pointer"
+                                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200/80 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] cursor-pointer transition-all"
                                 >
                                     <option value="All">All Statuses ({complaints.length})</option>
                                     <option value="Open">🔴 Open Pending ({openCount})</option>
@@ -10573,7 +10579,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 <select
                                     value={compCat}
                                     onChange={e => setCompCat(e.target.value)}
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-700 outline-none focus:ring-2 focus:ring-slate-900 cursor-pointer"
+                                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200/80 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] cursor-pointer transition-all"
                                 >
                                     <option value="All">All Categories</option>
                                     {categories.map((cat, i) => (
@@ -10593,10 +10599,10 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             setCompCat('All');
                                             setCompDate('');
                                         }}
-                                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                                        className="text-[11px] font-medium text-rose-600 hover:text-rose-700 px-2.5 py-1.5 bg-rose-50/70 hover:bg-rose-100/70 rounded-lg border border-rose-200/60 transition-all cursor-pointer shrink-0"
                                         title="Clear All Filters"
                                     >
-                                        <Icon name="x-circle" size={18}/>
+                                        Reset
                                     </button>
                                 )}
                             </div>
@@ -10605,110 +10611,117 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
                     {/* ── VIEW 1: CLEAN SINGLE-LINE COMPLAINTS DATA TABLE (CLIENT FIRST, TICKET ONLY, OPEN FIRST) ── */}
                     {viewMode === 'table' && (
-                        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left min-w-[800px] border-collapse">
+                                <table className="w-full text-left min-w-[850px] border-collapse">
                                     <thead>
-                                        <tr className="bg-slate-50/90 text-[9.5px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 whitespace-nowrap">
-                                            <th className="px-4 py-3.5 w-12 text-center">#</th>
-                                            <th className="px-4 py-3.5">Client Name</th>
-                                            <th className="px-4 py-3.5">Ticket Number</th>
-                                            <th className="px-4 py-3.5 text-center">Category</th>
-                                            <th className="px-4 py-3.5 text-center">Status</th>
-                                            <th className="px-4 py-3.5 text-center">Date of Register</th>
-                                            <th className="px-4 py-3.5 text-center">Age</th>
-                                            <th className="px-4 py-3.5 text-right w-16">Details</th>
+                                        <tr className="bg-slate-50/70 text-[10px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200/70 whitespace-nowrap">
+                                            <th className="px-4 py-3 w-10 text-center">#</th>
+                                            <th className="px-4 py-3">Client Name</th>
+                                            <th className="px-4 py-3">Ticket Number</th>
+                                            <th className="px-4 py-3 text-center">Category</th>
+                                            <th className="px-4 py-3 text-center">Status</th>
+                                            <th className="px-4 py-3 text-center">Date of Register</th>
+                                            <th className="px-4 py-3 text-center">Age</th>
+                                            <th className="px-4 py-3 text-right w-16">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 text-xs whitespace-nowrap">
+                                    <tbody className="divide-y divide-slate-100/80 text-xs whitespace-nowrap">
                                         {filtered.map((c, idx) => {
                                             const trk = trucks.find(t => t.id === c.truckId);
                                             const cust = customers.find(cu => cu.id === trk?.customerId);
+                                            const custName = cust?.name || 'Client Organization N/A';
+                                            const initials = custName.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'IE';
                                             const agingDays = calculateLifeCount(c.dateReceived);
                                             const isResolved = c.status === 'Resolved';
 
                                             return (
-                                                <tr key={c.id} className="hover:bg-slate-50/70 transition-colors group">
+                                                <tr key={c.id} className="hover:bg-slate-50/60 transition-colors group">
                                                     {/* # Index */}
-                                                    <td className="px-4 py-3.5 text-center font-bold text-slate-400 text-[11px] whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-center font-mono text-slate-400 text-[10.5px]">
                                                         {idx + 1}
                                                     </td>
 
-                                                    {/* Client Name (First, No Square Avatar, Compact max-w to save space) */}
-                                                    <td className="px-4 py-3.5 whitespace-nowrap">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setSelectedTicketDetail(c)}
-                                                            className="font-black text-slate-900 text-xs uppercase tracking-tight hover:text-indigo-600 transition-colors cursor-pointer truncate max-w-[210px] sm:max-w-xs text-left block"
-                                                            title={cust?.name}
-                                                        >
-                                                            {cust?.name || 'Client Organization N/A'}
-                                                        </button>
+                                                    {/* Client Name */}
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className="w-7 h-7 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center font-semibold text-[10.5px] font-mono shrink-0">
+                                                                {initials}
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setSelectedTicketDetail(c)}
+                                                                className="font-semibold text-slate-800 text-xs tracking-[-0.1px] hover:text-[#0B6B63] transition-colors cursor-pointer truncate max-w-[240px] text-left block"
+                                                                title={custName}
+                                                            >
+                                                                {custName}
+                                                            </button>
+                                                        </div>
                                                     </td>
 
-                                                    {/* Ticket Number (Only Ticket Number, No Tags/Badges) */}
-                                                    <td className="px-4 py-3.5 whitespace-nowrap">
+                                                    {/* Ticket Number */}
+                                                    <td className="px-4 py-3">
                                                         <button
                                                             type="button"
                                                             onClick={() => setSelectedTicketDetail(c)}
-                                                            className="font-black text-slate-900 text-xs uppercase tracking-tight hover:text-indigo-600 transition-colors cursor-pointer"
+                                                            className="font-mono font-medium text-slate-800 text-xs hover:text-[#0B6B63] transition-colors cursor-pointer"
                                                             title="Click to view full ticket details"
                                                         >
                                                             {c.complaintId}
                                                         </button>
                                                     </td>
 
-                                                    {/* Category (with spacing) */}
-                                                    <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                                                        <span className="text-[9.5px] font-black uppercase px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 inline-block">
+                                                    {/* Category */}
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className="text-[9.5px] font-mono font-medium uppercase px-2 py-0.5 rounded-md bg-slate-50 text-slate-600 border border-slate-200/70 inline-block">
                                                             {c.category || 'General'}
                                                         </span>
                                                     </td>
 
                                                     {/* Status */}
-                                                    <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-center">
                                                         <div className="flex items-center justify-center">
-                                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-2xs whitespace-nowrap ${
+                                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.8 rounded-full text-[10.5px] font-medium border whitespace-nowrap ${
                                                                 isResolved
                                                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                                                     : 'bg-rose-50 text-rose-700 border-rose-200'
                                                             }`}>
-                                                                <span className={`w-2 h-2 rounded-full shrink-0 ${isResolved ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`}></span>
+                                                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isResolved ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`}></span>
                                                                 <span>{c.status}</span>
                                                             </span>
                                                         </div>
                                                     </td>
 
                                                     {/* Date of Register */}
-                                                    <td className="px-4 py-3.5 text-center text-slate-700 font-bold text-[11px] whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-center text-slate-600 font-mono font-medium text-xs">
                                                         {formatDate(c.dateReceived)}
                                                     </td>
 
                                                     {/* Age */}
-                                                    <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-2xs whitespace-nowrap ${
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className={`inline-flex items-center gap-1 px-2 py-0.8 rounded-md text-[10px] font-mono font-medium border whitespace-nowrap ${
                                                             isResolved
-                                                                ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                                                ? 'bg-slate-50 text-slate-500 border-slate-200/70'
                                                                 : (agingDays > 14
-                                                                    ? 'bg-rose-100 text-rose-800 border-rose-200 animate-pulse'
+                                                                    ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse'
                                                                     : (agingDays > 7
-                                                                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
                                                                         : 'bg-emerald-50 text-emerald-700 border-emerald-200'))
                                                         }`}>
-                                                            <Icon name="clock" size={11} className="shrink-0"/>
+                                                            <Icon name="clock" size={10} className="shrink-0"/>
                                                             <span>{agingDays}d old</span>
                                                         </span>
                                                     </td>
 
-                                                    {/* Details Eye Button */}
-                                                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                                                    {/* Action Button */}
+                                                    <td className="px-4 py-3 text-right">
                                                         <button
                                                             type="button"
                                                             onClick={() => setSelectedTicketDetail(c)}
-                                                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center"
+                                                            className="h-7 w-7 rounded-lg border border-slate-200/80 hover:border-slate-300 hover:bg-slate-100/70 text-slate-500 hover:text-slate-700 inline-flex items-center justify-center transition-all cursor-pointer"
                                                             title="View full complaint details & report"
                                                         >
-                                                            <Icon name="eye" size={16}/>
+                                                            <Icon name="eye" size={13}/>
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -10722,7 +10735,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
                     {/* ── VIEW 2: CARDS GRID VIEW ── */}
                     {viewMode === 'cards' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {filtered.map(c => {
                                 const trk = trucks.find(t => t.id === c.truckId);
                                 const cust = customers.find(cu => cu.id === trk?.customerId);
@@ -10730,70 +10743,70 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 const isResolved = c.status === 'Resolved';
 
                                 return (
-                                    <div key={c.id} className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-3">
+                                    <div key={c.id} className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between space-y-3">
                                         <div>
                                             <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${isResolved ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                                                        <Icon name={isResolved ? "check-circle" : "alert-circle"} size={16}/>
+                                                    <div className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center ${isResolved ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                        <Icon name={isResolved ? "check-circle" : "alert-circle"} size={14}/>
                                                     </div>
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelectedTicketDetail(c)}
-                                                        className="font-black text-slate-900 text-xs uppercase tracking-tight hover:text-indigo-600 text-left"
+                                                        className="font-mono font-medium text-slate-800 text-xs hover:text-[#0B6B63] text-left"
                                                     >
                                                         {c.complaintId}
                                                     </button>
                                                 </div>
-                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${isResolved ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                                                <span className={`text-[9.5px] font-medium px-2 py-0.5 rounded-full border ${isResolved ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                                                     {c.status}
                                                 </span>
                                             </div>
 
-                                            <div className="mt-2.5 space-y-2 text-xs">
-                                                <p className="font-black text-slate-900 uppercase truncate" title={cust?.name}>
+                                            <div className="mt-2.5 space-y-1.5 text-xs">
+                                                <p className="font-semibold text-slate-800 text-xs truncate" title={cust?.name}>
                                                     {cust?.name || 'Organization N/A'}
                                                 </p>
-                                                <p className="text-[11px] font-bold text-slate-600 line-clamp-2 leading-relaxed">
+                                                <p className="text-[11px] font-normal text-slate-500 line-clamp-2 leading-relaxed">
                                                     {c.description}
                                                 </p>
-                                                <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 pt-1">
-                                                    <span>PO: {trk?.poNo || 'N/A'}</span>
-                                                    <span className="uppercase text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-black">{c.category}</span>
+                                                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                                                    <span className="font-mono">PO: {trk?.poNo || 'N/A'}</span>
+                                                    <span className="font-mono uppercase text-slate-600 bg-slate-50 border border-slate-200/70 px-1.5 py-0.5 rounded text-[9px] font-medium">{c.category}</span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10.5px]">
-                                            <span className="font-bold text-slate-400 flex items-center gap-1">
-                                                <Icon name="clock" size={12}/> {agingDays}d old
+                                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10.5px]">
+                                            <span className="text-slate-400 font-mono font-medium flex items-center gap-1 text-[10px]">
+                                                <Icon name="clock" size={11}/> {agingDays}d old
                                             </span>
                                             <div className="flex items-center gap-1.5">
                                                 {isResolved && (
                                                     <button
                                                         type="button"
                                                         onClick={() => downloadClosureReport(c)}
-                                                        className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"
+                                                        className="p-1 text-[#0B6B63] hover:bg-teal-50 rounded transition-colors"
                                                         title="Report"
                                                     >
-                                                        <Icon name="file-text" size={14}/>
+                                                        <Icon name="file-text" size={13}/>
                                                     </button>
                                                 )}
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedTicketDetail(c)}
-                                                    className="p-1 text-slate-500 hover:bg-slate-100 rounded"
+                                                    className="p-1 text-slate-500 hover:bg-slate-100 rounded transition-colors"
                                                     title="View Details"
                                                 >
-                                                    <Icon name="eye" size={14}/>
+                                                    <Icon name="eye" size={13}/>
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => setDeleteStep({ type: 'complaint', data: c, step: 1 })}
-                                                    className="p-1 text-rose-400 hover:bg-rose-50 rounded"
+                                                    className="p-1 text-rose-400 hover:bg-rose-50 rounded transition-colors"
                                                     title="Delete"
                                                 >
-                                                    <Icon name="trash-2" size={14}/>
+                                                    <Icon name="trash-2" size={13}/>
                                                 </button>
                                             </div>
                                         </div>
@@ -10805,9 +10818,9 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
                     {/* Empty State */}
                     {filtered.length === 0 && (
-                        <div className="py-16 text-center bg-white rounded-3xl border border-slate-200/80 shadow-2xs opacity-40">
-                            <Icon name="inbox" size={32} className="mx-auto mb-2 text-slate-400"/>
-                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">No complaint records match your filters</p>
+                        <div className="py-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
+                            <Icon name="inbox" size={28} className="mx-auto mb-2 text-slate-300"/>
+                            <p className="text-xs font-normal text-slate-400">No complaint records match your current filters</p>
                         </div>
                     )}
 
@@ -10823,140 +10836,140 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         const initials = (cust?.name || 'IFS').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
                         return (
-                            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] fade-in">
-                                <div className="bg-white rounded-3xl max-w-3xl w-full p-4 sm:p-5 shadow-2xl border border-slate-100 flex flex-col">
+                            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in">
+                                <div className="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200/80 flex flex-col space-y-3.5 max-h-[92vh]">
                                     {/* Header */}
-                                    <div className="flex justify-between items-center pb-3 border-b border-slate-100 mb-3">
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shadow-md shrink-0 ${
-                                                isResolved ? 'bg-emerald-900 text-emerald-400' : 'bg-rose-900 text-rose-300'
+                                    <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-medium shrink-0 ${
+                                                isResolved ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'
                                             }`}>
-                                                <Icon name={isResolved ? "check-circle" : "alert-circle"} size={20}/>
+                                                <Icon name={isResolved ? "check-circle" : "alert-circle"} size={16}/>
                                             </div>
                                             <div className="min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="font-black text-slate-900 text-sm sm:text-base uppercase tracking-tight truncate">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <h3 className="font-semibold text-slate-800 text-sm font-heading truncate">
                                                         Ticket #{c.complaintId}
                                                     </h3>
-                                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border shrink-0 ${
+                                                    <span className={`text-[9.5px] font-medium px-2 py-0.5 rounded-full border shrink-0 ${
                                                         isResolved
                                                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                                             : 'bg-rose-50 text-rose-700 border-rose-200'
                                                     }`}>
                                                         {c.status}
                                                     </span>
-                                                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                                                    <span className="text-[9.5px] font-mono font-medium uppercase px-2 py-0.5 rounded bg-slate-50 text-slate-600 border border-slate-200 shrink-0">
                                                         {c.category}
                                                     </span>
                                                 </div>
-                                                <p className="text-[10.5px] font-bold text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <p className="text-[10.5px] text-slate-400 font-normal flex items-center gap-1 mt-0.5">
                                                     <span>Logged on {formatDate(c.dateReceived)}</span>
                                                     <span>·</span>
-                                                    <span>{agingDays} Days in System</span>
+                                                    <span className="font-mono">{agingDays}d in system</span>
                                                     <span>·</span>
-                                                    <span className="uppercase text-indigo-600 font-extrabold">{c.mode || 'Portal'}</span>
+                                                    <span className="uppercase text-[#0B6B63] font-medium font-mono text-[10px]">{c.mode || 'Portal'}</span>
                                                 </p>
                                             </div>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => setSelectedTicketDetail(null)}
-                                            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
+                                            className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
                                         >
-                                            <Icon name="x" size={18}/>
+                                            <Icon name="x" size={14}/>
                                         </button>
                                     </div>
 
                                     {/* 2-Column Content */}
-                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-start">
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start overflow-y-auto pr-1">
                                         {/* Left: Client & Vehicle Info (5 Cols) */}
-                                        <div className="md:col-span-5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2.5">
-                                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                                                <Icon name="building-2" size={13} className="text-slate-600"/> Client &amp; Asset
+                                        <div className="md:col-span-5 bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 space-y-2">
+                                            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                                <Icon name="building-2" size={12} className="text-slate-500"/> Client &amp; Asset
                                             </p>
-                                            <div className="space-y-2 text-xs">
-                                                <div className="p-2.5 bg-white rounded-xl border border-slate-100">
-                                                    <p className="text-[9px] font-black uppercase text-slate-400 mb-0.5">Client Organization</p>
-                                                    <p className="font-black text-slate-900 text-xs truncate" title={cust?.name}>
+                                            <div className="space-y-1.5 text-xs">
+                                                <div className="p-2 bg-white rounded-lg border border-slate-100">
+                                                    <p className="text-[9px] font-medium uppercase text-slate-400">Client Organization</p>
+                                                    <p className="font-semibold text-slate-800 text-xs truncate mt-0.5" title={cust?.name}>
                                                         {cust?.name || 'N/A'}
                                                     </p>
-                                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5 truncate">{cust?.address || 'Site not recorded'}</p>
+                                                    <p className="text-[10px] text-slate-400 font-normal mt-0.5 truncate">{cust?.address || 'Site not recorded'}</p>
                                                 </div>
 
-                                                <div className="p-2.5 bg-white rounded-xl border border-slate-100">
-                                                    <p className="text-[9px] font-black uppercase text-slate-400 mb-0.5">Connected Fleet Vehicle</p>
-                                                    <p className="font-black text-indigo-700 text-xs">
+                                                <div className="p-2 bg-white rounded-lg border border-slate-100">
+                                                    <p className="text-[9px] font-medium uppercase text-slate-400">Connected Fleet Vehicle</p>
+                                                    <p className="font-medium text-[#0B6B63] text-xs font-mono mt-0.5">
                                                         PO: {trk?.poNo || 'N/A'} · {trk?.tenderType || 'Fire Tender'}
                                                     </p>
-                                                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                                                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">
                                                         Pump: {trk?.pumpMake || 'Standard'} ({trk?.pumpSrNo || 'N/A'})
                                                     </p>
                                                 </div>
 
-                                                <div className="p-2.5 bg-white rounded-xl border border-slate-100">
-                                                    <p className="text-[9px] font-black uppercase text-slate-400 mb-0.5">Reported By</p>
-                                                    <p className="font-bold text-slate-900 text-xs flex items-center gap-1">
-                                                        <Icon name="user" size={12} className="text-slate-400"/>
+                                                <div className="p-2 bg-white rounded-lg border border-slate-100">
+                                                    <p className="text-[9px] font-medium uppercase text-slate-400">Reported By</p>
+                                                    <p className="font-medium text-slate-700 text-xs flex items-center gap-1 mt-0.5">
+                                                        <Icon name="user" size={11} className="text-slate-400"/>
                                                         <span>{c.reportedBy || 'Officer N/A'}</span>
-                                                        {c.contactPhone && <span className="text-slate-400 font-mono">({c.contactPhone})</span>}
+                                                        {c.contactPhone && <span className="text-slate-400 font-mono text-[10px]">({c.contactPhone})</span>}
                                                     </p>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Right: Issue & Resolution Dossier (7 Cols) */}
-                                        <div className="md:col-span-7 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2.5">
-                                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                                                <Icon name="file-text" size={13} className="text-indigo-600"/> Issue &amp; Resolution Dossier
+                                        <div className="md:col-span-7 bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 space-y-2">
+                                            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                                <Icon name="file-text" size={12} className="text-[#0B6B63]"/> Issue &amp; Resolution Dossier
                                             </p>
 
-                                            <div className="p-3 bg-white rounded-xl border border-slate-100 space-y-1">
-                                                <p className="text-[9px] font-black uppercase text-slate-400">Issue Description</p>
-                                                <p className="text-xs font-semibold text-slate-800 leading-relaxed">
+                                            <div className="p-2.5 bg-white rounded-lg border border-slate-100 space-y-1">
+                                                <p className="text-[9px] font-medium uppercase text-slate-400">Issue Description</p>
+                                                <p className="text-xs font-normal text-slate-700 leading-relaxed">
                                                     {c.description}
                                                 </p>
                                             </div>
 
                                             {isResolved ? (
-                                                <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 space-y-2">
+                                                <div className="p-2.5 bg-emerald-50/60 rounded-lg border border-emerald-200/80 space-y-1.5">
                                                     <div className="flex justify-between items-center">
-                                                        <p className="text-[9.5px] font-black uppercase text-emerald-800 flex items-center gap-1">
-                                                            <Icon name="check-circle" size={12}/> Service Closure Diagnosis
+                                                        <p className="text-[9.5px] font-medium uppercase text-emerald-800 flex items-center gap-1">
+                                                            <Icon name="check-circle" size={11}/> Service Closure Diagnosis
                                                         </p>
                                                         <button
                                                             type="button"
                                                             onClick={() => downloadClosureReport(c)}
-                                                            className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+                                                            className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-2 py-0.8 rounded-md text-[9.5px] font-medium flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
                                                             title="Download PDF Service Report"
                                                         >
-                                                            <Icon name="file-text" size={11}/> PDF Report
+                                                            <Icon name="file-text" size={10}/> PDF Report
                                                         </button>
                                                     </div>
-                                                    <p className="text-xs font-bold text-slate-900">
+                                                    <p className="text-xs font-medium text-slate-800">
                                                         {c.diagnosis || 'Maintenance and service completed per OEM standards.'}
                                                     </p>
-                                                    <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 pt-1 border-t border-emerald-100">
-                                                        <span>Closed by: <b className="text-slate-800">{c.closedBy || 'Service Engineer'}</b></span>
-                                                        <span>Date: <b className="text-slate-800">{formatDate(c.closedDate || c.dateReceived)}</b></span>
+                                                    <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-emerald-100/80 font-normal">
+                                                        <span>Closed by: <b className="text-slate-700 font-medium">{c.closedBy || 'Service Engineer'}</b></span>
+                                                        <span>Date: <b className="text-slate-700 font-medium font-mono">{formatDate(c.closedDate || c.dateReceived)}</b></span>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200 space-y-2">
-                                                    <p className="text-[9.5px] font-black uppercase text-amber-800 flex items-center gap-1">
-                                                        <Icon name="user-check" size={12}/> Service Planning &amp; Manpower
+                                                <div className="p-2.5 bg-amber-50/60 rounded-lg border border-amber-200/80 space-y-1.5">
+                                                    <p className="text-[9.5px] font-medium uppercase text-amber-800 flex items-center gap-1">
+                                                        <Icon name="user-check" size={11}/> Service Planning &amp; Manpower
                                                     </p>
                                                     <div className="grid grid-cols-2 gap-2 text-xs">
                                                         <div>
-                                                            <p className="text-[8.5px] font-bold uppercase text-slate-400">Assigned Engineer</p>
-                                                            <p className="font-black text-slate-900">{c.closedBy || 'Pending Assignment'}</p>
+                                                            <p className="text-[8.5px] font-medium uppercase text-slate-400">Assigned Engineer</p>
+                                                            <p className="font-medium text-slate-800 text-[11px]">{c.closedBy || 'Pending Assignment'}</p>
                                                         </div>
                                                         <div>
-                                                            <p className="text-[8.5px] font-bold uppercase text-slate-400">Target Date</p>
-                                                            <p className="font-black text-slate-900">{c.closedDate ? formatDate(c.closedDate) : 'Not Scheduled'}</p>
+                                                            <p className="text-[8.5px] font-medium uppercase text-slate-400">Target Date</p>
+                                                            <p className="font-medium text-slate-800 text-[11px] font-mono">{c.closedDate ? formatDate(c.closedDate) : 'Not Scheduled'}</p>
                                                         </div>
                                                     </div>
                                                     {c.delayReason && (
-                                                        <p className="text-[10px] font-bold text-amber-900 italic pt-1 border-t border-amber-100">
+                                                        <p className="text-[10px] font-normal text-amber-900 italic pt-1 border-t border-amber-100">
                                                             Rescheduled reason: "{c.delayReason}"
                                                         </p>
                                                     )}
@@ -10966,7 +10979,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="pt-3 border-t border-slate-100 flex justify-between items-center mt-3">
+                                    <div className="pt-2.5 border-t border-slate-100 flex justify-between items-center">
                                         <div className="flex items-center gap-2">
                                             {!isResolved && (
                                                 <>
@@ -10978,9 +10991,9 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                             setAssignData({ closedBy: targetC.closedBy || '', closedDate: targetC.closedDate || new Date().toISOString().split('T')[0], delayReason: targetC.delayReason || '' });
                                                             setShowAssignModal(targetC);
                                                         }}
-                                                        className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+                                                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
                                                     >
-                                                        <Icon name="user-plus" size={13}/> Assign Engineer
+                                                        <Icon name="user-plus" size={12}/> Assign Engineer
                                                     </button>
                                                     <button
                                                         type="button"
@@ -10990,9 +11003,9 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                             setCloseData({ diagnosis: targetC.diagnosis || '', closedBy: targetC.closedBy || '', closedDate: new Date().toISOString().split('T')[0], remarks: targetC.remarks || '' });
                                                             setShowCloseModal(targetC);
                                                         }}
-                                                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+                                                        className="px-3 py-1.5 bg-[#0B6B63] hover:bg-[#09544e] text-white rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
                                                     >
-                                                        <Icon name="check-circle" size={13}/> Resolve Ticket
+                                                        <Icon name="check-circle" size={12}/> Resolve Ticket
                                                     </button>
                                                 </>
                                             )}
@@ -11000,7 +11013,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         <button
                                             type="button"
                                             onClick={() => setSelectedTicketDetail(null)}
-                                            className="px-5 py-1.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+                                            className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                                         >
                                             Close
                                         </button>
