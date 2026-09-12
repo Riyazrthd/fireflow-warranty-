@@ -10613,17 +10613,17 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                     {viewMode === 'table' && (
                         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left min-w-[850px] border-collapse">
+                                <table className="w-full text-left border-collapse min-w-[780px]">
                                     <thead>
                                         <tr className="bg-slate-50/70 text-[10px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200/70 whitespace-nowrap">
-                                            <th className="px-4 py-3 w-10 text-center">#</th>
-                                            <th className="px-4 py-3">Client Name</th>
-                                            <th className="px-4 py-3">Ticket Number</th>
-                                            <th className="px-4 py-3 text-center">Category</th>
-                                            <th className="px-4 py-3 text-center">Status</th>
-                                            <th className="px-4 py-3 text-center">Date of Register</th>
-                                            <th className="px-4 py-3 text-center">Age</th>
-                                            <th className="px-4 py-3 text-right w-16">Action</th>
+                                            <th className="py-3 px-3 w-10 text-center">#</th>
+                                            <th className="py-3 px-3 w-[26%]">Client Name</th>
+                                            <th className="py-3 px-3 w-[16%]">Ticket Number</th>
+                                            <th className="py-3 px-3 w-[13%] text-center">Category</th>
+                                            <th className="py-3 px-3 w-[12%] text-center">Status</th>
+                                            <th className="py-3 px-3 w-[13%] text-center">Date of Register</th>
+                                            <th className="py-3 px-3 w-[11%] text-center">Age</th>
+                                            <th className="py-3 pl-2 pr-4 w-[9%] text-center">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100/80 text-xs whitespace-nowrap">
@@ -10638,20 +10638,20 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             return (
                                                 <tr key={c.id} className="hover:bg-slate-50/60 transition-colors group">
                                                     {/* # Index */}
-                                                    <td className="px-4 py-3 text-center font-mono text-slate-400 text-[10.5px]">
+                                                    <td className="py-3 px-3 text-center font-mono text-slate-400 text-[10.5px]">
                                                         {idx + 1}
                                                     </td>
 
                                                     {/* Client Name */}
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex items-center gap-2.5">
+                                                    <td className="py-3 px-3">
+                                                        <div className="flex items-center gap-2">
                                                             <div className="w-7 h-7 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center font-semibold text-[10.5px] font-mono shrink-0">
                                                                 {initials}
                                                             </div>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setSelectedTicketDetail(c)}
-                                                                className="font-semibold text-slate-800 text-xs tracking-[-0.1px] hover:text-[#0B6B63] transition-colors cursor-pointer truncate max-w-[240px] text-left block"
+                                                                className="font-semibold text-slate-800 text-xs tracking-[-0.1px] hover:text-[#0B6B63] transition-colors cursor-pointer truncate max-w-[210px] text-left block"
                                                                 title={custName}
                                                             >
                                                                 {custName}
@@ -10660,7 +10660,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     </td>
 
                                                     {/* Ticket Number */}
-                                                    <td className="px-4 py-3">
+                                                    <td className="py-3 px-3">
                                                         <button
                                                             type="button"
                                                             onClick={() => setSelectedTicketDetail(c)}
@@ -10672,14 +10672,14 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     </td>
 
                                                     {/* Category */}
-                                                    <td className="px-4 py-3 text-center">
+                                                    <td className="py-3 px-3 text-center">
                                                         <span className="text-[9.5px] font-mono font-medium uppercase px-2 py-0.5 rounded-md bg-slate-50 text-slate-600 border border-slate-200/70 inline-block">
                                                             {c.category || 'General'}
                                                         </span>
                                                     </td>
 
                                                     {/* Status */}
-                                                    <td className="px-4 py-3 text-center">
+                                                    <td className="py-3 px-3 text-center">
                                                         <div className="flex items-center justify-center">
                                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.8 rounded-full text-[10.5px] font-medium border whitespace-nowrap ${
                                                                 isResolved
@@ -10693,12 +10693,12 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     </td>
 
                                                     {/* Date of Register */}
-                                                    <td className="px-4 py-3 text-center text-slate-600 font-mono font-medium text-xs">
+                                                    <td className="py-3 px-3 text-center text-slate-600 font-mono font-medium text-xs">
                                                         {formatDate(c.dateReceived)}
                                                     </td>
 
                                                     {/* Age */}
-                                                    <td className="px-4 py-3 text-center">
+                                                    <td className="py-3 px-3 text-center">
                                                         <span className={`inline-flex items-center gap-1 px-2 py-0.8 rounded-md text-[10px] font-mono font-medium border whitespace-nowrap ${
                                                             isResolved
                                                                 ? 'bg-slate-50 text-slate-500 border-slate-200/70'
@@ -10714,15 +10714,17 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     </td>
 
                                                     {/* Action Button */}
-                                                    <td className="px-4 py-3 text-right">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setSelectedTicketDetail(c)}
-                                                            className="h-7 w-7 rounded-lg border border-slate-200/80 hover:border-slate-300 hover:bg-slate-100/70 text-slate-500 hover:text-slate-700 inline-flex items-center justify-center transition-all cursor-pointer"
-                                                            title="View full complaint details & report"
-                                                        >
-                                                            <Icon name="eye" size={13}/>
-                                                        </button>
+                                                    <td className="py-3 pl-2 pr-4 text-center">
+                                                        <div className="flex items-center justify-center">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setSelectedTicketDetail(c)}
+                                                                className="h-7 w-7 rounded-lg border border-slate-200/80 hover:border-slate-300 hover:bg-slate-100/70 text-slate-500 hover:text-slate-700 inline-flex items-center justify-center transition-all cursor-pointer"
+                                                                title="View full complaint details & report"
+                                                            >
+                                                                <Icon name="eye" size={13}/>
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
