@@ -14989,7 +14989,6 @@ function App() {
 
                         {/* ── DEDICATED PO AT GLANCE & COST CENTER HUB ── */}
                         {activeTab==='po-glance' && (() => {
-                            // Calculate metrics
                             const totalDeliveries = trucks.length;
                             const poGlanceGenCount = trucks.filter(t => t.costCenterStatus !== 'Not Generated').length;
                             const submittedAccountsCount = trucks.filter(t => t.costCenterStatus === 'Submitted to Accounts' || t.costCenterStatus === 'Cost Center Created').length;
@@ -14997,7 +14996,6 @@ function App() {
                             const delayedCount = trucks.filter(t => calculateCostCenterKPI(t).isDelayed).length;
                             const slaRate = totalDeliveries > 0 ? Math.round(((costCenterCreatedCount - delayedCount) / totalDeliveries) * 100) : 0;
 
-                            // Filter trucks
                             const filteredGlanceTrucks = trucks.filter(t => {
                                 const cust = customers.find(c => c.id === t.customerId);
                                 const q = poGlanceSearch.toLowerCase().trim();
@@ -15008,12 +15006,10 @@ function App() {
 
                                 if (!matchesSearch) return false;
 
-                                // Status filter
                                 if (poGlanceStatusFilter !== 'All') {
                                     if ((t.costCenterStatus || 'Not Generated') !== poGlanceStatusFilter) return false;
                                 }
 
-                                // KPI filter
                                 if (poGlanceKpiFilter !== 'All') {
                                     const kpi = calculateCostCenterKPI(t);
                                     if (poGlanceKpiFilter === 'On Track' && (kpi.isDelayed || kpi.isCompleted || kpi.days === 7)) return false;
@@ -15027,42 +15023,53 @@ function App() {
                             });
 
                             return (
-                                <div className="space-y-3 fade-up">
-                                    {/* Ultra-Compact Control Bar: Stats + Actions + Search/Filters */}
-                                    <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
+                                <div className="space-y-3.5 fade-up select-none">
+                                    {/* Ultra-Compact Control Bar */}
+                                    <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5">
                                         {/* Row 1: KPI Stats Strip & Quick Actions */}
                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                             {/* KPI Badges */}
-                                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 border border-slate-200">
-                                                    <span className="text-[9px] font-black uppercase text-slate-500">Deliveries</span>
-                                                    <span className="text-xs font-black text-slate-900">{totalDeliveries}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
-                                                    <span className="text-[9px] font-black uppercase text-blue-500">PO Glance Gen</span>
-                                                    <span className="text-xs font-black text-blue-900">{poGlanceGenCount}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-lg text-amber-700">
-                                                    <span className="text-[9px] font-black uppercase text-amber-500">Submitted</span>
-                                                    <span className="text-xs font-black text-amber-900">{submittedAccountsCount}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700">
-                                                    <span className="text-[9px] font-black uppercase text-emerald-500">CC Created</span>
-                                                    <span className="text-xs font-black text-emerald-900">{costCenterCreatedCount}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-700">
-                                                    <span className="text-[9px] font-black uppercase text-indigo-500">7D SLA Rate</span>
-                                                    <span className="text-xs font-black text-indigo-900">{Math.max(0, slaRate)}%</span>
-                                                </div>
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 font-mono text-[11px] font-medium border border-slate-200/80">
+                                                    <span className="text-[10px] text-slate-400 font-normal">Deliveries:</span>
+                                                    <strong className="font-semibold text-slate-800">{totalDeliveries}</strong>
+                                                </span>
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 font-mono text-[11px] font-medium border border-teal-100/70">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#0B6B63]"></span>
+                                                    <span className="text-[10px] text-teal-600 font-normal">PO Glance:</span>
+                                                    <strong className="font-semibold">{poGlanceGenCount}</strong>
+                                                </span>
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-mono text-[11px] font-medium border border-amber-100/70">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    <span className="text-[10px] text-amber-600 font-normal">Submitted:</span>
+                                                    <strong className="font-semibold">{submittedAccountsCount}</strong>
+                                                </span>
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-mono text-[11px] font-medium border border-emerald-100/70">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    <span className="text-[10px] text-emerald-600 font-normal">CC Created:</span>
+                                                    <strong className="font-semibold">{costCenterCreatedCount}</strong>
+                                                </span>
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[11px] font-medium border border-slate-200/70">
+                                                    <span className="text-[10px] text-slate-400 font-normal">7D SLA Rate:</span>
+                                                    <strong className="font-semibold text-slate-800">{Math.max(0, slaRate)}%</strong>
+                                                </span>
                                             </div>
 
                                             {/* Action Buttons */}
                                             <div className="flex items-center gap-1.5 ml-auto">
-                                                <button onClick={() => exportCostCenterAuditExcel(trucks, customers, 'All')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-black shadow-sm uppercase tracking-wider flex items-center gap-1 transition-all">
-                                                    <Icon name="download" size={12}/> Excel
+                                                <button
+                                                    onClick={() => exportCostCenterAuditExcel(trucks, customers, 'All')}
+                                                    className="h-7.5 px-2.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200/90 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
+                                                >
+                                                    <Icon name="download" size={12.5} className="text-emerald-600"/>
+                                                    <span>Excel</span>
                                                 </button>
-                                                <button onClick={() => setShowSlaReportModal(true)} className="bg-slate-900 hover:bg-black text-white px-3 py-1.5 rounded-lg text-[10px] font-black shadow-sm uppercase tracking-wider flex items-center gap-1 transition-all">
-                                                    <Icon name="printer" size={12}/> SLA Report
+                                                <button
+                                                    onClick={() => setShowSlaReportModal(true)}
+                                                    className="h-7.5 px-2.5 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
+                                                >
+                                                    <Icon name="printer" size={12.5} className="text-slate-500"/>
+                                                    <span>SLA Report</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -15075,7 +15082,7 @@ function App() {
                                                     placeholder="Search PO Number, Client, Tender Type..." 
                                                     value={poGlanceSearch} 
                                                     onChange={e => setPoGlanceSearch(e.target.value)} 
-                                                    className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                                    className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-normal text-slate-800 placeholder-slate-400 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
                                                 />
                                                 <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">
                                                     <Icon name="search" size={13}/>
@@ -15085,7 +15092,7 @@ function App() {
                                                 <select 
                                                     value={poGlanceStatusFilter} 
                                                     onChange={e => setPoGlanceStatusFilter(e.target.value)} 
-                                                    className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-black text-slate-700 uppercase outline-none cursor-pointer"
+                                                    className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-medium text-slate-700 outline-none cursor-pointer focus:border-[#0B6B63]"
                                                 >
                                                     <option value="All">All Statuses</option>
                                                     <option value="Not Generated">Not Generated</option>
@@ -15096,9 +15103,9 @@ function App() {
                                                 <select 
                                                     value={poGlanceKpiFilter} 
                                                     onChange={e => setPoGlanceKpiFilter(e.target.value)} 
-                                                    className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-black text-slate-700 uppercase outline-none cursor-pointer"
+                                                    className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-medium text-slate-700 outline-none cursor-pointer focus:border-[#0B6B63]"
                                                 >
-                                                    <option value="All">All 7d KPI</option>
+                                                    <option value="All">All 7D KPI</option>
                                                     <option value="On Track">On Track</option>
                                                     <option value="Deadline Today">Deadline Today</option>
                                                     <option value="Delayed">Delayed (&gt;7d)</option>
@@ -15106,8 +15113,8 @@ function App() {
                                                     <option value="KPI Delayed">KPI Delayed</option>
                                                 </select>
                                                 {(poGlanceSearch || poGlanceStatusFilter !== 'All' || poGlanceKpiFilter !== 'All') && (
-                                                    <button onClick={() => { setPoGlanceSearch(''); setPoGlanceStatusFilter('All'); setPoGlanceKpiFilter('All'); }} className="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-all" title="Reset Filters">
-                                                        <Icon name="x-circle" size={14}/>
+                                                    <button onClick={() => { setPoGlanceSearch(''); setPoGlanceStatusFilter('All'); setPoGlanceKpiFilter('All'); }} className="h-7.5 w-7.5 flex items-center justify-center bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-lg text-slate-400 transition-colors" title="Reset Filters">
+                                                        <Icon name="x-circle" size={13.5}/>
                                                     </button>
                                                 )}
                                             </div>
@@ -15115,22 +15122,22 @@ function App() {
                                     </div>
 
                                     {/* Main PO AT GLANCE Table */}
-                                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
                                         <div className="overflow-x-auto">
-                                            <table className="w-full text-left table-fixed">
-                                                <thead className="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200">
-                                                    <tr>
-                                                        <th className="px-6 py-3.5 w-[38%]">Client Name</th>
-                                                        <th className="px-6 py-3.5 w-[27%]">PO Number</th>
-                                                        <th className="px-6 py-3.5 w-[20%] text-center">Status</th>
-                                                        <th className="px-6 py-3.5 w-[15%] text-right">Action</th>
+                                            <table className="w-full text-left table-fixed min-w-[850px] border-collapse text-xs">
+                                                <thead>
+                                                    <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-slate-500 border-b border-slate-200">
+                                                        <th className="px-4 py-2.5 w-[38%] font-medium">Client Name</th>
+                                                        <th className="px-4 py-2.5 w-[25%] font-medium">PO Number</th>
+                                                        <th className="px-4 py-2.5 w-[22%] text-center font-medium">Status</th>
+                                                        <th className="px-4 py-2.5 w-[15%] text-right pr-4 font-medium">Action</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-slate-100 text-xs">
+                                                <tbody className="divide-y divide-slate-100/90 bg-white">
                                                     {filteredGlanceTrucks.length === 0 ? (
                                                         <tr>
-                                                            <td colSpan="4" className="py-16 text-center text-slate-400 font-bold uppercase">
-                                                                <Icon name="inbox" size={32} className="mx-auto mb-2 opacity-40"/>
+                                                            <td colSpan="4" className="py-16 text-center text-slate-400 font-medium">
+                                                                <Icon name="inbox" size={28} className="mx-auto mb-2 text-slate-300"/>
                                                                 No matching PO records found
                                                             </td>
                                                         </tr>
@@ -15138,36 +15145,78 @@ function App() {
                                                         filteredGlanceTrucks.map(t => {
                                                             const cust = customers.find(c => c.id === t.customerId);
                                                             const poDateStr = formatDateDDMMYYYY(t.poDate || t.po_date);
+                                                            const initials = (cust?.name || 'IFS').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
                                                             return (
                                                                 <tr 
                                                                     key={t.id} 
                                                                     onClick={() => setSelectedDrawerTruck(t)} 
-                                                                    className="hover:bg-indigo-50/40 cursor-pointer transition-colors group"
+                                                                    className="hover:bg-slate-50/70 cursor-pointer transition-colors group"
                                                                 >
-                                                                    <td className="px-6 py-3.5">
-                                                                        <span className="font-black text-slate-900 uppercase truncate block" title={cust?.name}>{cust?.name || 'Unknown Client'}</span>
+                                                                    {/* Client Name */}
+                                                                    <td className="px-4 py-3">
+                                                                        <div className="flex items-center gap-2.5">
+                                                                            <div className="w-7 h-7 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center font-semibold text-[10.5px] font-mono shrink-0">
+                                                                                {initials}
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <p className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate font-heading group-hover:text-[#0B6B63] transition-colors" title={cust?.name}>
+                                                                                    {cust?.name || 'Unknown Client'}
+                                                                                </p>
+                                                                                <p className="text-[11px] font-normal text-slate-400 truncate mt-0.5">
+                                                                                    {cust?.address || 'Site location not recorded'}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
                                                                     </td>
-                                                                    <td className="px-6 py-3.5 whitespace-nowrap">
-                                                                        <span className="font-black text-blue-600 uppercase group-hover:text-indigo-600 transition-colors">{t.poNo || 'N/A'}</span>
-                                                                        {poDateStr && <span className="ml-2 text-[10px] font-bold text-slate-400">({poDateStr})</span>}
+
+                                                                    {/* PO Number */}
+                                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
+                                                                                {t.poNo || 'N/A'}
+                                                                            </span>
+                                                                            {poDateStr && (
+                                                                                <span className="text-[10.5px] text-slate-400 font-mono">
+                                                                                    ({poDateStr})
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
                                                                     </td>
-                                                                    <td className="px-6 py-3.5 text-center whitespace-nowrap">
-                                                                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase inline-block border ${
-                                                                            t.costCenterStatus === 'Cost Center Created' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                                            t.costCenterStatus === 'Submitted to Accounts' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                                            t.costCenterStatus === 'PO AT GLANCE Generated' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                                            'bg-slate-100 text-slate-600 border-slate-200'
-                                                                        }`}>
-                                                                            ● {t.costCenterStatus || 'Not Generated'}
-                                                                        </span>
+
+                                                                    {/* Status */}
+                                                                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                                        {t.costCenterStatus === 'Cost Center Created' ? (
+                                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                                Cost Center Created
+                                                                            </span>
+                                                                        ) : t.costCenterStatus === 'Submitted to Accounts' ? (
+                                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-amber-50 text-amber-800 border border-amber-200/70">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                                Submitted to Accounts
+                                                                            </span>
+                                                                        ) : t.costCenterStatus === 'PO AT GLANCE Generated' ? (
+                                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-teal-50 text-teal-800 border border-teal-100/70">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-[#0B6B63]"></span>
+                                                                                PO Glance Generated
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-slate-100 text-slate-500 border border-slate-200/70">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                                                                Not Generated
+                                                                            </span>
+                                                                        )}
                                                                     </td>
-                                                                    <td className="px-6 py-3.5 text-right whitespace-nowrap">
+
+                                                                    {/* Action */}
+                                                                    <td className="px-4 py-3 text-right pr-4 whitespace-nowrap">
                                                                         <button 
                                                                             onClick={(e) => { e.stopPropagation(); setSelectedDrawerTruck(t); }} 
-                                                                            className="text-xs font-black text-indigo-600 group-hover:text-indigo-800 bg-indigo-50 group-hover:bg-indigo-100 px-3.5 py-1.5 rounded-xl uppercase tracking-wider transition-all inline-flex items-center gap-1 shadow-2xs"
+                                                                            className="h-7 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-[11.5px] font-medium inline-flex items-center gap-1 transition-colors shadow-2xs cursor-pointer active:scale-95"
                                                                         >
-                                                                            VIEW →
+                                                                            <span>View</span>
+                                                                            <Icon name="arrow-right" size={12} className="text-slate-400"/>
                                                                         </button>
                                                                     </td>
                                                                 </tr>
