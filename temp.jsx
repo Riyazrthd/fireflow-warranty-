@@ -15448,7 +15448,7 @@ function App() {
                         />
                     )}
 
-                    {/* ── RIGHT-SIDE SLIDE-OVER DRAWER FOR PO AT GLANCE ── */}
+                    {/* ── LIGHTWEIGHT SINGLE-SCREEN CENTERED MODAL POPUP FOR PO AT GLANCE ── */}
                     {selectedDrawerTruck && (() => {
                         const t = trucks.find(trk => trk.id === selectedDrawerTruck.id) || selectedDrawerTruck;
                         const cust = customers.find(c => c.id === t.customerId);
@@ -15458,187 +15458,225 @@ function App() {
                         const isGenerated = t.costCenterStatus && t.costCenterStatus !== 'Not Generated';
 
                         return (
-                            <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
-                                {/* Backdrop */}
-                                <div 
-                                    className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity" 
-                                    onClick={() => { setSelectedDrawerTruck(null); setShowStatusUpdateMenu(false); }}
-                                ></div>
-
-                                {/* Slide-over panel */}
-                                <div className="relative w-full max-w-lg sm:max-w-xl h-full bg-white shadow-2xl flex flex-col z-50 border-l border-slate-200 animate-slide-in">
-                                    {/* Sticky Header */}
-                                    <div className="px-6 py-5 bg-slate-900 text-white flex justify-between items-center shrink-0 shadow-md">
-                                        <div className="flex items-center gap-3 overflow-hidden">
-                                            <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white shrink-0 shadow-sm">
-                                                <Icon name="file-text" size={20}/>
+                            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] fade-in select-none">
+                                <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200/90 overflow-hidden">
+                                    {/* Modal Header */}
+                                    <div className="px-4 sm:px-5 py-3.5 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center shrink-0">
+                                                <Icon name="file-text" size={15}/>
                                             </div>
-                                            <div className="truncate">
-                                                <h3 className="font-black text-sm uppercase tracking-wider truncate">PO: {t.poNo || 'N/A'}</h3>
-                                                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest truncate">{t.tenderType} · {cust?.name || 'Client'}</p>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-semibold text-slate-800 text-[13.5px] tracking-tight font-heading truncate">
+                                                        PO: {t.poNo || 'N/A'}
+                                                    </h3>
+                                                    <span className={`inline-flex items-center gap-1 font-mono text-[10.5px] font-medium px-2 py-0.2 rounded-md border whitespace-nowrap ${
+                                                        t.costCenterStatus === 'Cost Center Created' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                        t.costCenterStatus === 'Submitted to Accounts' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                        t.costCenterStatus === 'PO AT GLANCE Generated' ? 'bg-teal-50 text-teal-800 border-teal-200' :
+                                                        'bg-slate-100 text-slate-600 border-slate-200'
+                                                    }`}>
+                                                        {t.costCenterStatus || 'Not Generated'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] font-normal text-slate-400 truncate mt-0.5">
+                                                    {t.tenderType || 'Fire Tender'} · {cust?.name || 'Client'}
+                                                </p>
                                             </div>
                                         </div>
+
                                         <button 
                                             onClick={() => { setSelectedDrawerTruck(null); setShowStatusUpdateMenu(false); }} 
-                                            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
-                                            title="Close Drawer"
+                                            className="h-7.5 w-7.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                                            title="Close Modal"
                                         >
-                                            <Icon name="x" size={20}/>
+                                            <Icon name="x" size={14}/>
                                         </button>
                                     </div>
 
-                                    {/* Scrollable Body */}
-                                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                                        
-                                        {/* SECTION 1: PO & Client Details (Auto-filled) */}
-                                        <div className="bg-slate-50 border border-slate-200 rounded-3xl p-5 space-y-4">
-                                            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                                                <h4 className="font-black text-xs uppercase text-slate-900 tracking-wider flex items-center gap-2">
-                                                    <Icon name="building-2" size={14} className="text-indigo-600"/>
-                                                    1. PO & Client Details
-                                                </h4>
-                                                <span className="text-[9px] font-black text-slate-400 uppercase">Auto-Loaded</span>
-                                            </div>
+                                    {/* 2-Column Single Screen Body */}
+                                    <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                                             
-                                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                                <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-2xs">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PO / WO Number</p>
-                                                    <p className="font-black text-blue-600 text-sm mt-0.5 uppercase">{t.poNo || 'N/A'}</p>
-                                                </div>
-                                                <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-2xs">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PO Date</p>
-                                                    <p className="font-black text-slate-900 text-sm mt-0.5">{poDateFormatted || 'Not Specified'}</p>
-                                                </div>
-                                                <div className="col-span-2 bg-white p-3.5 rounded-2xl border border-slate-100 shadow-2xs">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Client Name</p>
-                                                    <p className="font-black text-slate-900 mt-0.5 uppercase">{cust?.name || 'Unknown Client'}</p>
-                                                    <p className="text-[10px] font-bold text-slate-500 mt-1 whitespace-pre-line leading-relaxed">{cust?.address || 'Address not registered'}</p>
-                                                </div>
-                                                <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-2xs">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fire Tender Type</p>
-                                                    <p className="font-black text-slate-800 mt-0.5 uppercase">{t.tenderType}</p>
-                                                </div>
-                                                <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-2xs">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Delivery Date</p>
-                                                    <p className="font-black text-slate-700 mt-0.5">{delDateFormatted || 'N/A'}</p>
-                                                </div>
-                                                {t.costCenterNo && (
-                                                    <div className="col-span-2 bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200 shadow-2xs">
-                                                        <p className="text-[8px] font-black text-emerald-700 uppercase tracking-widest">Cost Center in Tally</p>
-                                                        <p className="font-black text-emerald-900 text-xs mt-0.5 uppercase">{t.costCenterNo}</p>
+                                            {/* LEFT COLUMN: Specifications & 7D KPI (5 Cols) */}
+                                            <div className="md:col-span-5 space-y-3">
+                                                {/* SECTION 1: PO & Client Specifications */}
+                                                <div className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 space-y-2.5">
+                                                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
+                                                        <span className="text-[11.5px] font-semibold text-slate-700 flex items-center gap-1.5">
+                                                            <Icon name="building-2" size={13} className="text-[#0B6B63]"/>
+                                                            PO &amp; Delivery Details
+                                                        </span>
+                                                        <span className="text-[10px] font-mono text-slate-400">Auto-Loaded</span>
                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
 
-                                        {/* SECTION 2: PO AT GLANCE Action */}
-                                        <div className="bg-white border border-slate-200 rounded-3xl p-5 space-y-4 shadow-sm">
-                                            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                                                <h4 className="font-black text-xs uppercase text-slate-900 tracking-wider flex items-center gap-2">
-                                                    <Icon name="file-text" size={14} className="text-indigo-600"/>
-                                                    2. PO AT GLANCE Document
-                                                </h4>
-                                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                                    isGenerated ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'
-                                                }`}>
-                                                    ● {isGenerated ? 'GENERATED' : 'NOT GENERATED'}
-                                                </span>
+                                                    <div className="space-y-2 text-xs">
+                                                        <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100">
+                                                            <span className="text-[10.5px] text-slate-400 font-medium">PO / WO Number</span>
+                                                            <span className="font-mono font-semibold text-[#0B6B63]">{t.poNo || 'N/A'}</span>
+                                                        </div>
+
+                                                        <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100">
+                                                            <span className="text-[10.5px] text-slate-400 font-medium">PO Date</span>
+                                                            <span className="font-mono text-slate-700 font-medium">{poDateFormatted || 'Not Specified'}</span>
+                                                        </div>
+
+                                                        <div className="bg-white p-2 rounded-lg border border-slate-100 space-y-0.5">
+                                                            <span className="text-[10px] text-slate-400 font-medium">Client Organization</span>
+                                                            <p className="font-semibold text-slate-800 truncate" title={cust?.name}>{cust?.name || 'Unknown Client'}</p>
+                                                            <p className="text-[10.5px] text-slate-400 truncate">{cust?.address || 'Site location not recorded'}</p>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div className="bg-white p-2 rounded-lg border border-slate-100">
+                                                                <span className="text-[10px] text-slate-400 font-medium block">Tender Type</span>
+                                                                <span className="font-medium text-slate-700 truncate block mt-0.5">{t.tenderType || '—'}</span>
+                                                            </div>
+                                                            <div className="bg-white p-2 rounded-lg border border-slate-100">
+                                                                <span className="text-[10px] text-slate-400 font-medium block">Delivery Date</span>
+                                                                <span className="font-mono text-slate-700 font-medium block mt-0.5">{delDateFormatted || 'N/A'}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {t.costCenterNo && (
+                                                            <div className="bg-emerald-50/80 p-2.5 rounded-lg border border-emerald-200/80">
+                                                                <span className="text-[10px] font-medium text-emerald-700 block">Cost Center in Tally</span>
+                                                                <span className="font-mono font-semibold text-emerald-900 text-xs mt-0.5 block">{t.costCenterNo}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* SECTION 2: 7-Day KPI Tracking */}
+                                                <div className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 space-y-2">
+                                                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
+                                                        <span className="text-[11.5px] font-semibold text-slate-700 flex items-center gap-1.5">
+                                                            <Icon name="clock" size={13} className="text-[#0B6B63]"/>
+                                                            7-Day SLA Benchmark
+                                                        </span>
+                                                        <span className="text-[10px] font-mono text-slate-400">Target: 7 Days</span>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                                                        <div className="bg-white p-2 rounded-lg border border-slate-100">
+                                                            <span className="text-[10px] text-slate-400 font-medium">SLA Target</span>
+                                                            <p className="font-mono font-semibold text-slate-700 mt-0.5">7 Days</p>
+                                                        </div>
+                                                        <div className="bg-white p-2 rounded-lg border border-slate-100">
+                                                            <span className="text-[10px] text-slate-400 font-medium">Elapsed</span>
+                                                            <p className="font-mono font-semibold text-[#0B6B63] mt-0.5">{kpi.days} Days</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className={`p-2.5 rounded-lg border text-center text-[11.5px] font-medium font-mono ${
+                                                        kpi.isCompleted 
+                                                            ? (kpi.isDelayed ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200') 
+                                                            : (kpi.days === 7 ? 'bg-amber-50 text-amber-800 border-amber-200' : kpi.isDelayed ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-teal-50 text-teal-800 border-teal-200')
+                                                    }`}>
+                                                        {kpi.isCompleted ? (
+                                                            kpi.isDelayed ? `⚠ KPI Delayed — Created in ${kpi.days} Days` : `✓ KPI Achieved in ${kpi.days} Days`
+                                                        ) : (
+                                                            kpi.days === 7 ? `● Deadline Today (${kpi.days}d Elapsed)` : kpi.isDelayed ? `● Delayed (${kpi.days}d Elapsed — Over 7d SLA)` : `● On Track (${kpi.days} / 7 Days)`
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
 
-                                            <div className="space-y-3">
-                                                {!isGenerated ? (
-                                                    <button 
-                                                        onClick={() => {
-                                                            handleGeneratePoAtGlance(t);
-                                                            setSelectedDrawerTruck({
-                                                                ...t,
-                                                                costCenterStatus: 'PO AT GLANCE Generated',
-                                                                poAtGlanceGeneratedAt: new Date().toISOString()
-                                                            });
-                                                        }} 
-                                                        className="w-full bg-[#0B6B63] hover:bg-[#09544E] text-white py-3.5 rounded-2xl font-black text-xs uppercase shadow-xl tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
-                                                    >
-                                                        <Icon name="file-text" size={16}/> 📄 GENERATE PO AT GLANCE
-                                                    </button>
-                                                ) : (
-                                                    <div className="grid grid-cols-2 gap-3">
+                                            {/* RIGHT COLUMN: Document Generation, Status Workflow & Timeline (7 Cols) */}
+                                            <div className="md:col-span-7 space-y-3">
+                                                
+                                                {/* SECTION 3: PO AT GLANCE Document */}
+                                                <div className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 space-y-2.5">
+                                                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
+                                                        <span className="text-[11.5px] font-semibold text-slate-700 flex items-center gap-1.5">
+                                                            <Icon name="file-text" size={13} className="text-[#0B6B63]"/>
+                                                            PO AT GLANCE Document
+                                                        </span>
+                                                        <span className={`px-2 py-0.2 rounded text-[10px] font-mono font-medium ${
+                                                            isGenerated ? 'bg-teal-100/70 text-[#0B6B63]' : 'bg-slate-200 text-slate-600'
+                                                        }`}>
+                                                            {isGenerated ? 'Generated' : 'Not Generated'}
+                                                        </span>
+                                                    </div>
+
+                                                    {!isGenerated ? (
                                                         <button 
                                                             onClick={() => {
-                                                                setPoAtGlanceTruck(t);
-                                                                setShowPoAtGlanceModal(true);
+                                                                handleGeneratePoAtGlance(t);
+                                                                setSelectedDrawerTruck({
+                                                                    ...t,
+                                                                    costCenterStatus: 'PO AT GLANCE Generated',
+                                                                    poAtGlanceGeneratedAt: new Date().toISOString()
+                                                                });
                                                             }} 
-                                                            className="bg-slate-900 hover:bg-black text-white py-3 rounded-2xl font-black text-xs uppercase shadow-md tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                                            className="w-full h-8.5 rounded-lg bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-medium flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
                                                         >
-                                                            <Icon name="eye" size={14}/> 👁 VIEW
+                                                            <Icon name="file-text" size={14}/>
+                                                            <span>Generate PO At Glance</span>
                                                         </button>
-                                                        <button 
-                                                            onClick={() => printPoAtGlance(t, cust)} 
-                                                            className="bg-[#0B6B63] hover:bg-[#09544E] text-white py-3 rounded-2xl font-black text-xs uppercase shadow-md tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
-                                                        >
-                                                            <Icon name="printer" size={14}/> 🖨 PRINT
-                                                        </button>
-                                                    </div>
-                                                )}
-                                                {t.poAtGlanceGeneratedAt && (
-                                                    <p className="text-[10px] font-bold text-slate-400 text-center">
-                                                        Generated on {formatDate(t.poAtGlanceGeneratedAt)}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* SECTION 3: Cost Center Status & Workflow (Hidden Once Cost Center is Created) */}
-                                        {t.costCenterStatus !== 'Cost Center Created' && (
-                                            <div className="bg-white border border-slate-200 rounded-3xl p-5 space-y-3.5 shadow-sm">
-                                                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                                                    <h4 className="font-black text-xs uppercase text-slate-900 tracking-wider flex items-center gap-2">
-                                                        <Icon name="tag" size={14} className="text-indigo-600"/>
-                                                        3. Cost Center Status & Workflow
-                                                    </h4>
-                                                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                                        t.costCenterStatus === 'Submitted to Accounts' ? 'bg-amber-100 text-amber-800' :
-                                                        t.costCenterStatus === 'PO AT GLANCE Generated' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-slate-100 text-slate-600'
-                                                    }`}>
-                                                        ● {t.costCenterStatus || 'Not Generated'}
-                                                    </span>
+                                                    ) : (
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setPoAtGlanceTruck(t);
+                                                                    setShowPoAtGlanceModal(true);
+                                                                }} 
+                                                                className="h-8 rounded-lg bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-medium flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
+                                                            >
+                                                                <Icon name="eye" size={13.5}/>
+                                                                <span>View Document</span>
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => printPoAtGlance(t, cust)} 
+                                                                className="h-8 rounded-lg bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-medium flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
+                                                            >
+                                                                <Icon name="printer" size={13.5}/>
+                                                                <span>Print Document</span>
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                {/* Live Interactive Status Grid */}
-                                                <div className="space-y-2">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Update / Advance Status:</p>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                                        {[
-                                                            { val: 'Not Generated', label: '1. Not Generated', color: 'slate' },
-                                                            { val: 'PO AT GLANCE Generated', label: '2. PO Glance Gen', color: 'blue' },
-                                                            { val: 'Submitted to Accounts', label: '3. Submitted to Acc', color: 'amber' }
-                                                        ].map(opt => {
-                                                            const isCurrent = (t.costCenterStatus || 'Not Generated') === opt.val;
-                                                            return (
-                                                                <button
-                                                                    key={opt.val}
-                                                                    type="button"
-                                                                    onClick={async () => {
-                                                                        await handleUpdateCostCenterStatus(t, opt.val);
-                                                                        setSelectedDrawerTruck({ ...t, costCenterStatus: opt.val });
-                                                                    }}
-                                                                    className={`px-3 py-2.5 rounded-xl text-xs font-black uppercase flex items-center justify-between transition-all cursor-pointer border ${
-                                                                        isCurrent
-                                                                            ? opt.color === 'amber' ? 'bg-amber-500 text-white border-amber-500 shadow-md' :
-                                                                              opt.color === 'blue' ? 'bg-blue-600 text-white border-blue-600 shadow-md' :
-                                                                              'bg-slate-800 text-white border-slate-800 shadow-md'
-                                                                            : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                                                                    }`}
-                                                                >
-                                                                    <span>{opt.label}</span>
-                                                                    {isCurrent && <Icon name="check" size={14} className="text-white"/>}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
+                                                {/* SECTION 4: Cost Center Workflow Advance */}
+                                                {t.costCenterStatus !== 'Cost Center Created' && (
+                                                    <div className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 space-y-2.5">
+                                                        <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
+                                                            <span className="text-[11.5px] font-semibold text-slate-700 flex items-center gap-1.5">
+                                                                <Icon name="tag" size={13} className="text-[#0B6B63]"/>
+                                                                Advance Workflow Status
+                                                            </span>
+                                                            <span className="text-[10.5px] font-mono text-slate-400">Step Action</span>
+                                                        </div>
 
-                                                    {/* Enter Cost Center Action */}
-                                                    <div className="pt-1">
+                                                        <div className="grid grid-cols-3 gap-1.5">
+                                                            {[
+                                                                { val: 'Not Generated', label: '1. Not Gen' },
+                                                                { val: 'PO AT GLANCE Generated', label: '2. PO Glance' },
+                                                                { val: 'Submitted to Accounts', label: '3. Submitted' }
+                                                            ].map(opt => {
+                                                                const isCurrent = (t.costCenterStatus || 'Not Generated') === opt.val;
+                                                                return (
+                                                                    <button
+                                                                        key={opt.val}
+                                                                        type="button"
+                                                                        onClick={async () => {
+                                                                            await handleUpdateCostCenterStatus(t, opt.val);
+                                                                            setSelectedDrawerTruck({ ...t, costCenterStatus: opt.val });
+                                                                        }}
+                                                                        className={`h-7.5 px-2 rounded-lg text-[11px] font-medium transition-all flex items-center justify-center gap-1 cursor-pointer border ${
+                                                                            isCurrent
+                                                                                ? 'bg-[#0B6B63] text-white border-[#0B6B63] shadow-2xs font-semibold'
+                                                                                : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
+                                                                        }`}
+                                                                    >
+                                                                        <span>{opt.label}</span>
+                                                                        {isCurrent && <Icon name="check" size={12}/>}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+
                                                         <button
                                                             type="button"
                                                             onClick={() => {
@@ -15647,93 +15685,58 @@ function App() {
                                                                 setPromptCostCenterNo(t.costCenterNo || '');
                                                                 setShowCcOcPromptModal(true);
                                                             }}
-                                                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-black text-xs uppercase shadow-md tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                                            className="w-full h-8.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs active:scale-98"
                                                         >
-                                                            <Icon name="check-circle" size={16}/> 4. ENTER COST CENTER & FINALIZE (CC CREATED)
+                                                            <Icon name="check-circle" size={14}/>
+                                                            <span>4. Enter Cost Center in Tally &amp; Finalize</span>
                                                         </button>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* SECTION 4: 7-Day KPI Tracking Widget */}
-                                        <div className="bg-slate-900 text-white rounded-3xl p-5 space-y-4 shadow-xl">
-                                            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                                                <h4 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-indigo-400">
-                                                    <Icon name="clock" size={14}/>
-                                                    4. 7-Day KPI Tracking
-                                                </h4>
-                                                <span className="text-[9px] font-black text-slate-400 uppercase">Target: 7 Days</span>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3 text-center">
-                                                <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
-                                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">KPI Window</p>
-                                                    <p className="text-xl font-black text-white mt-0.5">7 Days</p>
-                                                </div>
-                                                <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
-                                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Days Elapsed</p>
-                                                    <p className="text-xl font-black text-indigo-300 mt-0.5">{kpi.days} Days</p>
-                                                </div>
-                                            </div>
-
-                                            <div className={`p-4 rounded-2xl border text-center font-black text-xs uppercase tracking-wider ${
-                                                kpi.isCompleted 
-                                                    ? (kpi.isDelayed ? 'bg-rose-950/60 text-rose-300 border-rose-800' : 'bg-emerald-950/60 text-emerald-300 border-emerald-800') 
-                                                    : (kpi.days === 7 ? 'bg-amber-950/60 text-amber-300 border-amber-800' : kpi.isDelayed ? 'bg-rose-950/60 text-rose-300 border-rose-800' : 'bg-indigo-950/60 text-indigo-300 border-indigo-800')
-                                            }`}>
-                                                {kpi.isCompleted ? (
-                                                    kpi.isDelayed ? `⚠ KPI DELAYED — Cost Center Created in ${kpi.days} Days` : `✓ KPI ACHIEVED — Cost Center Created in ${kpi.days} Days`
-                                                ) : (
-                                                    kpi.days === 7 ? `● DEADLINE TODAY (${kpi.days} Days Elapsed)` : kpi.isDelayed ? `● DELAYED (${kpi.days} Days Elapsed — Exceeded 7d Target)` : `● ON TRACK (${kpi.days} / 7 Days)`
                                                 )}
+
+                                                {/* SECTION 5: Process Timeline */}
+                                                <div className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 space-y-2">
+                                                    <span className="text-[11.5px] font-semibold text-slate-700 flex items-center gap-1.5 border-b border-slate-200/70 pb-1.5">
+                                                        <Icon name="activity" size={13} className="text-[#0B6B63]"/>
+                                                        Process Timeline Audit
+                                                    </span>
+
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <div className="bg-white p-2 rounded-lg border border-slate-100 flex items-start gap-2">
+                                                            <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0"></span>
+                                                            <div className="min-w-0">
+                                                                <span className="text-[10px] text-slate-400 block font-medium">1. Delivery Logged</span>
+                                                                <span className="font-mono text-[11px] text-slate-700 font-medium truncate block">{delDateFormatted || formatDate(t.timestamp)}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-white p-2 rounded-lg border border-slate-100 flex items-start gap-2">
+                                                            <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${t.poAtGlanceGeneratedAt ? 'bg-teal-500' : 'bg-slate-300'}`}></span>
+                                                            <div className="min-w-0">
+                                                                <span className="text-[10px] text-slate-400 block font-medium">2. PO Glance Gen</span>
+                                                                <span className="font-mono text-[11px] text-slate-700 font-medium truncate block">{t.poAtGlanceGeneratedAt ? formatDate(t.poAtGlanceGeneratedAt) : 'Pending'}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-white p-2 rounded-lg border border-slate-100 flex items-start gap-2">
+                                                            <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${t.submittedToAccountsAt ? 'bg-amber-500' : 'bg-slate-300'}`}></span>
+                                                            <div className="min-w-0">
+                                                                <span className="text-[10px] text-slate-400 block font-medium">3. Submitted to Acc</span>
+                                                                <span className="font-mono text-[11px] text-slate-700 font-medium truncate block">{t.submittedToAccountsAt ? formatDate(t.submittedToAccountsAt) : 'Pending'}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-white p-2 rounded-lg border border-slate-100 flex items-start gap-2">
+                                                            <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${t.costCenterCreatedAt ? 'bg-emerald-600' : 'bg-slate-300'}`}></span>
+                                                            <div className="min-w-0">
+                                                                <span className="text-[10px] text-slate-400 block font-medium">4. CC Created</span>
+                                                                <span className="font-mono text-[11px] text-slate-700 font-medium truncate block">{t.costCenterCreatedAt ? formatDate(t.costCenterCreatedAt) : 'Pending'}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                             </div>
                                         </div>
-
-                                        {/* SECTION 5: Process Timeline */}
-                                        <div className="bg-white border border-slate-200 rounded-3xl p-5 space-y-4 shadow-sm">
-                                            <h4 className="font-black text-xs uppercase text-slate-900 tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
-                                                <Icon name="activity" size={14} className="text-indigo-600"/>
-                                                5. Process Timeline
-                                            </h4>
-
-                                            <div className="relative pl-6 space-y-5 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                                                {/* Step 1: Delivery Logged */}
-                                                <div className="relative">
-                                                    <div className="absolute -left-[27px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-sm"></div>
-                                                    <p className="text-[11px] font-black uppercase text-slate-900">Delivery Logged</p>
-                                                    <p className="text-[10px] font-bold text-slate-500 mt-0.5">{delDateFormatted || formatDate(t.timestamp)}</p>
-                                                </div>
-
-                                                {/* Step 2: PO AT GLANCE Generated */}
-                                                <div className="relative">
-                                                    <div className={`absolute -left-[27px] top-0.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
-                                                        t.poAtGlanceGeneratedAt ? 'bg-blue-500' : 'bg-slate-300'
-                                                    }`}></div>
-                                                    <p className="text-[11px] font-black uppercase text-slate-900">PO AT GLANCE Generated</p>
-                                                    <p className="text-[10px] font-bold text-slate-500 mt-0.5">{t.poAtGlanceGeneratedAt ? formatDate(t.poAtGlanceGeneratedAt) : 'Pending Generation'}</p>
-                                                </div>
-
-                                                {/* Step 3: Submitted to Accounts */}
-                                                <div className="relative">
-                                                    <div className={`absolute -left-[27px] top-0.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
-                                                        t.submittedToAccountsAt ? 'bg-amber-500' : 'bg-slate-300'
-                                                    }`}></div>
-                                                    <p className="text-[11px] font-black uppercase text-slate-900">Submitted to Accounts</p>
-                                                    <p className="text-[10px] font-bold text-slate-500 mt-0.5">{t.submittedToAccountsAt ? formatDate(t.submittedToAccountsAt) : 'Pending Submission'}</p>
-                                                </div>
-
-                                                {/* Step 4: Cost Center Created */}
-                                                <div className="relative">
-                                                    <div className={`absolute -left-[27px] top-0.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
-                                                        t.costCenterCreatedAt ? 'bg-emerald-600' : 'bg-slate-300'
-                                                    }`}></div>
-                                                    <p className="text-[11px] font-black uppercase text-slate-900">Cost Center Created</p>
-                                                    <p className="text-[10px] font-bold text-slate-500 mt-0.5">{t.costCenterCreatedAt ? `${formatDate(t.costCenterCreatedAt)} (CC: ${t.costCenterNo || 'Assigned'})` : 'Pending Accounts Creation'}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
                                     </div>
                                 </div>
                             </div>
