@@ -1997,132 +1997,132 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             };
 
             return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-                    <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 modal-animate space-y-4 max-h-[90vh] flex flex-col text-slate-800">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+                    <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200/80 space-y-4 max-h-[92vh] flex flex-col text-slate-800">
                         {/* Header */}
                         <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                             <div className="flex items-center gap-2.5">
-                                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black">
-                                    <Icon name="check-circle" size={20}/>
+                                <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center shrink-0">
+                                    <Icon name="check-circle" size={16}/>
                                 </div>
                                 <div>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <h3 className="text-sm font-semibold text-slate-800 font-heading">
                                             Record Service Completed
                                         </h3>
-                                        <span className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded border ${pumpOem.badgeClass}`}>
+                                        <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded border ${pumpOem.badgeClass}`}>
                                             {pumpOem.brand}
                                         </span>
-                                        <span className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded border ${chassisOem.badgeClass}`}>
+                                        <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded border ${chassisOem.badgeClass}`}>
                                             {chassisOem.brand}
                                         </span>
                                     </div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                                    <p className="text-[10px] font-mono text-slate-400 font-medium mt-0.5">
                                         PO: {truck.poNo || 'N/A'} · Chassis: {truck.chassisMake || 'N/A'} · Pump: {truck.pumpSrNo || 'N/A'}
                                     </p>
                                 </div>
                             </div>
-                            <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">
-                                &times;
+                            <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all cursor-pointer">
+                                <Icon name="x" size={14} />
                             </button>
                         </div>
 
                         {/* Milestone Description & Dual OEM Oil Spec Box */}
-                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 space-y-2">
                             <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-700">
+                                <span className="text-[10px] font-mono font-medium text-[#0B6B63] bg-teal-50 border border-teal-100 px-2 py-0.5 rounded">
                                     {milestone.shortCode} Service Milestone
                                 </span>
-                                <span className="text-[10px] font-extrabold text-slate-500">
+                                <span className="text-[10.5px] font-mono text-slate-500 font-medium">
                                     {milestone.months} Months From Delivery
                                 </span>
                             </div>
-                            <h4 className="text-xs font-black uppercase text-slate-900">{milestone.name}</h4>
-                            <p className="text-[11px] text-slate-600 font-medium leading-relaxed">{milestone.description}</p>
+                            <h4 className="text-xs font-semibold text-slate-800">{milestone.name}</h4>
+                            <p className="text-[11px] text-slate-500 font-normal leading-relaxed">{milestone.description}</p>
 
                             {/* Recommended Oil Specs Card (Pump + Chassis) */}
-                            <div className="mt-2 pt-2 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
-                                <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl space-y-0.5">
-                                    <span className="font-black uppercase text-amber-900 flex items-center gap-1">
+                            <div className="mt-2 pt-2 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10.5px]">
+                                <div className="bg-amber-50/80 border border-amber-200/70 p-2.5 rounded-lg space-y-0.5">
+                                    <span className="font-semibold text-amber-800 flex items-center gap-1 text-[10px]">
                                         🛢️ {pumpOem.brand} Pump Oil:
                                     </span>
-                                    <p className="font-extrabold text-amber-950 text-xs">{pumpOem.gearboxOil}</p>
-                                    <p className="text-[9px] text-amber-700 font-semibold">Capacity: {pumpOem.oilCapacity}</p>
+                                    <p className="font-mono text-amber-900 text-[11px] font-medium">{pumpOem.gearboxOil}</p>
+                                    <p className="text-[9.5px] text-amber-700/80 font-normal">Capacity: {pumpOem.oilCapacity}</p>
                                 </div>
-                                <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl space-y-0.5">
-                                    <span className="font-black uppercase text-emerald-900 flex items-center gap-1">
+                                <div className="bg-emerald-50/80 border border-emerald-200/70 p-2.5 rounded-lg space-y-0.5">
+                                    <span className="font-semibold text-emerald-800 flex items-center gap-1 text-[10px]">
                                         🚚 {chassisOem.brand} Chassis Spec:
                                     </span>
-                                    <p className="font-extrabold text-emerald-950 text-[11px]">{chassisOem.chassisGrease}</p>
-                                    <p className="text-[9px] text-emerald-700 font-semibold">Rear Axle: {chassisOem.diffAxleOil}</p>
+                                    <p className="font-mono text-emerald-900 text-[11px] font-medium">{chassisOem.chassisGrease}</p>
+                                    <p className="text-[9.5px] text-emerald-700/80 font-normal">Rear Axle: {chassisOem.diffAxleOil}</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Form */}
-                        <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto pr-1">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <form onSubmit={handleSubmit} className="space-y-3.5 flex-1 overflow-y-auto pr-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Completed Date *</label>
+                                    <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Completed Date *</label>
                                     <input 
                                         type="date" 
                                         value={completedDate} 
                                         onChange={e => setCompletedDate(e.target.value)} 
                                         required 
-                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                                        className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] bg-white transition-all"
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Captured Time (Local) *</label>
+                                    <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Captured Time *</label>
                                     <input 
                                         type="text" 
                                         value={completedTime} 
                                         onChange={e => setCompletedTime(e.target.value)} 
                                         required 
-                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                                        className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] bg-white transition-all"
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Serviced By (Officer / Tech Name) *</label>
+                                    <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Serviced By (Officer / Tech) *</label>
                                     <input 
                                         type="text" 
                                         value={servicedBy} 
                                         onChange={e => setServicedBy(e.target.value)} 
                                         placeholder="e.g. Sub-Officer Sharma / Tech Lead"
                                         required 
-                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                                        className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] bg-white transition-all"
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Service Station / Location</label>
+                                    <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Service Station / Location</label>
                                     <input 
                                         type="text" 
                                         value={serviceLocation} 
                                         onChange={e => setServiceLocation(e.target.value)} 
                                         placeholder="e.g. Fire Station Workshop / Site"
-                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                                        className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] bg-white transition-all"
                                     />
                                 </div>
                             </div>
 
                             {/* Checklist of Tasks Verified */}
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider block">
                                     Verified Service Checklist Tasks
                                 </label>
-                                <div className="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                                <div className="space-y-1.5 bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/80 max-h-36 overflow-y-auto">
                                     {(milestone.checklist || []).map((task, idx) => (
-                                        <label key={idx} className="flex items-start gap-2 text-xs font-medium text-slate-800 cursor-pointer select-none">
+                                        <label key={idx} className="flex items-start gap-2 text-xs font-normal text-slate-700 cursor-pointer select-none py-0.5 hover:text-slate-900 transition-colors">
                                             <input 
                                                 type="checkbox" 
                                                 checked={!!checkedTasks[idx]} 
                                                 onChange={() => toggleTask(idx)}
-                                                className="mt-0.5 rounded text-emerald-600 focus:ring-0 cursor-pointer"
+                                                className="mt-0.5 rounded text-[#0B6B63] focus:ring-0 cursor-pointer accent-[#0B6B63]"
                                             />
-                                            <span className={checkedTasks[idx] ? 'text-slate-900 font-bold' : 'text-slate-400 line-through'}>
+                                            <span className={checkedTasks[idx] ? 'text-slate-800 font-medium' : 'text-slate-400 line-through'}>
                                                 {task}
                                             </span>
                                         </label>
@@ -2131,29 +2131,30 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Remarks &amp; Observations</label>
+                                <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Remarks & Observations</label>
                                 <textarea 
                                     value={notes} 
                                     onChange={e => setNotes(e.target.value)} 
                                     placeholder="Greasing done, pump oil replaced, test run successful..."
-                                    className="w-full border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 min-h-[50px] outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                                    rows={2}
+                                    className="w-full border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] bg-white transition-all resize-none"
                                 />
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex gap-3 pt-2 border-t border-slate-100">
+                            <div className="flex gap-2.5 pt-2 border-t border-slate-100">
                                 <button 
                                     type="button" 
                                     onClick={onClose} 
-                                    className="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black text-xs uppercase tracking-wider hover:bg-slate-200 transition-all cursor-pointer"
+                                    className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition-all cursor-pointer"
                                 >
                                     Cancel
                                 </button>
                                 <button 
                                     type="submit" 
-                                    className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                    className="flex-1 py-2 rounded-xl bg-[#0B6B63] hover:bg-[#09544e] text-white font-medium text-xs shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
-                                    <Icon name="check" size={15}/> Confirm &amp; Save Service Record
+                                    <Icon name="check" size={14}/> Confirm &amp; Save Record
                                 </button>
                             </div>
                         </form>
@@ -2162,7 +2163,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             );
         };
 
-        // ══════════════════════════════════════════════════════
+                // ══════════════════════════════════════════════════════
         // ADVANCED COMMISSIONING & MULTI-DAY DRIVER TRAINING HUB
         // ══════════════════════════════════════════════════════
 
@@ -7281,57 +7282,108 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const upToDateCount = evaluatedTrucks.filter(t => t.overallStatus === 'UP_TO_DATE').length;
 
             return (
-                <div className="space-y-6 fade-up">
+                <div className="space-y-4 fade-up">
                     {/* Header Banner */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 text-white p-6 rounded-3xl shadow-xl border border-slate-800">
-                        <div>
-                            <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block mb-1">Fleet Health &amp; Time-Based Lifecycle</span>
-                            <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
-                                <Icon name="wrench" size={20} className="text-amber-500"/>
-                                Preventive Maintenance (PM) Schedule
-                            </h2>
-                            <p className="text-xs text-slate-300 font-medium mt-1">
-                                Automatic milestone tracking (1M, 3M, 6M, 9M, 12M) counted directly from Delivery Date.
-                            </p>
+                    <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                        <div className="flex items-start sm:items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-100/80 text-[#0B6B63] flex items-center justify-center shrink-0">
+                                <Icon name="calendar-check" size={18} />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <h2 className="text-base font-semibold text-slate-800 tracking-tight font-heading">
+                                        Preventive Maintenance (PM) Schedule
+                                    </h2>
+                                    <span className="text-[10px] font-medium font-mono text-[#0B6B63] bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-md">
+                                        1M – 12M Lifecycle
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-400 font-normal mt-0.5">
+                                    Automated time-based service milestones tracked precisely from delivery dates.
+                                </p>
+                            </div>
                         </div>
                     </div>
 
                     {/* KPI Summary Cards */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                        <div onClick={() => setStatusFilter('All')} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-400 cursor-pointer transition-all">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Fleet</p>
-                            <p className="text-2xl font-black text-slate-900 mt-1">{trucks.length}</p>
-                            <p className="text-[9px] font-bold text-slate-400 mt-0.5">Vehicles Monitored</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div 
+                            onClick={() => setStatusFilter('All')} 
+                            className={`bg-white p-3.5 rounded-xl border transition-all cursor-pointer ${
+                                statusFilter === 'All' 
+                                    ? 'border-teal-500 ring-2 ring-teal-500/10 shadow-xs' 
+                                    : 'border-slate-200/80 hover:border-slate-300'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Total Fleet</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-slate-800 mt-1">{trucks.length}</p>
+                            <p className="text-[10.5px] text-slate-400 font-normal mt-0.5">Vehicles Monitored</p>
                         </div>
-                        <div onClick={() => setStatusFilter('OVERDUE')} className="bg-white p-4 rounded-2xl border border-rose-200 shadow-xs hover:border-rose-400 cursor-pointer transition-all bg-rose-50/20">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-rose-600">Overdue Service 🔴</p>
-                            <p className="text-2xl font-black text-rose-700 mt-1">{overdueCount}</p>
-                            <p className="text-[9px] font-bold text-rose-500 mt-0.5">Immediate Action Needed</p>
+
+                        <div 
+                            onClick={() => setStatusFilter('OVERDUE')} 
+                            className={`bg-white p-3.5 rounded-xl border transition-all cursor-pointer ${
+                                statusFilter === 'OVERDUE' 
+                                    ? 'border-rose-500 ring-2 ring-rose-500/10 shadow-xs bg-rose-50/20' 
+                                    : 'border-slate-200/80 hover:border-rose-300'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-rose-600">Overdue Service</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-rose-600 mt-1">{overdueCount}</p>
+                            <p className="text-[10.5px] text-rose-500/80 font-normal mt-0.5">Immediate Action</p>
                         </div>
-                        <div onClick={() => setStatusFilter('DUE_SOON')} className="bg-white p-4 rounded-2xl border border-amber-200 shadow-xs hover:border-amber-400 cursor-pointer transition-all bg-amber-50/20">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Due Soon (&lt;15d) 🟡</p>
-                            <p className="text-2xl font-black text-amber-700 mt-1">{dueSoonCount}</p>
-                            <p className="text-[9px] font-bold text-amber-500 mt-0.5">Service Reminder Window</p>
+
+                        <div 
+                            onClick={() => setStatusFilter('DUE_SOON')} 
+                            className={`bg-white p-3.5 rounded-xl border transition-all cursor-pointer ${
+                                statusFilter === 'DUE_SOON' 
+                                    ? 'border-amber-500 ring-2 ring-amber-500/10 shadow-xs bg-amber-50/20' 
+                                    : 'border-slate-200/80 hover:border-amber-300'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-amber-600">Due Soon (&lt;15d)</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-amber-600 mt-1">{dueSoonCount}</p>
+                            <p className="text-[10.5px] text-amber-500/80 font-normal mt-0.5">Reminder Window</p>
                         </div>
-                        <div onClick={() => setStatusFilter('UP_TO_DATE')} className="bg-white p-4 rounded-2xl border border-emerald-200 shadow-xs hover:border-emerald-400 cursor-pointer transition-all bg-emerald-50/20">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Up To Date 🟢</p>
-                            <p className="text-2xl font-black text-emerald-700 mt-1">{upToDateCount}</p>
-                            <p className="text-[9px] font-bold text-emerald-500 mt-0.5">All Milestones Completed</p>
+
+                        <div 
+                            onClick={() => setStatusFilter('UP_TO_DATE')} 
+                            className={`bg-white p-3.5 rounded-xl border transition-all cursor-pointer ${
+                                statusFilter === 'UP_TO_DATE' 
+                                    ? 'border-emerald-500 ring-2 ring-emerald-500/10 shadow-xs bg-emerald-50/20' 
+                                    : 'border-slate-200/80 hover:border-emerald-300'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-600">Up To Date</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-emerald-600 mt-1">{upToDateCount}</p>
+                            <p className="text-[10.5px] text-emerald-500/80 font-normal mt-0.5">All Completed</p>
                         </div>
                     </div>
 
                     {/* Filter & Search Bar */}
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
                         <div className="relative flex-1 w-full">
                             <input 
                                 type="text"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Search by Client, PO Number, Pump Sr No, Chassis..."
-                                className="w-full border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-slate-50"
+                                className="w-full border border-slate-200/80 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] bg-slate-50/40 transition-all font-normal"
                             />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                <Icon name="search" size={14}/>
+                            <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                <Icon name="search" size={13}/>
                             </div>
                         </div>
 
@@ -7339,139 +7391,195 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                             <select 
                                 value={statusFilter} 
                                 onChange={e => setStatusFilter(e.target.value)}
-                                className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none bg-white w-full sm:w-auto"
+                                className="border border-slate-200/80 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all w-full sm:w-auto cursor-pointer"
                             >
                                 <option value="All">All Fleet Statuses</option>
                                 <option value="OVERDUE">Overdue Only 🔴</option>
                                 <option value="DUE_SOON">Due Soon Only 🟡</option>
                                 <option value="UP_TO_DATE">Up To Date Only 🟢</option>
                             </select>
-                            {statusFilter !== 'All' || search ? (
+                            {(statusFilter !== 'All' || search) && (
                                 <button 
                                     onClick={() => { setSearch(''); setStatusFilter('All'); }}
-                                    className="text-[10px] font-black text-rose-600 uppercase px-2.5 py-1.5 bg-rose-50 rounded-xl cursor-pointer"
+                                    className="text-[11px] font-medium text-rose-600 hover:text-rose-700 px-2.5 py-1.5 bg-rose-50/70 hover:bg-rose-100/70 rounded-lg border border-rose-200/60 transition-all cursor-pointer shrink-0"
                                 >
                                     Reset
                                 </button>
-                            ) : null}
+                            )}
                         </div>
                     </div>
 
                     {/* Fleet PM Table */}
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse min-w-[950px]">
-                                <thead className="bg-slate-50 border-b border-slate-200 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                <thead className="bg-slate-50/70 border-b border-slate-200/70 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                                     <tr>
-                                        <th className="px-4 py-3.5 w-[22%]">Vehicle &amp; Client</th>
-                                        <th className="px-4 py-3.5 w-[14%]">Delivery Date</th>
-                                        <th className="px-4 py-3.5 w-[26%]">Current Service Status</th>
-                                        <th className="px-4 py-3.5 w-[18%]">Milestones (1M-12M)</th>
-                                        <th className="px-4 py-3.5 w-[10%] text-center">Status</th>
-                                        <th className="px-4 py-3.5 w-[10%] text-right">Action</th>
+                                        <th className="px-4 py-3 w-[24%]">Vehicle &amp; Client</th>
+                                        <th className="px-4 py-3 w-[13%]">Delivery Date</th>
+                                        <th className="px-4 py-3 w-[25%]">Current Service Status</th>
+                                        <th className="px-4 py-3 w-[18%]">Milestones (1M-12M)</th>
+                                        <th className="px-4 py-3 w-[10%] text-center">Status</th>
+                                        <th className="px-4 py-3 w-[10%] text-right">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-700">
-                                    {filteredTrucks.length > 0 ? filteredTrucks.map(({ truck, customer, schedule, overallStatus, urgent }) => (
-                                        <tr key={truck.id} className="hover:bg-slate-50/70 transition-colors">
-                                            <td className="px-4 py-3.5 space-y-1">
-                                                <p className="font-black text-slate-900 text-xs uppercase truncate max-w-[200px]" title={customer?.name}>
-                                                    {customer?.name || 'Customer Organization'}
-                                                </p>
-                                                <div className="flex items-center gap-1.5 text-[10px] flex-wrap">
-                                                    <span className="font-extrabold text-blue-600">PO: {truck.poNo || 'N/A'}</span>
-                                                    <span className="text-slate-400">·</span>
-                                                    <span className="text-slate-500 font-bold">Pump: {truck.pumpSrNo || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1 mt-0.5">
-                                                    <span className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded border ${schedule.pumpOem?.badgeClass || 'bg-slate-100'}`}>
-                                                        {schedule.pumpOem?.brand}
-                                                    </span>
-                                                </div>
-                                            </td>
+                                <tbody className="divide-y divide-slate-100/80 text-xs text-slate-700">
+                                    {filteredTrucks.length > 0 ? filteredTrucks.map(({ truck, customer, schedule, overallStatus, urgent }) => {
+                                        const custName = customer?.name || 'Customer Organization';
+                                        const initials = custName.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'IE';
 
-                                            <td className="px-4 py-3.5 space-y-0.5">
-                                                <span className="text-xs font-black text-slate-800 block">
-                                                    {formatDate(truck.deliveryDate)}
-                                                </span>
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase block">
-                                                    {truck.tenderType || 'Fire Tender'}
-                                                </span>
-                                            </td>
-
-                                            <td className="px-4 py-3.5 space-y-1">
-                                                {urgent ? (
-                                                    <div>
-                                                        <span className="font-black text-slate-900 text-xs block">
-                                                            {urgent.name}
-                                                        </span>
-                                                        <p className="text-[10px] text-slate-500 font-medium">
-                                                            {urgent.statusLabel}
-                                                        </p>
+                                        return (
+                                            <tr key={truck.id} className="hover:bg-slate-50/60 transition-colors group">
+                                                {/* 1. Vehicle & Client */}
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-start gap-2.5">
+                                                        <div className="w-7.5 h-7.5 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center font-semibold text-[10.5px] font-mono shrink-0 mt-0.5">
+                                                            {initials}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="font-semibold text-slate-800 text-xs tracking-[-0.1px] truncate max-w-[220px] group-hover:text-[#0B6B63] transition-colors" title={custName}>
+                                                                {custName}
+                                                            </p>
+                                                            <div className="flex items-center gap-1.5 text-[10.5px] mt-0.5 flex-wrap">
+                                                                <span className="font-mono font-medium text-[#0B6B63] bg-teal-50/70 px-1.5 py-0.5 rounded border border-teal-100">
+                                                                    PO: {truck.poNo || 'N/A'}
+                                                                </span>
+                                                                <span className="text-slate-300">·</span>
+                                                                <span className="text-slate-500 font-mono text-[10px]">
+                                                                    Pump: {truck.pumpSrNo || 'N/A'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 mt-1">
+                                                                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded border ${schedule.pumpOem?.badgeClass || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                                                                    {schedule.pumpOem?.brand}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                ) : (
-                                                    <span className="text-[10px] font-bold text-emerald-600">
-                                                        ✓ All 5 Milestones Completed
+                                                </td>
+
+                                                {/* 2. Delivery Date */}
+                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                    <span className="text-xs font-medium font-mono text-slate-700 block">
+                                                        {formatDate(truck.deliveryDate)}
                                                     </span>
-                                                )}
-                                            </td>
+                                                    <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wide block mt-0.5">
+                                                        {truck.tenderType || 'Fire Tender'}
+                                                    </span>
+                                                </td>
 
-                                            <td className="px-4 py-3.5">
-                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                    {schedule.milestones.map(m => (
-                                                        <span 
-                                                            key={m.id} 
-                                                            className={`text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded ${
-                                                                m.isCompleted ? 'bg-emerald-100 text-emerald-800' :
-                                                                m.status === 'OVERDUE' ? 'bg-rose-100 text-rose-800 font-black' :
-                                                                m.status === 'DUE_SOON' ? 'bg-amber-100 text-amber-800' :
-                                                                'bg-slate-100 text-slate-400'
-                                                            }`}
-                                                            title={`${m.name}: ${m.statusLabel}`}
-                                                        >
-                                                            {m.shortCode}
+                                                {/* 3. Current Service Status */}
+                                                <td className="px-4 py-3">
+                                                    {urgent ? (
+                                                        <div>
+                                                            <p className="font-medium text-slate-800 text-xs">
+                                                                {urgent.name}
+                                                            </p>
+                                                            <div className="mt-0.5">
+                                                                {urgent.status === 'OVERDUE' ? (
+                                                                    <span className="text-[10.5px] text-rose-600 font-normal inline-flex items-center gap-1">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                                                        Overdue by {Math.abs(urgent.diffDays)} days ({urgent.months}M milestone)
+                                                                    </span>
+                                                                ) : urgent.status === 'DUE_SOON' ? (
+                                                                    <span className="text-[10.5px] text-amber-600 font-normal inline-flex items-center gap-1">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                        Due soon in {urgent.diffDays} days
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-[10.5px] text-slate-500 font-normal">
+                                                                        {urgent.statusLabel}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                                                            <Icon name="check" size={11} /> All 5 Milestones Completed
                                                         </span>
-                                                    ))}
-                                                </div>
-                                                <p className="text-[9px] font-bold text-slate-400 mt-1">
-                                                    {schedule.completedCount}/{schedule.totalMilestones} Completed
-                                                </p>
-                                            </td>
-
-                                            <td className="px-4 py-3.5 text-center">
-                                                <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border inline-block ${
-                                                    overallStatus === 'OVERDUE' ? 'bg-rose-100 text-rose-800 border-rose-200' :
-                                                    overallStatus === 'DUE_SOON' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                                                    'bg-emerald-100 text-emerald-800 border-emerald-200'
-                                                }`}>
-                                                    {overallStatus === 'OVERDUE' ? 'Overdue 🔴' : overallStatus === 'DUE_SOON' ? 'Due Soon 🟡' : 'Up to Date 🟢'}
-                                                </span>
-                                            </td>
-
-                                            <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                                                <div className="inline-flex items-center gap-1.5">
-                                                    {urgent && !urgent.isCompleted && (
-                                                        <button 
-                                                            onClick={() => setSelectedTruckForPm({ truck, milestone: urgent })}
-                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer"
-                                                            title="Record Service Done"
-                                                        >
-                                                            <Icon name="check" size={12}/> Mark Done
-                                                        </button>
                                                     )}
-                                                    <button 
-                                                        onClick={() => setHistoryTruck({ truck, customer, schedule })}
-                                                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-1.5 rounded-xl transition-all cursor-pointer"
-                                                        title="View Vehicle PM History"
-                                                    >
-                                                        <Icon name="history" size={14}/>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )) : (
+                                                </td>
+
+                                                {/* 4. Milestones (1M-12M) */}
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-1 flex-wrap">
+                                                        {schedule.milestones.map(m => (
+                                                            <span 
+                                                                key={m.id} 
+                                                                className={`w-6.5 h-5.5 rounded-md text-[9.5px] font-mono font-medium border flex items-center justify-center transition-all ${
+                                                                    m.isCompleted 
+                                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                                                        : m.status === 'OVERDUE' 
+                                                                        ? 'bg-rose-50 text-rose-700 border-rose-200/80 font-semibold' 
+                                                                        : m.status === 'DUE_SOON' 
+                                                                        ? 'bg-amber-50 text-amber-700 border-amber-200/80 font-semibold' 
+                                                                        : 'bg-slate-50 text-slate-400 border-slate-200/80'
+                                                                }`}
+                                                                title={`${m.name}: ${m.statusLabel}`}
+                                                            >
+                                                                {m.shortCode}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <div className="w-14 h-1 bg-slate-100 rounded-full overflow-hidden flex">
+                                                            <div 
+                                                                className="bg-emerald-500 h-full rounded-full transition-all" 
+                                                                style={{ width: `${(schedule.completedCount / schedule.totalMilestones) * 100}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <span className="text-[10px] font-mono text-slate-400 font-normal">
+                                                            {schedule.completedCount}/{schedule.totalMilestones}
+                                                        </span>
+                                                    </div>
+                                                </td>
+
+                                                {/* 5. Status */}
+                                                <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                    {overallStatus === 'OVERDUE' ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                                            Overdue
+                                                        </span>
+                                                    ) : overallStatus === 'DUE_SOON' ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                            Due Soon
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                            Up to Date
+                                                        </span>
+                                                    )}
+                                                </td>
+
+                                                {/* 6. Action */}
+                                                <td className="px-4 py-3 text-right whitespace-nowrap">
+                                                    <div className="inline-flex items-center gap-1.5">
+                                                        {urgent && !urgent.isCompleted && (
+                                                            <button 
+                                                                onClick={() => setSelectedTruckForPm({ truck, milestone: urgent })}
+                                                                className="bg-[#0B6B63] hover:bg-[#09544e] text-white px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                                                                title="Record Service Done"
+                                                            >
+                                                                <Icon name="check" size={12}/> Mark Done
+                                                            </button>
+                                                        )}
+                                                        <button 
+                                                            onClick={() => setHistoryTruck({ truck, customer, schedule })}
+                                                            className="h-7 w-7 rounded-lg border border-slate-200/80 hover:border-slate-300 hover:bg-slate-100/70 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-all cursor-pointer"
+                                                            title="View PM Service History"
+                                                        >
+                                                            <Icon name="history" size={13}/>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }) : (
                                         <tr>
-                                            <td colSpan="6" className="py-12 text-center text-slate-400 font-bold uppercase tracking-wider text-xs">
+                                            <td colSpan="6" className="py-10 text-center text-slate-400 font-normal text-xs">
                                                 No vehicles found matching current filter.
                                             </td>
                                         </tr>
@@ -7496,64 +7604,67 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
                     {/* History Modal */}
                     {historyTruck && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-                            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 modal-animate space-y-4 max-h-[90vh] flex flex-col text-slate-800">
-                                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+                            <div className="bg-white rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200/80 space-y-4 max-h-[92vh] flex flex-col text-slate-800">
+                                <div className="flex justify-between items-start border-b border-slate-100 pb-3">
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">
-                                                Preventive Maintenance History &amp; Log
+                                            <h3 className="text-sm font-semibold text-slate-800 font-heading">
+                                                Preventive Maintenance History
                                             </h3>
-                                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${historyTruck.schedule.pumpOem?.badgeClass}`}>
+                                            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded border ${historyTruck.schedule.pumpOem?.badgeClass}`}>
                                                 {historyTruck.schedule.pumpOem?.brand}
                                             </span>
                                         </div>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                                        <p className="text-[10px] font-mono text-slate-400 font-medium mt-0.5">
                                             {historyTruck.customer?.name} · PO: {historyTruck.truck.poNo} · Pump: {historyTruck.truck.pumpMake || historyTruck.schedule.pumpOem?.brand} ({historyTruck.truck.pumpSrNo || 'N/A'})
                                         </p>
-                                        <div className="bg-amber-50 border border-amber-200 p-2 rounded-xl text-[10px] text-amber-950 font-bold mt-2">
-                                            🛢️ <b>OEM Lubricant Spec:</b> {historyTruck.schedule.pumpOem?.gearboxOil} (Qty: {historyTruck.schedule.pumpOem?.oilCapacity}) · <b>Grease:</b> {historyTruck.schedule.pumpOem?.greaseGrade}
-                                        </div>
                                     </div>
-                                    <button onClick={() => setHistoryTruck(null)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">
-                                        &times;
+                                    <button onClick={() => setHistoryTruck(null)} className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all cursor-pointer">
+                                        <Icon name="x" size={14} />
                                     </button>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                                <div className="bg-amber-50/80 border border-amber-200/70 p-2.5 rounded-lg text-[10.5px] text-amber-900 font-normal">
+                                    🛢️ <span className="font-semibold">OEM Spec:</span> {historyTruck.schedule.pumpOem?.gearboxOil} (Qty: {historyTruck.schedule.pumpOem?.oilCapacity}) · <span className="font-semibold">Grease:</span> {historyTruck.schedule.pumpOem?.greaseGrade}
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
                                     {historyTruck.schedule.milestones.map((m, idx) => (
-                                        <div key={m.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-2">
+                                        <div key={m.id} className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1.5">
                                             <div className="flex justify-between items-center">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-6 h-6 rounded-lg bg-slate-900 text-white font-black text-[9px] flex items-center justify-center">
+                                                    <span className="w-6 h-5.5 rounded-md bg-teal-50 text-[#0B6B63] border border-teal-100/80 font-mono font-medium text-[10px] flex items-center justify-center">
                                                         {m.shortCode}
                                                     </span>
-                                                    <span className="font-black text-xs text-slate-900 uppercase">{m.name}</span>
+                                                    <span className="font-semibold text-xs text-slate-800">{m.name}</span>
                                                 </div>
-                                                <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${m.badgeClass}`}>
+                                                <span className={`text-[9px] font-medium px-2 py-0.5 rounded-full border ${m.badgeClass}`}>
                                                     {m.status}
                                                 </span>
                                             </div>
 
-                                            <p className="text-[11px] text-slate-600 font-medium">{m.description}</p>
+                                            <p className="text-[11px] text-slate-500 font-normal">{m.description}</p>
 
                                             {m.isCompleted ? (
-                                                <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl space-y-1 text-xs text-emerald-900">
-                                                    <p className="font-black">✓ Completed on {m.completedRecord?.completedAt?.replace('T', ' at ')}</p>
-                                                    <p className="text-[11px]"><b>Serviced By:</b> {m.completedRecord?.servicedBy} ({m.completedRecord?.serviceLocation || 'Station'})</p>
-                                                    {m.completedRecord?.notes && <p className="text-[11px] italic">"{m.completedRecord?.notes}"</p>}
+                                                <div className="bg-emerald-50/80 border border-emerald-200/70 p-2.5 rounded-lg space-y-0.5 text-xs text-emerald-900">
+                                                    <p className="font-semibold text-emerald-800 flex items-center gap-1">
+                                                        <Icon name="check" size={12} /> Completed on {m.completedRecord?.completedAt?.replace('T', ' at ')}
+                                                    </p>
+                                                    <p className="text-[10.5px] text-emerald-700/90 font-normal"><b>Serviced By:</b> {m.completedRecord?.servicedBy} ({m.completedRecord?.serviceLocation || 'Station'})</p>
+                                                    {m.completedRecord?.notes && <p className="text-[10.5px] italic text-emerald-700/80">"{m.completedRecord?.notes}"</p>}
                                                 </div>
                                             ) : (
-                                                <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
-                                                    <span className="text-[10px] font-bold text-slate-400">{m.statusLabel}</span>
+                                                <div className="flex justify-between items-center pt-1.5 border-t border-slate-200/60">
+                                                    <span className="text-[10.5px] text-slate-400 font-normal">{m.statusLabel}</span>
                                                     <button 
                                                         onClick={() => {
                                                             setSelectedTruckForPm({ truck: historyTruck.truck, milestone: m });
                                                             setHistoryTruck(null);
                                                         }}
-                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase cursor-pointer"
+                                                        className="bg-[#0B6B63] hover:bg-[#09544e] text-white px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all cursor-pointer flex items-center gap-1"
                                                     >
-                                                        Mark Done
+                                                        <Icon name="check" size={11} /> Mark Done
                                                     </button>
                                                 </div>
                                             )}
@@ -7562,7 +7673,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 </div>
 
                                 <div className="border-t border-slate-100 pt-3 flex justify-end">
-                                    <button onClick={() => setHistoryTruck(null)} className="bg-slate-900 text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer">
+                                    <button onClick={() => setHistoryTruck(null)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer">
                                         Close
                                     </button>
                                 </div>
