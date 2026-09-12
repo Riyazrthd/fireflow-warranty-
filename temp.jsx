@@ -298,12 +298,15 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
         const AnalyticsTooltip = ({ active, payload, label }) => {
             if (active && payload && payload.length) return (
-                <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-slate-100 outline-none">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b pb-1">{label}</p>
-                    <div className="space-y-1.5">{payload.map((entry, i) => (
-                        <div key={i} className="flex items-center justify-between gap-6">
-                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{backgroundColor: entry.payload.fill||entry.color}}></div><span className="text-[11px] font-bold text-slate-600 uppercase">{entry.name}:</span></div>
-                            <span className="text-xs font-black text-slate-900">{entry.value}</span>
+                <div className="bg-white p-3 rounded-lg shadow-md border border-slate-200 outline-none select-none">
+                    <p className="text-[11px] font-medium text-slate-400 mb-1.5 border-b border-slate-100 pb-1">{label}</p>
+                    <div className="space-y-1">{payload.map((entry, i) => (
+                        <div key={i} className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: entry.payload.fill||entry.color}}></div>
+                                <span className="text-[11.5px] font-normal text-slate-600">{entry.name}:</span>
+                            </div>
+                            <span className="text-[11.5px] font-semibold text-slate-800 font-mono">{entry.value}</span>
                         </div>
                     ))}</div>
                 </div>
@@ -657,11 +660,6 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const [chartType, setChartType] = useState('area'); // 'area' | 'bar' | 'velocity'
             const data = useCumulativeComplaintData(complaints, range);
 
-            const totalReceived = useMemo(() => data.reduce((acc, c) => acc + c.received, 0), [data]);
-            const totalClosed = useMemo(() => data.reduce((acc, c) => acc + c.closed, 0), [data]);
-            const currentBacklog = data.length > 0 ? data[data.length - 1].closing : 0;
-            const efficiencyRate = (totalReceived + totalClosed) > 0 ? Math.round((totalClosed / Math.max(1, totalReceived)) * 100) : 100;
-
             const velocityData = useMemo(() => {
                 return data.map(d => ({
                     ...d,
@@ -671,25 +669,20 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             }, [data]);
 
             return (
-                <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-2xs flex flex-col h-[295px] transition-all">
-                    {/* Clean 1-Line Header */}
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black shrink-0">
-                                <Icon name="trending-up" size={16}/>
-                            </div>
-                            <div className="truncate">
-                                <h3 className="font-black text-slate-900 text-xs sm:text-sm uppercase tracking-tight truncate">
-                                    Support Volume
-                                </h3>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                                    Last {range} Months
-                                </p>
-                            </div>
+                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col h-[310px] select-none">
+                    {/* Clean Lightweight SaaS Header (No Congested Upper Chips) */}
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                            <h3 className="font-semibold text-slate-800 text-[14px] tracking-[-0.1px] font-heading">
+                                Support Volume
+                            </h3>
+                            <p className="text-[11.5px] font-normal text-slate-400">
+                                Monthly Trend · Inflow, Resolved &amp; Backlog (Last {range} Months)
+                            </p>
                         </div>
 
-                        {/* Chart Type Selector */}
-                        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200/80 shrink-0">
+                        {/* Minimalist Chart Type Switcher */}
+                        <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/60 shrink-0">
                             {[
                                 { id: 'area', label: 'Wave' },
                                 { id: 'bar', label: 'Bars' },
@@ -699,9 +692,9 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     key={btn.id}
                                     type="button"
                                     onClick={() => setChartType(btn.id)}
-                                    className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
                                         chartType === btn.id
-                                            ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/60'
+                                            ? 'bg-white text-slate-900 font-semibold shadow-2xs border border-slate-200'
                                             : 'text-slate-500 hover:text-slate-800'
                                     }`}
                                 >
@@ -711,51 +704,33 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         </div>
                     </div>
 
-                    {/* Compact Metrics Row */}
-                    <div className="flex items-center justify-between text-[9px] font-extrabold uppercase pb-1.5 mb-1 border-b border-slate-100">
-                        <div className="flex items-center gap-3">
-                            <span className="text-indigo-600 flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-indigo-500"></span> Received: {totalReceived}
-                            </span>
-                            <span className="text-emerald-600 flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Closed: {totalClosed}
-                            </span>
-                            <span className="text-rose-600 flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-rose-500"></span> Backlog: {currentBacklog}
-                            </span>
-                        </div>
-                        <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-black border border-emerald-200">
-                            {efficiencyRate}% Clearance
-                        </span>
-                    </div>
-
-                    {/* Chart Canvas */}
-                    <div className="flex-1 min-h-0">
+                    {/* Direct Clean Chart Canvas */}
+                    <div className="flex-1 min-h-0 w-full">
                         {/* VIEW 1: SMOOTH AREA WAVE (DEFAULT) */}
                         {chartType === 'area' && (
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={data} margin={{ top: 5, right: 5, left: -28, bottom: 0 }}>
+                                <AreaChart data={data} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="areaOpenGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.35}/>
+                                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.25}/>
                                             <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0}/>
                                         </linearGradient>
                                         <linearGradient id="areaClosedGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.38}/>
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
                                             <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
                                         </linearGradient>
                                         <linearGradient id="areaReceivedGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.42}/>
-                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0}/>
+                                            <stop offset="5%" stopColor="#0b6b63" stopOpacity={0.28}/>
+                                            <stop offset="95%" stopColor="#0b6b63" stopOpacity={0.0}/>
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
-                                    <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 800, fill: '#64748b' }} dy={6}/>
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8.5, fontWeight: 800, fill: '#94a3b8' }}/>
+                                    <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 400, fill: '#64748b' }} dy={6}/>
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 400, fill: '#94a3b8' }}/>
                                     <Tooltip cursor={{ stroke: '#cbd5e1', strokeWidth: 1.5, strokeDasharray: '3 3' }} content={<AnalyticsTooltip/>}/>
-                                    <Area name="Active Backlog" type="monotone" dataKey="open" stroke="#f43f5e" strokeWidth={2.5} fill="url(#areaOpenGrad)" dot={{ r: 3, fill: '#fff', stroke: '#f43f5e', strokeWidth: 2 }}/>
-                                    <Area name="Closed Tickets" type="monotone" dataKey="closed" stroke="#10b981" strokeWidth={2.5} fill="url(#areaClosedGrad)" dot={{ r: 3, fill: '#fff', stroke: '#10b981', strokeWidth: 2 }}/>
-                                    <Area name="New Received" type="monotone" dataKey="received" stroke="#6366f1" strokeWidth={3} fill="url(#areaReceivedGrad)" dot={{ r: 3.5, fill: '#fff', stroke: '#6366f1', strokeWidth: 2 }}/>
+                                    <Area name="Active Backlog" type="monotone" dataKey="open" stroke="#f43f5e" strokeWidth={2} fill="url(#areaOpenGrad)" dot={{ r: 3, fill: '#fff', stroke: '#f43f5e', strokeWidth: 1.5 }}/>
+                                    <Area name="Closed Tickets" type="monotone" dataKey="closed" stroke="#10b981" strokeWidth={2} fill="url(#areaClosedGrad)" dot={{ r: 3, fill: '#fff', stroke: '#10b981', strokeWidth: 1.5 }}/>
+                                    <Area name="New Received" type="monotone" dataKey="received" stroke="#0b6b63" strokeWidth={2.2} fill="url(#areaReceivedGrad)" dot={{ r: 3.5, fill: '#fff', stroke: '#0b6b63', strokeWidth: 1.5 }}/>
                                 </AreaChart>
                             </ResponsiveContainer>
                         )}
@@ -763,14 +738,14 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         {/* VIEW 2: GROUPED BARS */}
                         {chartType === 'bar' && (
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={data} margin={{ top: 5, right: 5, left: -28, bottom: 0 }}>
+                                <BarChart data={data} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
-                                    <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 800, fill: '#64748b' }} dy={6}/>
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8.5, fontWeight: 800, fill: '#94a3b8' }}/>
+                                    <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 400, fill: '#64748b' }} dy={6}/>
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 400, fill: '#94a3b8' }}/>
                                     <Tooltip cursor={{ fill: '#f8fafc' }} content={<AnalyticsTooltip/>}/>
-                                    <Bar name="New Received" dataKey="received" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={9}/>
-                                    <Bar name="Closed Tickets" dataKey="closed" fill="#10b981" radius={[4, 4, 0, 0]} barSize={9}/>
-                                    <Bar name="Active Backlog" dataKey="open" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={9}/>
+                                    <Bar name="New Received" dataKey="received" fill="#0b6b63" radius={[3, 3, 0, 0]} barSize={9}/>
+                                    <Bar name="Closed Tickets" dataKey="closed" fill="#10b981" radius={[3, 3, 0, 0]} barSize={9}/>
+                                    <Bar name="Active Backlog" dataKey="open" fill="#f43f5e" radius={[3, 3, 0, 0]} barSize={9}/>
                                 </BarChart>
                             </ResponsiveContainer>
                         )}
@@ -778,14 +753,14 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         {/* VIEW 3: NET VELOCITY */}
                         {chartType === 'velocity' && (
                             <ResponsiveContainer width="100%" height="100%">
-                                <ComposedChart data={velocityData} margin={{ top: 5, right: 5, left: -28, bottom: 0 }}>
+                                <ComposedChart data={velocityData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
-                                    <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 800, fill: '#64748b' }} dy={6}/>
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8.5, fontWeight: 800, fill: '#94a3b8' }}/>
+                                    <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 400, fill: '#64748b' }} dy={6}/>
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 400, fill: '#94a3b8' }}/>
                                     <Tooltip cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }} content={<AnalyticsTooltip/>}/>
-                                    <Bar name="Closed Velocity" dataKey="closed" fill="#10b981" radius={[4, 4, 0, 0]} barSize={11}/>
-                                    <Line name="Received Demand" type="monotone" dataKey="received" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3.5, fill: '#6366f1' }}/>
-                                    <Line name="Backlog" type="monotone" dataKey="closing" stroke="#f43f5e" strokeWidth={2} strokeDasharray="3 3" dot={{ r: 3, fill: '#f43f5e' }}/>
+                                    <Bar name="Closed Velocity" dataKey="closed" fill="#10b981" radius={[3, 3, 0, 0]} barSize={11}/>
+                                    <Line name="Received Demand" type="monotone" dataKey="received" stroke="#0b6b63" strokeWidth={2} dot={{ r: 3, fill: '#0b6b63' }}/>
+                                    <Line name="Backlog" type="monotone" dataKey="closing" stroke="#f43f5e" strokeWidth={1.5} strokeDasharray="3 3" dot={{ r: 2.5, fill: '#f43f5e' }}/>
                                 </ComposedChart>
                             </ResponsiveContainer>
                         )}
