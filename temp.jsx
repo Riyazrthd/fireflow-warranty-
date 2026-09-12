@@ -565,22 +565,20 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             };
 
             return (
-                <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 px-2">Open Only:</span>
-                        <button onClick={() => handleExport('excel')} className="flex items-center gap-1 bg-white hover:bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors shadow-xs border border-slate-200 cursor-pointer">
-                            <Icon name="download" size={12}/> Excel
-                        </button>
-                        <button onClick={() => handleExport('pdf')} className="flex items-center gap-1 bg-white hover:bg-rose-50 text-rose-700 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors shadow-xs border border-slate-200 cursor-pointer">
-                            <Icon name="file-text" size={12}/> PDF
-                        </button>
-                    </div>
+                <div className="flex items-center gap-2">
                     <button 
-                        onClick={() => exportEntireComplaintList(complaints, customers, trucks, 'excel')} 
-                        className="flex items-center gap-1.5 bg-[#0B6B63] hover:bg-[#09544E] text-white px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md cursor-pointer"
-                        title="Download Entire Master Complaint Register (All Open & Closed Total in Excel)"
+                        onClick={() => handleExport('excel')} 
+                        className="h-8 bg-white hover:bg-emerald-50/70 text-emerald-800 border border-emerald-200/90 hover:border-emerald-300 px-3 rounded-lg text-[12px] font-medium flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer select-none"
+                        title="Download Summary Report in Excel Format"
                     >
-                        <Icon name="download-cloud" size={14}/> Download All (Total)
+                        <Icon name="download" size={13} className="text-emerald-600"/> Excel
+                    </button>
+                    <button 
+                        onClick={() => handleExport('pdf')} 
+                        className="h-8 bg-white hover:bg-rose-50/70 text-rose-800 border border-rose-200/90 hover:border-rose-300 px-3 rounded-lg text-[12px] font-medium flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer select-none"
+                        title="Download Summary Report in PDF Format"
+                    >
+                        <Icon name="file-text" size={13} className="text-rose-600"/> PDF
                     </button>
                 </div>
             );
@@ -14445,13 +14443,19 @@ function App() {
                                     <ComplaintCategoryChart complaints={complaints} range={analyticsRange}/>
                                 </div>
 
-                                {/* MIS Action Bar */}
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8 mb-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Icon name="file-bar-chart-2" size={20}/></div>
-                                        <div>
-                                            <h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Management Information System</h3>
-                                            <p className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest">Export summary reports for management review</p>
+                                {/* Sleek Compact MIS Report Action Bar */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-6 mb-3 bg-white border border-slate-200 p-3.5 sm:p-4 rounded-xl shadow-xs select-none">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-8 h-8 bg-teal-50 text-[#0B6B63] border border-teal-100 rounded-lg flex items-center justify-center shrink-0">
+                                            <Icon name="file-bar-chart-2" size={16}/>
+                                        </div>
+                                        <div className="truncate">
+                                            <h3 className="font-semibold text-slate-800 text-[13.5px] tracking-[-0.1px] font-heading truncate">
+                                                Management Information System
+                                            </h3>
+                                            <p className="text-[11.5px] font-normal text-slate-400 truncate">
+                                                Export formatted summary reports for executive reviews
+                                            </p>
                                         </div>
                                     </div>
                                     <OpenComplaintSummaryExport complaints={complaints} customers={customers} trucks={trucks} />
