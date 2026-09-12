@@ -6776,121 +6776,181 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             }, [capas]);
 
             return (
-                <div className="space-y-6 fade-up">
+                <div className="space-y-3.5 fade-up">
                     {/* Header & Quick Action */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-3xl shadow-xl">
-                        <div>
-                            <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block mb-1">Quality Assurance &amp; Root Cause System</span>
-                            <h2 className="text-xl font-black uppercase tracking-tight">CAPA Intelligence Dashboard</h2>
-                            <p className="text-xs text-slate-300 font-medium mt-1">Closed-loop tracking for Corrective &amp; Preventive Actions, 5-Why RCA, and Verification.</p>
+                    <div className="bg-white p-4.5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                        <div className="flex items-start sm:items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-100/80 text-[#0B6B63] flex items-center justify-center shrink-0">
+                                <Icon name="shield-check" size={18} />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <h2 className="text-base font-semibold text-slate-800 tracking-tight font-heading">
+                                        CAPA Intelligence Dashboard
+                                    </h2>
+                                    <span className="text-[10px] font-medium font-mono text-[#0B6B63] bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-md">
+                                        Quality Assurance &amp; RCA
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-400 font-normal mt-0.5">
+                                    Closed-loop tracking for Corrective &amp; Preventive Actions, 5-Why RCA, and Verification.
+                                </p>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2.5 flex-wrap">
-                            <button onClick={() => onCreateCapa()} className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg transition-all flex items-center gap-2 cursor-pointer">
-                                <Icon name="plus" size={15}/> Create CAPA
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <button 
+                                onClick={() => onCreateCapa()} 
+                                className="h-8 px-3 rounded-lg bg-[#0B6B63] hover:bg-[#09544e] text-white text-xs font-medium shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                            >
+                                <Icon name="plus" size={13}/> Create CAPA
                             </button>
                         </div>
                     </div>
 
                     {/* KPI Cards Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-                        <div onClick={() => onFilterRegister('All')} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-400 cursor-pointer transition-all">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total CAPA</p>
-                            <p className="text-2xl font-black text-slate-900 mt-1">{total}</p>
-                            <p className="text-[9px] font-bold text-slate-400 mt-1">All Recorded Cases</p>
-                        </div>
-                        <div onClick={() => onFilterRegister('Open')} className="bg-white p-4 rounded-2xl border border-blue-200 shadow-xs hover:border-blue-400 cursor-pointer transition-all bg-blue-50/20">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-blue-600">Active Open</p>
-                            <p className="text-2xl font-black text-blue-700 mt-1">{open}</p>
-                            <p className="text-[9px] font-bold text-blue-500 mt-1">Requires Action</p>
-                        </div>
-                        <div onClick={() => onFilterRegister('Under RCA')} className="bg-white p-4 rounded-2xl border border-purple-200 shadow-xs hover:border-purple-400 cursor-pointer transition-all bg-purple-50/20">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-purple-600">Under 5-Why RCA</p>
-                            <p className="text-2xl font-black text-purple-700 mt-1">{underRca}</p>
-                            <p className="text-[9px] font-bold text-purple-500 mt-1">Root Cause Analysis</p>
-                        </div>
-                        <div onClick={() => onFilterRegister('Action Plan')} className="bg-white p-4 rounded-2xl border border-amber-200 shadow-xs hover:border-amber-400 cursor-pointer transition-all bg-amber-50/20">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Action in Progress</p>
-                            <p className="text-2xl font-black text-amber-700 mt-1">{actionPlan}</p>
-                            <p className="text-[9px] font-bold text-amber-500 mt-1">Corrective / Preventive</p>
-                        </div>
-                        <div onClick={() => onFilterRegister('Effectiveness Verification')} className="bg-white p-4 rounded-2xl border border-indigo-200 shadow-xs hover:border-indigo-400 cursor-pointer transition-all bg-indigo-50/20">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-indigo-600">Effectiveness Check</p>
-                            <p className="text-2xl font-black text-indigo-700 mt-1">{effPending}</p>
-                            <p className="text-[9px] font-bold text-indigo-500 mt-1">Pending Verification</p>
-                        </div>
-                        <div onClick={() => onFilterRegister('Closed')} className="bg-white p-4 rounded-2xl border border-emerald-200 shadow-xs hover:border-emerald-400 cursor-pointer transition-all bg-emerald-50/20">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Closed &amp; Verified</p>
-                            <p className="text-2xl font-black text-emerald-700 mt-1">{closed}</p>
-                            <p className="text-[9px] font-bold text-emerald-500 mt-1">100% Effective</p>
-                        </div>
-                        <div onClick={() => onFilterRegister('Reopened')} className="bg-white p-4 rounded-2xl border border-rose-200 shadow-xs hover:border-rose-400 cursor-pointer transition-all bg-rose-50/20">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-rose-600">Reopened</p>
-                            <p className="text-2xl font-black text-rose-700 mt-1">{reopened}</p>
-                            <p className="text-[9px] font-bold text-rose-500 mt-1">Ineffective / Recurred</p>
-                        </div>
-                        <div onClick={() => onFilterRegister('Critical')} className="bg-white p-4 rounded-2xl border border-rose-300 shadow-xs hover:border-rose-500 cursor-pointer transition-all bg-rose-100/30">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-rose-700">Critical Priority</p>
-                            <p className="text-2xl font-black text-rose-800 mt-1">{critical}</p>
-                            <p className="text-[9px] font-bold text-rose-600 mt-1">Urgent Resolution</p>
-                        </div>
-                        <div className="bg-white p-4 rounded-2xl border border-amber-300 shadow-xs col-span-2 bg-amber-50/30 flex items-center justify-between">
-                            <div>
-                                <p className="text-[9px] font-black uppercase tracking-widest text-amber-700">Overdue Action Tasks</p>
-                                <p className="text-2xl font-black text-amber-800 mt-1">{overdueActions.length}</p>
-                                <p className="text-[9px] font-bold text-amber-600 mt-1">Past Target Completion Date</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                        {/* 1. Total CAPA */}
+                        <div onClick={() => onFilterRegister('All')} className="bg-white p-3 rounded-xl border border-slate-200/80 hover:border-slate-300 transition-all cursor-pointer shadow-2xs">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Total CAPA</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
                             </div>
-                            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black">
-                                <Icon name="clock" size={20}/>
+                            <p className="text-xl font-bold font-mono text-slate-800 mt-1">{total}</p>
+                            <p className="text-[10.5px] text-slate-400 font-normal mt-0.5">All Recorded Cases</p>
+                        </div>
+
+                        {/* 2. Active Open */}
+                        <div onClick={() => onFilterRegister('Open')} className="bg-white p-3 rounded-xl border border-slate-200/80 hover:border-blue-300 transition-all cursor-pointer shadow-2xs">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-blue-600">Active Open</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-blue-600 mt-1">{open}</p>
+                            <p className="text-[10.5px] text-blue-500/80 font-normal mt-0.5">Requires Action</p>
+                        </div>
+
+                        {/* 3. Under 5-Why RCA */}
+                        <div onClick={() => onFilterRegister('Under RCA')} className="bg-white p-3 rounded-xl border border-slate-200/80 hover:border-purple-300 transition-all cursor-pointer shadow-2xs">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-purple-600">Under 5-Why RCA</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-purple-600 mt-1">{underRca}</p>
+                            <p className="text-[10.5px] text-purple-500/80 font-normal mt-0.5">Root Cause Analysis</p>
+                        </div>
+
+                        {/* 4. Action Plan */}
+                        <div onClick={() => onFilterRegister('Action Plan')} className="bg-white p-3 rounded-xl border border-slate-200/80 hover:border-amber-300 transition-all cursor-pointer shadow-2xs">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-amber-600">Action in Progress</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-amber-600 mt-1">{actionPlan}</p>
+                            <p className="text-[10.5px] text-amber-500/80 font-normal mt-0.5">Corrective / Preventive</p>
+                        </div>
+
+                        {/* 5. Effectiveness Check */}
+                        <div onClick={() => onFilterRegister('Effectiveness Verification')} className="bg-white p-3 rounded-xl border border-slate-200/80 hover:border-indigo-300 transition-all cursor-pointer shadow-2xs">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-indigo-600">Effectiveness Check</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-indigo-600 mt-1">{effPending}</p>
+                            <p className="text-[10.5px] text-indigo-500/80 font-normal mt-0.5">Pending Verification</p>
+                        </div>
+
+                        {/* 6. Closed & Verified */}
+                        <div onClick={() => onFilterRegister('Closed')} className="bg-white p-3 rounded-xl border border-slate-200/80 hover:border-emerald-300 transition-all cursor-pointer shadow-2xs">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-600">Closed &amp; Verified</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-emerald-600 mt-1">{closed}</p>
+                            <p className="text-[10.5px] text-emerald-500/80 font-normal mt-0.5">100% Effective</p>
+                        </div>
+
+                        {/* 7. Reopened */}
+                        <div onClick={() => onFilterRegister('Reopened')} className="bg-white p-3 rounded-xl border border-slate-200/80 hover:border-rose-300 transition-all cursor-pointer shadow-2xs">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-rose-600">Reopened</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-rose-600 mt-1">{reopened}</p>
+                            <p className="text-[10.5px] text-rose-500/80 font-normal mt-0.5">Ineffective / Recurred</p>
+                        </div>
+
+                        {/* 8. Critical Priority */}
+                        <div onClick={() => onFilterRegister('Critical')} className="bg-white p-3 rounded-xl border border-slate-200/80 hover:border-rose-300 transition-all cursor-pointer shadow-2xs">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-rose-700">Critical Priority</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse"></span>
+                            </div>
+                            <p className="text-xl font-bold font-mono text-rose-700 mt-1">{critical}</p>
+                            <p className="text-[10.5px] text-rose-600/80 font-normal mt-0.5">Urgent Resolution</p>
+                        </div>
+
+                        {/* 9. Overdue Action Tasks (Span 2) */}
+                        <div className="bg-white p-3 rounded-xl border border-amber-200/80 shadow-2xs col-span-2 flex items-center justify-between bg-amber-50/20">
+                            <div>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-medium uppercase tracking-wider text-amber-700">Overdue Action Tasks</span>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                </div>
+                                <p className="text-xl font-bold font-mono text-amber-700 mt-1">{overdueActions.length}</p>
+                                <p className="text-[10.5px] text-amber-600/80 font-normal mt-0.5">Past Target Completion Date</p>
+                            </div>
+                            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                                <Icon name="clock" size={16}/>
                             </div>
                         </div>
                     </div>
 
                     {/* Interactive Charts Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
                         {/* Trigger Chart */}
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
-                            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 mb-4 flex items-center gap-2">
-                                <Icon name="pie-chart" size={15} className="text-amber-500"/> CAPA by Trigger Source
+                        <div className="bg-white p-4.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+                            <h3 className="text-xs font-semibold text-slate-800 mb-3.5 flex items-center gap-2">
+                                <Icon name="pie-chart" size={14} className="text-[#0B6B63]"/> CAPA by Trigger Source
                             </h3>
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 {triggerData.length > 0 ? triggerData.map((d, i) => {
                                     const pct = Math.round((d.count / (total || 1)) * 100);
                                     return (
                                         <div key={i} className="space-y-1">
-                                            <div className="flex justify-between text-[11px] font-black uppercase text-slate-700">
+                                            <div className="flex justify-between text-xs font-medium text-slate-700">
                                                 <span>{d.name}</span>
-                                                <span>{d.count} ({pct}%)</span>
+                                                <span className="font-mono text-slate-500 text-[11px]">{d.count} ({pct}%)</span>
                                             </div>
-                                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-indigo-600 rounded-full transition-all" style={{ width: pct + '%' }}></div>
+                                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-[#0B6B63] rounded-full transition-all" style={{ width: pct + '%' }}></div>
                                             </div>
                                         </div>
                                     );
                                 }) : (
-                                    <div className="py-8 text-center text-slate-400 font-bold text-xs">No CAPA trigger data recorded yet.</div>
+                                    <div className="py-8 text-center text-slate-400 font-normal text-xs">No CAPA trigger data recorded yet.</div>
                                 )}
                             </div>
                         </div>
 
                         {/* Root Cause Pareto Chart */}
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
-                            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 mb-4 flex items-center gap-2">
-                                <Icon name="target" size={15} className="text-rose-500"/> Root Cause Category Distribution
+                        <div className="bg-white p-4.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+                            <h3 className="text-xs font-semibold text-slate-800 mb-3.5 flex items-center gap-2">
+                                <Icon name="target" size={14} className="text-[#0B6B63]"/> Root Cause Category Distribution
                             </h3>
-                            <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+                            <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
                                 {rootCauseData.length > 0 ? rootCauseData.map((d, i) => {
                                     const pct = Math.round((d.count / (total || 1)) * 100);
                                     return (
-                                        <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                                            <span className="text-xs font-black text-slate-800 uppercase">{d.category}</span>
+                                        <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-slate-50/70 border border-slate-100">
+                                            <span className="text-xs font-medium text-slate-800">{d.category}</span>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-bold text-slate-500">{pct}%</span>
-                                                <span className="bg-slate-900 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full">{d.count}</span>
+                                                <span className="text-[10.5px] font-mono text-slate-400">{pct}%</span>
+                                                <span className="bg-teal-50 text-[#0B6B63] border border-teal-100/80 text-[10px] font-mono font-medium px-2 py-0.5 rounded-md">{d.count}</span>
                                             </div>
                                         </div>
                                     );
                                 }) : (
-                                    <div className="py-8 text-center text-slate-400 font-bold text-xs">No root cause categories recorded yet.</div>
+                                    <div className="py-8 text-center text-slate-400 font-normal text-xs">No root cause categories recorded yet.</div>
                                 )}
                             </div>
                         </div>
@@ -6898,31 +6958,31 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
                     {/* Overdue Action Items Table */}
                     {overdueActions.length > 0 && (
-                        <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-xs">
-                            <div className="flex items-center justify-between mb-4">
+                        <div className="bg-white border border-rose-200/80 rounded-2xl p-4.5 shadow-2xs">
+                            <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2">
-                                    <Icon name="alert-triangle" size={18} className="text-rose-600"/>
-                                    <h3 className="text-xs font-black uppercase tracking-wider text-rose-900">Overdue CAPA Action Tasks ({overdueActions.length})</h3>
+                                    <Icon name="alert-triangle" size={15} className="text-rose-600"/>
+                                    <h3 className="text-xs font-semibold text-rose-900">Overdue CAPA Action Tasks ({overdueActions.length})</h3>
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-rose-700 bg-rose-100 px-3 py-1 rounded-full">Immediate Action Required</span>
+                                <span className="text-[10px] font-medium text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">Immediate Action Required</span>
                             </div>
-                            <div className="divide-y divide-rose-200 border border-rose-200 rounded-2xl bg-white overflow-hidden text-xs">
+                            <div className="divide-y divide-rose-100 border border-rose-100 rounded-xl bg-slate-50/40 overflow-hidden text-xs">
                                 {overdueActions.map(a => {
                                     const parentCapa = capas.find(c => c.id === a.capaId);
                                     return (
-                                        <div key={a.id} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-rose-50/50 transition-colors">
+                                        <div key={a.id} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-rose-50/50 transition-colors">
                                             <div className="space-y-0.5">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-black text-slate-900">{parentCapa?.capaNo || 'CAPA'}</span>
-                                                    <span className="text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 px-2 py-0.5 rounded-md">{a.actionType} Action</span>
+                                                    <span className="font-semibold text-slate-800 font-mono">{parentCapa?.capaNo || 'CAPA'}</span>
+                                                    <span className="text-[9.5px] font-medium uppercase bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded-md">{a.actionType} Action</span>
                                                 </div>
-                                                <p className="font-semibold text-slate-700">{a.actionDescription}</p>
-                                                <p className="text-[10px] font-bold text-slate-400">Assigned: {a.responsiblePerson} ({a.responsibleDepartment})</p>
+                                                <p className="font-normal text-slate-600 text-[11.5px]">{a.actionDescription}</p>
+                                                <p className="text-[10.5px] text-slate-400 font-normal">Assigned: {a.responsiblePerson} ({a.responsibleDepartment})</p>
                                             </div>
-                                            <div className="flex items-center gap-3 shrink-0">
-                                                <span className="text-rose-600 font-black text-xs">Target: {a.targetDate}</span>
+                                            <div className="flex items-center gap-2.5 shrink-0">
+                                                <span className="text-rose-600 font-mono text-xs font-medium">Target: {a.targetDate}</span>
                                                 {parentCapa && (
-                                                    <button onClick={() => onOpenCapa(parentCapa)} className="bg-slate-900 hover:bg-black text-white text-[10px] font-black px-3 py-1.5 rounded-xl uppercase transition-all">
+                                                    <button onClick={() => onOpenCapa(parentCapa)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-medium px-2.5 py-1 rounded-lg transition-all cursor-pointer">
                                                         Open CAPA
                                                     </button>
                                                 )}
@@ -15374,7 +15434,7 @@ function App() {
                     {activeTab === 'capa' && (
                         <div className="space-y-6">
                             {/* CAPA Sub-Navigation Bar */}
-                            <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-1.5 flex-wrap">
+                            <div className="bg-white p-1.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center gap-1 flex-wrap">
                                 {[
                                     { id: 'dashboard', label: 'Dashboard', icon: 'layout-grid' },
                                     { id: 'register', label: 'CAPA Register', icon: 'list' },
@@ -15394,11 +15454,11 @@ function App() {
                                                 }
                                                 setCapaSubTab(tab.id);
                                             }}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                                                active ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                                                active ? 'bg-teal-50 text-[#0B6B63] border border-teal-200/80 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                                             }`}
                                         >
-                                            <Icon name={tab.icon} size={14}/>
+                                            <Icon name={tab.icon} size={13}/>
                                             {tab.label}
                                         </button>
                                     );
