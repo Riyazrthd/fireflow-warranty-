@@ -15875,152 +15875,149 @@ function App() {
 
                             return (
                                 <div className="space-y-4 fade-up select-none">
-                                    {/* ── 1. EXECUTIVE FLEET HEALTH KPI RIBBON ── */}
-                                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+                                    {/* ── 1. COMPACT LIGHTWEIGHT FLEET HEALTH KPI RIBBON ── */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
                                         {/* Card 1: Total Fleet Assets */}
                                         <div 
                                             onClick={() => { setFleetWarrantyFilter('All'); setFleetCommissionFilter('All'); }}
-                                            className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs relative flex flex-col justify-between hover:border-slate-300 transition-all cursor-pointer group"
+                                            className={`bg-white px-3 py-2 rounded-lg border transition-all cursor-pointer shadow-2xs group flex flex-col justify-between hover:border-slate-300 ${
+                                                fleetWarrantyFilter === 'All' && fleetCommissionFilter === 'All'
+                                                    ? 'border-indigo-400 ring-1 ring-indigo-400/25 bg-indigo-50/10'
+                                                    : 'border-slate-200/80'
+                                            }`}
                                             title="View entire registered fleet"
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Fleet Registered</span>
-                                                <div className="w-7.5 h-7.5 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                                    <Icon name="truck" size={14}/>
+                                            <div className="flex items-center justify-between gap-1">
+                                                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider truncate">Fleet Registered</span>
+                                                <Icon name="truck" size={13} className="text-indigo-600 shrink-0"/>
+                                            </div>
+                                            <div className="mt-1 flex items-baseline justify-between gap-1">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-lg font-bold font-mono text-slate-900 leading-none">{fleetKpis.total}</span>
+                                                    <span className="text-[10px] font-medium text-slate-400">units</span>
                                                 </div>
-                                            </div>
-                                            <div className="my-2 flex items-baseline gap-1.5">
-                                                <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 tracking-tight">{fleetKpis.total}</span>
-                                                <span className="text-xs font-semibold text-slate-400">Units</span>
-                                            </div>
-                                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                                                <span className="text-slate-500 truncate">Total Deployed</span>
-                                                <span className="text-[9.5px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded font-mono shrink-0">100% Tracked</span>
+                                                <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-1.5 py-0.5 rounded font-mono">100%</span>
                                             </div>
                                         </div>
 
                                         {/* Card 2: In OEM Warranty */}
                                         <div 
                                             onClick={() => setFleetWarrantyFilter(fleetWarrantyFilter === 'Active' ? 'All' : 'Active')}
-                                            className={`bg-white p-3.5 sm:p-4 rounded-xl border shadow-2xs relative flex flex-col justify-between cursor-pointer transition-all group ${
-                                                fleetWarrantyFilter === 'Active' ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/15' : 'border-slate-200/90 hover:border-emerald-300'
+                                            className={`bg-white px-3 py-2 rounded-lg border transition-all cursor-pointer shadow-2xs group flex flex-col justify-between ${
+                                                fleetWarrantyFilter === 'Active' 
+                                                    ? 'border-emerald-500 ring-1 ring-emerald-500/25 bg-emerald-50/10' 
+                                                    : 'border-slate-200/80 hover:border-emerald-300'
                                             }`}
                                             title="Click to filter units with active OEM coverage"
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">In OEM Warranty</span>
-                                                <div className="w-7.5 h-7.5 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                                    <Icon name="shield-check" size={14}/>
+                                            <div className="flex items-center justify-between gap-1">
+                                                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider truncate">In OEM Warranty</span>
+                                                <Icon name="shield-check" size={13} className="text-emerald-600 shrink-0"/>
+                                            </div>
+                                            <div className="mt-1 flex items-baseline justify-between gap-1">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-lg font-bold font-mono text-emerald-700 leading-none">{fleetKpis.active}</span>
+                                                    <span className="text-[10px] font-bold font-mono text-emerald-600">({fleetKpis.activeRatio}%)</span>
                                                 </div>
-                                            </div>
-                                            <div className="my-2 flex items-baseline gap-1.5">
-                                                <span className="text-2xl sm:text-3xl font-bold font-mono text-emerald-700 tracking-tight">{fleetKpis.active}</span>
-                                                <span className="text-xs font-bold text-emerald-600 font-mono">({fleetKpis.activeRatio}%)</span>
-                                            </div>
-                                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                                                <span className="text-slate-500 truncate">Active OEM</span>
-                                                <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono shrink-0">Protected</span>
+                                                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100/80 px-1.5 py-0.5 rounded font-mono">Active</span>
                                             </div>
                                         </div>
 
                                         {/* Card 3: Near Expiry (<=60d) */}
                                         <div 
                                             onClick={() => setFleetWarrantyFilter(fleetWarrantyFilter === 'Expiring' ? 'All' : 'Expiring')}
-                                            className={`bg-white p-3.5 sm:p-4 rounded-xl border shadow-2xs relative flex flex-col justify-between cursor-pointer transition-all group ${
-                                                fleetWarrantyFilter === 'Expiring' ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/15' : 'border-slate-200/90 hover:border-amber-300'
+                                            className={`bg-white px-3 py-2 rounded-lg border transition-all cursor-pointer shadow-2xs group flex flex-col justify-between ${
+                                                fleetWarrantyFilter === 'Expiring' 
+                                                    ? 'border-amber-500 ring-1 ring-amber-500/25 bg-amber-50/10' 
+                                                    : 'border-slate-200/80 hover:border-amber-300'
                                             }`}
                                             title="Click to filter units requiring warranty renewal or AMC discussions"
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Near Expiry (&le;60d)</span>
-                                                <div className="w-7.5 h-7.5 rounded-lg bg-amber-50 text-amber-800 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                                    <Icon name="alert-triangle" size={14}/>
+                                            <div className="flex items-center justify-between gap-1">
+                                                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider truncate">Near Expiry (&le;60d)</span>
+                                                <Icon name="alert-triangle" size={13} className="text-amber-600 shrink-0"/>
+                                            </div>
+                                            <div className="mt-1 flex items-baseline justify-between gap-1">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-lg font-bold font-mono text-amber-800 leading-none">{fleetKpis.expiring}</span>
+                                                    <span className="text-[10px] font-medium text-amber-700">units</span>
                                                 </div>
-                                            </div>
-                                            <div className="my-2 flex items-baseline gap-1.5">
-                                                <span className="text-2xl sm:text-3xl font-bold font-mono text-amber-800 tracking-tight">{fleetKpis.expiring}</span>
-                                                <span className="text-xs font-semibold text-amber-700">Units</span>
-                                            </div>
-                                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                                                <span className="text-slate-500 truncate">Review AMC</span>
-                                                <span className="text-[9.5px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded font-mono shrink-0">Action Req.</span>
+                                                <span className="text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-100/80 px-1.5 py-0.5 rounded font-mono">Action Req.</span>
                                             </div>
                                         </div>
 
                                         {/* Card 4: Warranty Expired */}
                                         <div 
                                             onClick={() => setFleetWarrantyFilter(fleetWarrantyFilter === 'Expired' ? 'All' : 'Expired')}
-                                            className={`bg-white p-3.5 sm:p-4 rounded-xl border shadow-2xs relative flex flex-col justify-between cursor-pointer transition-all group ${
-                                                fleetWarrantyFilter === 'Expired' ? 'border-slate-600 ring-2 ring-slate-500/20 bg-slate-50' : 'border-slate-200/90 hover:border-slate-400'
+                                            className={`bg-white px-3 py-2 rounded-lg border transition-all cursor-pointer shadow-2xs group flex flex-col justify-between ${
+                                                fleetWarrantyFilter === 'Expired' 
+                                                    ? 'border-slate-600 ring-1 ring-slate-500/25 bg-slate-50' 
+                                                    : 'border-slate-200/80 hover:border-slate-400'
                                             }`}
                                             title="Click to filter post-warranty fleet units"
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Warranty Expired</span>
-                                                <div className="w-7.5 h-7.5 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                                    <Icon name="clock" size={14}/>
+                                            <div className="flex items-center justify-between gap-1">
+                                                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider truncate">Warranty Expired</span>
+                                                <Icon name="clock" size={13} className="text-slate-500 shrink-0"/>
+                                            </div>
+                                            <div className="mt-1 flex items-baseline justify-between gap-1">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-lg font-bold font-mono text-slate-700 leading-none">{fleetKpis.expired}</span>
+                                                    <span className="text-[10px] font-medium text-slate-400">units</span>
                                                 </div>
-                                            </div>
-                                            <div className="my-2 flex items-baseline gap-1.5">
-                                                <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-700 tracking-tight">{fleetKpis.expired}</span>
-                                                <span className="text-xs font-semibold text-slate-500">Units</span>
-                                            </div>
-                                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                                                <span className="text-slate-500 truncate">AMC Eligible</span>
-                                                <span className="text-[9.5px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded font-mono shrink-0">Post-Warranty</span>
+                                                <span className="text-[9px] font-bold text-slate-600 bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded font-mono">Post-War.</span>
                                             </div>
                                         </div>
 
                                         {/* Card 5: Commissioning & Training */}
                                         <div 
                                             onClick={() => setFleetCommissionFilter(fleetCommissionFilter === 'Certified' ? 'All' : 'Certified')}
-                                            className={`bg-white p-3.5 sm:p-4 rounded-xl border shadow-2xs relative flex flex-col justify-between col-span-2 md:col-span-1 cursor-pointer transition-all group ${
-                                                fleetCommissionFilter === 'Certified' ? 'border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/15' : 'border-slate-200/90 hover:border-purple-300'
+                                            className={`bg-white px-3 py-2 rounded-lg border transition-all cursor-pointer shadow-2xs group flex flex-col justify-between col-span-2 sm:col-span-1 ${
+                                                fleetCommissionFilter === 'Certified' 
+                                                    ? 'border-purple-500 ring-1 ring-purple-500/25 bg-purple-50/10' 
+                                                    : 'border-slate-200/80 hover:border-purple-300'
                                             }`}
                                             title="Click to filter units with finalized commissioning & driver training"
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Commissioning</span>
-                                                <div className="w-7.5 h-7.5 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                                    <Icon name="award" size={14}/>
+                                            <div className="flex items-center justify-between gap-1">
+                                                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider truncate">Commissioning</span>
+                                                <Icon name="award" size={13} className="text-purple-600 shrink-0"/>
+                                            </div>
+                                            <div className="mt-1 flex items-baseline justify-between gap-1">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-lg font-bold font-mono text-purple-700 leading-none">{fleetKpis.trainingDone}</span>
+                                                    <span className="text-[10px] font-bold font-mono text-purple-600">({fleetKpis.trainingRatio}%)</span>
                                                 </div>
-                                            </div>
-                                            <div className="my-2 flex items-baseline gap-1.5">
-                                                <span className="text-2xl sm:text-3xl font-bold font-mono text-purple-700 tracking-tight">{fleetKpis.trainingDone}</span>
-                                                <span className="text-xs font-bold text-purple-600 font-mono">({fleetKpis.trainingRatio}%)</span>
-                                            </div>
-                                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                                                <span className="text-slate-500 truncate">Handover Audited</span>
-                                                <span className="text-[9.5px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded font-mono shrink-0">Certified</span>
+                                                <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-100/80 px-1.5 py-0.5 rounded font-mono">Certified</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* ── 2. ENTERPRISE OMNI-SEARCH & ACTION TOOLBAR ── */}
-                                    <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
-                                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                                    <div className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5">
+                                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
                                             {/* Search & Filter Inputs Cluster */}
-                                            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                                            <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 flex-1 min-w-0">
                                                 {/* Omni Search Box */}
-                                                <div className="relative w-full sm:w-64">
+                                                <div className="relative w-full sm:w-48 lg:w-44 xl:w-56 shrink-0">
                                                     <input
                                                         type="text"
                                                         value={fleetSearch}
                                                         onChange={e => setFleetSearch(e.target.value)}
-                                                        placeholder="Search customer, PO, vehicle, chassis..."
-                                                        className="w-full pl-8.5 pr-8 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all bg-white"
+                                                        placeholder="Search fleet..."
+                                                        className="w-full pl-8 pr-7 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all bg-white"
                                                     />
                                                     <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                                                        <Icon name="search" size={14}/>
+                                                        <Icon name="search" size={13}/>
                                                     </div>
                                                     {fleetSearch && (
                                                         <button
                                                             onClick={() => setFleetSearch('')}
                                                             title="Clear search"
                                                             aria-label="Clear search"
-                                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
                                                         >
-                                                            <Icon name="x" size={13}/>
+                                                            <Icon name="x" size={12}/>
                                                         </button>
                                                     )}
                                                 </div>
@@ -16029,7 +16026,7 @@ function App() {
                                                 <select
                                                     value={fleetCustomerFilter}
                                                     onChange={e => setFleetCustomerFilter(e.target.value)}
-                                                    className="h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer max-w-[175px]"
+                                                    className="h-8 px-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer max-w-[130px] sm:max-w-[140px] truncate shrink-0"
                                                 >
                                                     <option value="All">All Clients ({customers.length})</option>
                                                     {customers.map(c => (
@@ -16041,7 +16038,7 @@ function App() {
                                                 <select
                                                     value={fleetTypeFilter}
                                                     onChange={e => setFleetTypeFilter(e.target.value)}
-                                                    className="h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer max-w-[155px]"
+                                                    className="h-8 px-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer max-w-[125px] sm:max-w-[135px] truncate shrink-0"
                                                 >
                                                     <option value="All">All Tender Types</option>
                                                     {tenderTypes.map(t => (
@@ -16059,10 +16056,10 @@ function App() {
                                                             setFleetTypeFilter('All');
                                                             setFleetCommissionFilter('All');
                                                         }}
-                                                        className="h-9 px-2.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                                                        className="h-8 px-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
                                                         title="Reset all search and filtering criteria"
                                                     >
-                                                        <Icon name="x" size={12}/>
+                                                        <Icon name="x" size={11}/>
                                                         <span>Reset ({activeFilterCount})</span>
                                                     </button>
                                                 )}
@@ -16073,20 +16070,20 @@ function App() {
                                                 {/* Export CSV (Secondary Outline) */}
                                                 <button
                                                     onClick={exportFleetToCsv}
-                                                    className="h-9 px-3 rounded-lg border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-2xs shrink-0"
+                                                    className="h-8 px-2.5 rounded-lg border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-2xs shrink-0"
                                                     title="Export active filtered fleet dataset to CSV"
                                                 >
-                                                    <Icon name="download" size={14} className="text-slate-500"/>
+                                                    <Icon name="download" size={13} className="text-slate-500"/>
                                                     <span>Export CSV</span>
                                                 </button>
 
                                                 {/* Register Staged Delivery (Secondary Outline) */}
                                                 <button
                                                     onClick={() => setShowRegisterDeliveryModal(true)}
-                                                    className="h-9 px-3 rounded-lg border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-2xs shrink-0"
+                                                    className="h-8 px-2.5 rounded-lg border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-2xs shrink-0"
                                                     title="Open staged delivery registration wizard"
                                                 >
-                                                    <Icon name="truck" size={14} className="text-slate-500"/>
+                                                    <Icon name="truck" size={13} className="text-slate-500"/>
                                                     <span>Register Delivery</span>
                                                 </button>
 
@@ -16104,10 +16101,10 @@ function App() {
                                                         });
                                                         setShowTruckModal(true);
                                                     }}
-                                                    className="h-9 px-3.5 rounded-lg bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-98 shrink-0"
+                                                    className="h-8 px-3 rounded-lg bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-98 shrink-0"
                                                     title="Directly add a new commissioned vehicle record"
                                                 >
-                                                    <Icon name="plus" size={14}/>
+                                                    <Icon name="plus" size={13}/>
                                                     <span>+ Add Vehicle</span>
                                                 </button>
                                             </div>
@@ -16157,15 +16154,15 @@ function App() {
                                     {/* ── 3. ENTERPRISE DESKTOP FLEET TABLE (>=1024px) ── */}
                                     <div className="hidden lg:block bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
                                         <div className="overflow-x-auto">
-                                            <table className="w-full text-left border-collapse min-w-[1060px] table-fixed">
+                                            <table className="w-full text-left border-collapse min-w-[940px] table-fixed">
                                                 <thead>
                                                     <tr className="sticky top-0 z-10 bg-[#F8FAFC] border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                                                        <th className="px-4 py-3 w-[24%] min-w-[240px]">Customer &amp; Site</th>
-                                                        <th className="px-3.5 py-3 w-[17%] min-w-[180px]">Purchase Order</th>
-                                                        <th className="px-3.5 py-3 w-[24%] min-w-[240px]">Fire Tender &amp; Specs</th>
-                                                        <th className="px-3.5 py-3 w-[12%] min-w-[130px] text-center">OEM Warranty</th>
-                                                        <th className="px-3.5 py-3 w-[11%] min-w-[125px] text-center">Insurance Policy</th>
-                                                        <th className="px-3.5 py-3 w-[12%] min-w-[145px] text-right pr-4">Actions</th>
+                                                        <th className="px-3.5 py-3 w-[23%] min-w-[210px]">Customer &amp; Site</th>
+                                                        <th className="px-3 py-3 w-[17%] min-w-[160px]">Purchase Order</th>
+                                                        <th className="px-3 py-3 w-[24%] min-w-[210px]">Fire Tender &amp; Specs</th>
+                                                        <th className="px-3 py-3 w-[12%] min-w-[115px] text-center">OEM Warranty</th>
+                                                        <th className="px-3 py-3 w-[11%] min-w-[110px] text-center">Insurance Policy</th>
+                                                        <th className="px-3 py-3 w-[13%] min-w-[135px] text-right pr-3">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100/90 bg-white">
