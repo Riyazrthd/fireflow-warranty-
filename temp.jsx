@@ -12290,6 +12290,12 @@ function App() {
             const [compCat, setCompCat] = useState('All');
             const [compDate, setCompDate] = useState('');
 
+            // Fleet Inventory Filters (MNC Standard)
+            const [fleetSearch, setFleetSearch] = useState('');
+            const [fleetWarrantyFilter, setFleetWarrantyFilter] = useState('All'); // 'All' | 'Active' | 'Expiring' | 'Expired'
+            const [fleetCustomerFilter, setFleetCustomerFilter] = useState('All');
+            const [fleetTypeFilter, setFleetTypeFilter] = useState('All');
+
             // Core Data
             const safeLocalGet = (key) => { try { return JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) { console.warn('localStorage read failed for', key, e); return []; } };
             const [customers, setCustomers] = useState(() => safeLocalGet('ff_cust'));
@@ -13014,11 +13020,13 @@ function App() {
             // URL hash & query detection — auto-open portal or track specific ticket if opened via QR or link
             useEffect(() => {
                 const handleUrlParams = () => {
-                    // Check search query parameters (?ticket=... or ?po=...)
+                    // Check search query parameters (?ticket=... or ?po=... or ?tab=... or ?mode=...)
                     try {
                         const searchParams = new URLSearchParams(window.location.search);
                         const sTicket = searchParams.get('ticket') || searchParams.get('complaint') || searchParams.get('id');
                         const sPo = searchParams.get('po');
+                        const sTab = searchParams.get('tab');
+                        const sMode = searchParams.get('mode');
                         if (sTicket) {
                             setPortalInitialTicket(decodeURIComponent(sTicket).trim());
                             setAccessMode('customer');
@@ -13027,9 +13035,17 @@ function App() {
                             setPortalInitialPo(decodeURIComponent(sPo).trim());
                             setAccessMode('customer');
                         }
+                        if (sMode === 'master_admin' || sMode === 'admin') {
+                            setAccessMode('master_admin');
+                        } else if (sMode === 'agm') {
+                            setAccessMode('agm');
+                        }
+                        if (sTab) {
+                            setActiveTab(sTab);
+                        }
                     } catch(e) {}
 
-                    // Check hash parameters (#ticket=... or #portal&ticket=... or #portal&po=...)
+                    // Check hash parameters (#ticket=... or #trucks or #tab=trucks)
                     const hash = window.location.hash;
                     if (hash) {
                         try {
@@ -13046,6 +13062,16 @@ function App() {
                                     setPortalInitialPo(decodeURIComponent(match[1]).trim());
                                     setAccessMode('customer');
                                 }
+                            } else if (raw.includes('tab=')) {
+                                const match = raw.match(/tab=([^&]+)/);
+                                if (match && match[1]) {
+                                    setActiveTab(match[1]);
+                                }
+                            } else if (raw === 'trucks' || raw === 'fleet') {
+                                setAccessMode('master_admin');
+                                setActiveTab('trucks');
+                            } else if (raw === 'admin') {
+                                setAccessMode('master_admin');
                             } else if (/^\d{4}-[A-Z]{2}-\d{4}$/i.test(raw)) {
                                 setPortalInitialTicket(raw.trim());
                                 setAccessMode('customer');
@@ -13418,6 +13444,166 @@ function App() {
             const activeUnits = useMemo(() => trucks.filter(t => calculateDaysRemaining(calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths)) > 0), [trucks]);
             const expiringSoon = useMemo(() => activeUnits.filter(t => { const d = calculateDaysRemaining(calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths)); return d > 0 && d <= parseInt(expiryDays||0); }).sort((a,b)=> calculateDaysRemaining(calculateWarrantyExpiry(a.deliveryDate,a.warrantyMonths)) - calculateDaysRemaining(calculateWarrantyExpiry(b.deliveryDate,b.warrantyMonths))), [activeUnits, expiryDays]);
             const customersInWarranty = useMemo(() => { const ids = new Set(activeUnits.map(t=>t.customerId)); return customers.filter(c=>ids.has(c.id)); }, [customers, activeUnits]);
+
+            // ── MNC FLEET ANALYTICS & COMPUTED METRICS ──
+            const fleetKpis = useMemo(() => {
+                const total = trucks.length;
+                let active = 0;
+                let expiring = 0;
+                let expired = 0;
+                let trainingDone = 0;
+                let insuranceActive = 0;
+
+                trucks.forEach(t => {
+                    const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                    const wRem = calculateDaysRemaining(wExp);
+                    if (wRem > 60) active++;
+                    else if (wRem > 0) { active++; expiring++; }
+                    else expired++;
+
+                    const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
+                    if (iRem > 0) insuranceActive++;
+
+                    const cert = (commCerts || []).find(c => c.truckId === t.id);
+                    if (cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized)) {
+                        trainingDone++;
+                    }
+                });
+
+                const activeRatio = total > 0 ? Math.round((active / total) * 100) : 0;
+                const trainingRatio = total > 0 ? Math.round((trainingDone / total) * 100) : 0;
+
+                return { total, active, expiring, expired, trainingDone, insuranceActive, activeRatio, trainingRatio };
+            }, [trucks, commCerts]);
+
+            // Filtered Fleet Inventory for Admin View
+            const filteredFleetTrucks = useMemo(() => {
+                const q = fleetSearch.toLowerCase().trim();
+                return trucks.filter(t => {
+                    const cust = customers.find(c => c.id === t.customerId);
+                    const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                    const wRem = calculateDaysRemaining(wExp);
+
+                    // Search match across client, PO, tender type, chassis, pump, insurance
+                    const matchesSearch = !q ||
+                        (cust?.name || '').toLowerCase().includes(q) ||
+                        (cust?.address || '').toLowerCase().includes(q) ||
+                        (t.poNo || '').toLowerCase().includes(q) ||
+                        (t.ocNo || '').toLowerCase().includes(q) ||
+                        (t.costCenterNo || '').toLowerCase().includes(q) ||
+                        (t.tenderType || '').toLowerCase().includes(q) ||
+                        (t.chassisMake || '').toLowerCase().includes(q) ||
+                        (t.modelNo || '').toLowerCase().includes(q) ||
+                        (t.pumpMake || '').toLowerCase().includes(q) ||
+                        (t.pumpSrNo || '').toLowerCase().includes(q) ||
+                        (t.insuranceCompany || '').toLowerCase().includes(q);
+
+                    if (!matchesSearch) return false;
+
+                    // Warranty filter
+                    if (fleetWarrantyFilter === 'Active' && wRem <= 0) return false;
+                    if (fleetWarrantyFilter === 'Expiring' && (wRem <= 0 || wRem > 60)) return false;
+                    if (fleetWarrantyFilter === 'Expired' && wRem > 0) return false;
+
+                    // Customer filter
+                    if (fleetCustomerFilter !== 'All' && t.customerId !== fleetCustomerFilter) return false;
+
+                    // Tender Type filter
+                    if (fleetTypeFilter !== 'All' && (t.tenderType || 'Other') !== fleetTypeFilter) return false;
+
+                    return true;
+                });
+            }, [trucks, customers, fleetSearch, fleetWarrantyFilter, fleetCustomerFilter, fleetTypeFilter]);
+
+            // Export Fleet Registry to Excel/CSV (MNC Enterprise Export)
+            const exportFleetToCsv = useCallback(() => {
+                if (!trucks || trucks.length === 0) {
+                    alert('No fleet records available to export.');
+                    return;
+                }
+
+                const headers = [
+                    'Client Name',
+                    'Client Site / Location',
+                    'Client Contact Person',
+                    'Contact Phone',
+                    'Contact Email',
+                    'PO Number',
+                    'PO Date',
+                    'Order Confirmation (OC)',
+                    'Cost Center No',
+                    'Fire Tender Type',
+                    'Chassis Make',
+                    'Chassis Model',
+                    'Pump OEM',
+                    'Pump Flow (LPM)',
+                    'Pump Serial No',
+                    'Water Tank Capacity',
+                    'Foam Tank Capacity',
+                    'Delivery Date',
+                    'Warranty Period (Months)',
+                    'Warranty Expiry Date',
+                    'Warranty Days Remaining',
+                    'Warranty Status',
+                    'Insurance Company',
+                    'Insurance Policy No',
+                    'Insurance Expiry',
+                    'Driver Training Status'
+                ];
+
+                const rows = trucks.map(t => {
+                    const cust = customers.find(c => c.id === t.customerId);
+                    const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                    const wRem = calculateDaysRemaining(wExp);
+                    const cert = (commCerts || []).find(c => c.truckId === t.id);
+                    const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
+
+                    const escCsv = val => {
+                        const str = (val || '').toString().replace(/"/g, '""');
+                        return `"${str}"`;
+                    };
+
+                    return [
+                        escCsv(cust?.name || 'N/A'),
+                        escCsv(cust?.address || 'N/A'),
+                        escCsv(cust?.contactPerson || 'N/A'),
+                        escCsv(cust?.phone || 'N/A'),
+                        escCsv(cust?.email || 'N/A'),
+                        escCsv(t.poNo || 'N/A'),
+                        escCsv(t.poDate ? formatDate(t.poDate) : 'N/A'),
+                        escCsv(t.ocNo || 'N/A'),
+                        escCsv(t.costCenterNo || 'N/A'),
+                        escCsv(t.tenderType || 'Fire Tender'),
+                        escCsv(t.chassisMake || 'N/A'),
+                        escCsv(t.modelNo || 'N/A'),
+                        escCsv(t.pumpMake || 'N/A'),
+                        escCsv(t.pumpLpm || 'N/A'),
+                        escCsv(t.pumpSrNo || 'N/A'),
+                        escCsv(t.waterCapacity || 'N/A'),
+                        escCsv(t.foamCapacity || 'N/A'),
+                        escCsv(t.deliveryDate ? formatDate(t.deliveryDate) : 'N/A'),
+                        escCsv(t.warrantyMonths || 12),
+                        escCsv(wExp ? formatDate(wExp) : 'N/A'),
+                        escCsv(wRem),
+                        escCsv(wRem > 60 ? 'Active' : wRem > 0 ? 'Expiring Soon' : 'Expired'),
+                        escCsv(t.insuranceCompany || 'N/A'),
+                        escCsv(t.insurancePolicyNo || 'N/A'),
+                        escCsv(t.insuranceExpiryDate ? formatDate(t.insuranceExpiryDate) : 'N/A'),
+                        escCsv(isTrained ? 'Certified Handover' : 'Pending Training')
+                    ].join(',');
+                });
+
+                const csvContent = '\uFEFF' + [headers.map(h => `"${h}"`).join(','), ...rows].join('\r\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `FireFlow_Fleet_Inventory_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, [trucks, customers, commCerts]);
             const filteredComplaints = useMemo(() => complaints.filter(c => {
                 const trk = trucks.find(t=>t.id===c.truckId); const cust = customers.find(cu=>cu.id===trk?.customerId);
                 const search = compSearch.toLowerCase();
@@ -15638,219 +15824,517 @@ function App() {
                         )}
 
                         {/* ── TRUCKS (FLEET INVENTORY & WARRANTY) ── */}
-                        {activeTab==='trucks' && (
-                            <div className="space-y-3.5 fade-up select-none">
-                                {/* Compact Header & Action Bar */}
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center shrink-0">
-                                            <Icon name="truck" size={15}/>
+                        {activeTab==='trucks' && (() => {
+                            const tenderTypes = Array.from(new Set(trucks.map(t => t.tenderType).filter(Boolean)));
+                            const activeFilterCount = (fleetSearch ? 1 : 0) + (fleetWarrantyFilter !== 'All' ? 1 : 0) + (fleetCustomerFilter !== 'All' ? 1 : 0) + (fleetTypeFilter !== 'All' ? 1 : 0);
+
+                            return (
+                                <div className="space-y-3.5 fade-up select-none">
+                                    {/* ── 1. EXECUTIVE FLEET HEALTH KPI RIBBON ── */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                                        {/* Total Fleet Assets */}
+                                        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/90 shadow-2xs relative overflow-hidden group hover:border-slate-300 transition-all">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Fleet Registered</span>
+                                                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
+                                                    <Icon name="truck" size={14}/>
+                                                </div>
+                                            </div>
+                                            <div className="mt-1.5 flex items-baseline gap-1.5">
+                                                <span className="text-2xl font-bold font-mono text-slate-900 tracking-tight">{fleetKpis.total}</span>
+                                                <span className="text-[11px] font-medium text-slate-400">Units</span>
+                                            </div>
+                                            <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                                                <span className="text-slate-500 truncate">Total Deployed Assets</span>
+                                                <span className="text-[9.5px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded font-mono shrink-0">100% Tracked</span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="font-semibold text-slate-800 text-[13.5px] tracking-[-0.1px] font-heading">
-                                                Fleet Inventory &amp; Warranty
-                                            </h3>
-                                            <p className="text-[11px] font-normal text-slate-400 mt-0.5">
-                                                Total registered: {trucks.length} Units · {activeUnits.length} in Active Coverage
-                                            </p>
+
+                                        {/* Active OEM Warranty */}
+                                        <div 
+                                            onClick={() => setFleetWarrantyFilter(fleetWarrantyFilter === 'Active' ? 'All' : 'Active')}
+                                            className={`bg-white p-3 sm:p-3.5 rounded-xl border shadow-2xs relative overflow-hidden cursor-pointer transition-all ${
+                                                fleetWarrantyFilter === 'Active' ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20' : 'border-slate-200/90 hover:border-emerald-300'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">In OEM Warranty</span>
+                                                <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                                                    <Icon name="shield-check" size={14}/>
+                                                </div>
+                                            </div>
+                                            <div className="mt-1.5 flex items-baseline gap-1.5">
+                                                <span className="text-2xl font-bold font-mono text-emerald-700 tracking-tight">{fleetKpis.active}</span>
+                                                <span className="text-[11px] font-medium text-emerald-600 font-mono">({fleetKpis.activeRatio}%)</span>
+                                            </div>
+                                            <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                                                <span className="text-slate-500 truncate">Active OEM Coverage</span>
+                                                <span className="text-[9.5px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-mono shrink-0">Protected</span>
+                                            </div>
                                         </div>
-                                        {deliverySubmissions.filter(s => s.status === 'Pending Approval').length > 0 && (
-                                            <button
-                                                onClick={() => setShowPendingSubmissionsModal(true)}
-                                                className="ml-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                                            >
-                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                <span>{deliverySubmissions.filter(s => s.status === 'Pending Approval').length} Staged Submissions</span>
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setShowRegisterDeliveryModal(true)}
-                                            className="h-8 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
+
+                                        {/* Near Expiry Critical */}
+                                        <div 
+                                            onClick={() => setFleetWarrantyFilter(fleetWarrantyFilter === 'Expiring' ? 'All' : 'Expiring')}
+                                            className={`bg-white p-3 sm:p-3.5 rounded-xl border shadow-2xs relative overflow-hidden cursor-pointer transition-all ${
+                                                fleetWarrantyFilter === 'Expiring' ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/20' : 'border-slate-200/90 hover:border-amber-300'
+                                            }`}
                                         >
-                                            <Icon name="truck" size={13.5} className="text-slate-500"/>
-                                            <span>Register Delivery</span>
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setEditingTruck(null);
-                                                setNewTrk({
-                                                    customerId: '', poNo: '', poDate: '', ocNo: '', ocDate: '',
-                                                    costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
-                                                    foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
-                                                    deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
-                                                    insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
-                                                    submittedToAccountsAt: null, costCenterCreatedAt: null
-                                                });
-                                                setShowTruckModal(true);
-                                            }}
-                                            className="h-8 px-3.5 rounded-lg bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Near Expiry (&le;60d)</span>
+                                                <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-800 flex items-center justify-center">
+                                                    <Icon name="alert-triangle" size={14}/>
+                                                </div>
+                                            </div>
+                                            <div className="mt-1.5 flex items-baseline gap-1.5">
+                                                <span className="text-2xl font-bold font-mono text-amber-800 tracking-tight">{fleetKpis.expiring}</span>
+                                                <span className="text-[11px] font-medium text-amber-700">Action Req.</span>
+                                            </div>
+                                            <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                                                <span className="text-slate-500 truncate">Review AMC / Renewal</span>
+                                                <span className="text-[9.5px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded font-mono shrink-0">Due Soon</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Warranty Expired */}
+                                        <div 
+                                            onClick={() => setFleetWarrantyFilter(fleetWarrantyFilter === 'Expired' ? 'All' : 'Expired')}
+                                            className={`bg-white p-3 sm:p-3.5 rounded-xl border shadow-2xs relative overflow-hidden cursor-pointer transition-all ${
+                                                fleetWarrantyFilter === 'Expired' ? 'border-slate-600 ring-2 ring-slate-500/20 bg-slate-50' : 'border-slate-200/90 hover:border-slate-400'
+                                            }`}
                                         >
-                                            <Icon name="plus" size={13.5}/>
-                                            <span>Add Delivery</span>
-                                        </button>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Warranty Expired</span>
+                                                <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+                                                    <Icon name="clock" size={14}/>
+                                                </div>
+                                            </div>
+                                            <div className="mt-1.5 flex items-baseline gap-1.5">
+                                                <span className="text-2xl font-bold font-mono text-slate-700 tracking-tight">{fleetKpis.expired}</span>
+                                                <span className="text-[11px] font-medium text-slate-500">Units</span>
+                                            </div>
+                                            <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                                                <span className="text-slate-500 truncate">AMC Contract Eligible</span>
+                                                <span className="text-[9.5px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded font-mono shrink-0">Post-Warranty</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Driver Training & Handover */}
+                                        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/90 shadow-2xs relative overflow-hidden col-span-2 sm:col-span-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Commissioning</span>
+                                                <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
+                                                    <Icon name="award" size={14}/>
+                                                </div>
+                                            </div>
+                                            <div className="mt-1.5 flex items-baseline gap-1.5">
+                                                <span className="text-2xl font-bold font-mono text-purple-700 tracking-tight">{fleetKpis.trainingDone}</span>
+                                                <span className="text-[11px] font-medium text-purple-600 font-mono">({fleetKpis.trainingRatio}%)</span>
+                                            </div>
+                                            <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                                                <span className="text-slate-500 truncate">Certified Handover</span>
+                                                <span className="text-[9.5px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded font-mono shrink-0">Audited</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* World-Class Lightweight Fleet Table */}
-                                <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left table-fixed min-w-[950px] border-collapse text-xs">
-                                            <thead>
-                                                <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-slate-500 border-b border-slate-200">
-                                                    <th className="px-3.5 py-2.5 w-[28%] font-medium">PO / Vehicle &amp; Client</th>
-                                                    <th className="px-3.5 py-2.5 w-[22%] font-medium">Pump &amp; Capacity Specs</th>
-                                                    <th className="px-3.5 py-2.5 w-[18%] text-center font-medium">Insurance Policy</th>
-                                                    <th className="px-3.5 py-2.5 w-[18%] text-center font-medium">Warranty Coverage</th>
-                                                    <th className="px-3.5 py-2.5 w-[14%] text-right pr-4 font-medium">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100/90 bg-white">
-                                                {trucks.map(t => {
-                                                    const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
-                                                    const wRem = calculateDaysRemaining(wExp);
-                                                    const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
-                                                    const custObj = customers.find(c => c.id === t.customerId);
+                                    {/* ── 2. ENTERPRISE OMNI-SEARCH & FILTER TOOLBAR ── */}
+                                    <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5">
+                                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+                                            {/* Search & Filter Group */}
+                                            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                                                <div className="relative w-full sm:w-60">
+                                                    <input
+                                                        type="text"
+                                                        value={fleetSearch}
+                                                        onChange={e => setFleetSearch(e.target.value)}
+                                                        placeholder="Search client, PO, vehicle..."
+                                                        className="w-full pl-8 pr-7 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
+                                                    />
+                                                    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                                                        <Icon name="search" size={13}/>
+                                                    </div>
+                                                    {fleetSearch && (
+                                                        <button
+                                                            onClick={() => setFleetSearch('')}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                                                        >
+                                                            <Icon name="x" size={12}/>
+                                                        </button>
+                                                    )}
+                                                </div>
 
-                                                    return (
-                                                        <tr key={t.id} className="hover:bg-slate-50/70 transition-colors group">
-                                                            {/* PO / Vehicle & Client */}
-                                                            <td className="px-3.5 py-3">
-                                                                <div className="flex items-center gap-1.5 mb-1">
-                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
-                                                                        PO: {t.poNo || 'N/A'}
-                                                                    </span>
-                                                                    {t.poDate && (
-                                                                        <span className="text-[10.5px] text-slate-400 font-mono">
-                                                                            ({formatDate(t.poDate)})
+                                                {/* Customer Filter */}
+                                                <select
+                                                    value={fleetCustomerFilter}
+                                                    onChange={e => setFleetCustomerFilter(e.target.value)}
+                                                    className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer max-w-[180px]"
+                                                >
+                                                    <option value="All">All Clients ({customers.length})</option>
+                                                    {customers.map(c => (
+                                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                                    ))}
+                                                </select>
+
+                                                {/* Tender Type Filter */}
+                                                <select
+                                                    value={fleetTypeFilter}
+                                                    onChange={e => setFleetTypeFilter(e.target.value)}
+                                                    className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer max-w-[160px]"
+                                                >
+                                                    <option value="All">All Tender Types</option>
+                                                    {tenderTypes.map(t => (
+                                                        <option key={t} value={t}>{t}</option>
+                                                    ))}
+                                                </select>
+
+                                                {/* Reset Filters (if active) */}
+                                                {activeFilterCount > 0 && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setFleetSearch('');
+                                                            setFleetWarrantyFilter('All');
+                                                            setFleetCustomerFilter('All');
+                                                            setFleetTypeFilter('All');
+                                                        }}
+                                                        className="h-8 px-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                                                        title="Reset all filters"
+                                                    >
+                                                        <Icon name="x" size={11.5}/>
+                                                        <span>Reset ({activeFilterCount})</span>
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Actions Group: Export, Register, Add */}
+                                            <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                                                {/* Export to CSV */}
+                                                <button
+                                                    onClick={exportFleetToCsv}
+                                                    className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer active:scale-98 shadow-2xs"
+                                                    title="Export all fleet data with specifications to Excel / CSV"
+                                                >
+                                                    <Icon name="download" size={13} className="text-slate-500"/>
+                                                    <span>Export CSV</span>
+                                                </button>
+
+                                                {/* Register Staged Delivery */}
+                                                <button
+                                                    onClick={() => setShowRegisterDeliveryModal(true)}
+                                                    className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer active:scale-98 shadow-2xs"
+                                                >
+                                                    <Icon name="truck" size={13} className="text-slate-500"/>
+                                                    <span>Register Delivery</span>
+                                                </button>
+
+                                                {/* Add Delivery Direct */}
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingTruck(null);
+                                                        setNewTrk({
+                                                            customerId: '', poNo: '', poDate: '', ocNo: '', ocDate: '',
+                                                            costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
+                                                            foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
+                                                            deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
+                                                            insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
+                                                            submittedToAccountsAt: null, costCenterCreatedAt: null
+                                                        });
+                                                        setShowTruckModal(true);
+                                                    }}
+                                                    className="h-8 px-3 rounded-lg bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
+                                                >
+                                                    <Icon name="plus" size={13}/>
+                                                    <span>Add Vehicle</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Warranty Filter Quick Chips */}
+                                        <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100 flex-wrap">
+                                            <span className="text-[10.5px] font-semibold text-slate-400 mr-1 uppercase tracking-wider">Coverage:</span>
+                                            {[
+                                                { id: 'All', label: 'All Fleet', count: trucks.length },
+                                                { id: 'Active', label: 'Active OEM Warranty', count: fleetKpis.active, dot: 'bg-emerald-500' },
+                                                { id: 'Expiring', label: 'Expiring Soon (<60d)', count: fleetKpis.expiring, dot: 'bg-amber-500' },
+                                                { id: 'Expired', label: 'Warranty Expired', count: fleetKpis.expired, dot: 'bg-slate-400' }
+                                            ].map(chip => {
+                                                const isSelected = fleetWarrantyFilter === chip.id;
+                                                return (
+                                                    <button
+                                                        key={chip.id}
+                                                        onClick={() => setFleetWarrantyFilter(chip.id)}
+                                                        className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                            isSelected
+                                                                ? 'bg-slate-900 text-white shadow-2xs font-semibold'
+                                                                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                                                        }`}
+                                                    >
+                                                        {chip.dot && <span className={`w-1.5 h-1.5 rounded-full ${chip.dot}`}></span>}
+                                                        <span>{chip.label}</span>
+                                                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${isSelected ? 'bg-slate-800 text-slate-200' : 'bg-slate-200 text-slate-600'}`}>
+                                                            {chip.count}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+
+                                            {deliverySubmissions.filter(s => s.status === 'Pending Approval').length > 0 && (
+                                                <button
+                                                    onClick={() => setShowPendingSubmissionsModal(true)}
+                                                    className="ml-auto bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                                                >
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                    <span>{deliverySubmissions.filter(s => s.status === 'Pending Approval').length} Staged Submissions</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* ── 3. WORLD-CLASS MNC FLEET INVENTORY TABLE ── */}
+                                    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left table-fixed min-w-[1050px] border-collapse text-xs">
+                                                <thead>
+                                                    <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-slate-500 border-b border-slate-200">
+                                                        <th className="px-3.5 py-2.5 w-[26%] font-medium">Client Organization &amp; Site</th>
+                                                        <th className="px-3.5 py-2.5 w-[16%] font-medium">Purchase Order (PO)</th>
+                                                        <th className="px-3.5 py-2.5 w-[22%] font-medium">Type of Fire Tender &amp; Specs</th>
+                                                        <th className="px-3.5 py-2.5 w-[14%] text-center font-medium">OEM Warranty</th>
+                                                        <th className="px-3.5 py-2.5 w-[12%] text-center font-medium">Insurance Policy</th>
+                                                        <th className="px-3.5 py-2.5 w-[10%] text-right pr-3.5 font-medium">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100/90 bg-white">
+                                                    {filteredFleetTrucks.map(t => {
+                                                        const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                                                        const wRem = calculateDaysRemaining(wExp);
+                                                        const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
+                                                        const custObj = customers.find(c => c.id === t.customerId);
+                                                        const cleanWords = (custObj?.name || 'IFS').replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+                                                        const initials = cleanWords.map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'IF';
+                                                        
+                                                        const cert = (commCerts || []).find(c => c.truckId === t.id);
+                                                        const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
+                                                        const truckComplaints = complaints.filter(c => c.truckId === t.id);
+
+                                                        return (
+                                                            <tr key={t.id} className="hover:bg-slate-50/70 transition-colors group">
+                                                                {/* 1. Client Organization & Site */}
+                                                                <td className="px-3.5 py-3">
+                                                                    <div className="flex items-center gap-2.5">
+                                                                        <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/80 flex items-center justify-center font-semibold text-[11px] shrink-0 font-mono">
+                                                                            {initials}
+                                                                        </div>
+                                                                        <div className="min-w-0">
+                                                                            <p className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate font-heading hover:text-[#0B6B63] transition-colors" title={custObj?.name || 'Client Not Linked'}>
+                                                                                {custObj?.name || 'Client Not Linked'}
+                                                                            </p>
+                                                                            <p className="text-[11px] font-normal text-slate-400 flex items-center gap-1 mt-0.5 truncate" title={custObj?.address || 'Site address on file'}>
+                                                                                <Icon name="map-pin" size={10.5} className="text-slate-400 shrink-0"/>
+                                                                                <span>{custObj?.address || 'Site address on file'}</span>
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+
+                                                                {/* 2. Purchase Order & Dates */}
+                                                                <td className="px-3.5 py-3">
+                                                                    <div className="space-y-1 min-w-0">
+                                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70 shrink-0" title={t.poNo || 'N/A'}>
+                                                                                PO: {t.poNo || 'N/A'}
+                                                                            </span>
+                                                                            <span className="text-[10.5px] text-slate-400 font-mono shrink-0 whitespace-nowrap">
+                                                                                {t.poDate ? formatDate(t.poDate) : 'Date not set'}
+                                                                            </span>
+                                                                        </div>
+                                                                        {(t.costCenterNo || t.ocNo) && (
+                                                                            <p className="text-[10px] text-slate-500 font-mono truncate" title={`CC: ${t.costCenterNo || ''} ${t.ocNo ? 'OC: ' + t.ocNo : ''}`}>
+                                                                                <span className="text-slate-400 font-medium">CC:</span> {t.costCenterNo || t.ocNo}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+
+                                                                {/* 3. Type Of Fire Tender & Engineering Specifications */}
+                                                                <td className="px-3.5 py-3">
+                                                                    <div className="space-y-0.5">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className="font-semibold text-slate-800 text-[12.5px] tracking-tight truncate font-heading" title={t.tenderType}>
+                                                                                {t.tenderType || 'Fire Tender'}
+                                                                            </p>
+                                                                            {isTrained && (
+                                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/70" title="Commissioning & Driver Training Finalized">
+                                                                                    <Icon name="award" size={9.5}/>
+                                                                                    <span>Trained</span>
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <p className="text-[11px] font-normal text-slate-500 truncate" title={`${t.chassisMake || 'Chassis'} ${t.modelNo || ''} · ${t.pumpMake || 'Pump'} ${t.pumpLpm ? t.pumpLpm + ' LPM' : ''}`}>
+                                                                            <span className="font-medium text-slate-700">{t.chassisMake || 'Chassis'}</span>
+                                                                            {t.modelNo && <span> ({t.modelNo})</span>}
+                                                                            <span className="text-slate-300 mx-1">·</span>
+                                                                            <span>{t.pumpMake || 'Standard Pump'}</span>
+                                                                            {t.pumpLpm && <span className="font-mono text-slate-500"> {t.pumpLpm} LPM</span>}
+                                                                        </p>
+                                                                        {(t.waterCapacity || t.foamCapacity) && (
+                                                                            <p className="text-[10px] text-slate-400 font-mono">
+                                                                                {t.waterCapacity ? `Water: ${t.waterCapacity}L` : ''}
+                                                                                {t.waterCapacity && t.foamCapacity ? ' · ' : ''}
+                                                                                {t.foamCapacity ? `Foam: ${t.foamCapacity}L` : ''}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+
+                                                                {/* 4. Warranty Coverage Status */}
+                                                                <td className="px-3.5 py-3 text-center">
+                                                                    {wRem > 60 ? (
+                                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/70 whitespace-nowrap">
+                                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                            {wRem}d Active
                                                                         </span>
-                                                                    )}
-                                                                </div>
-                                                                <p className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate font-heading">
-                                                                    {t.tenderType || 'Vehicle'}
-                                                                </p>
-                                                                <p className="text-[11px] font-normal text-slate-400 truncate mt-0.5">
-                                                                    {custObj?.name || 'Client Org Not Linked'}
-                                                                </p>
-                                                            </td>
-
-                                                            {/* Pump Specs */}
-                                                            <td className="px-3.5 py-3">
-                                                                <p className="text-slate-800 font-medium text-xs">
-                                                                    {t.pumpMake || 'Standard Pump'}
-                                                                </p>
-                                                                <p className="text-[11px] font-mono text-slate-400 mt-0.5 truncate">
-                                                                    {t.pumpLpm ? `${t.pumpLpm} LPM` : 'N/A'}{t.pumpSrNo ? ` · SN: ${t.pumpSrNo}` : ''}
-                                                                </p>
-                                                            </td>
-
-                                                            {/* Insurance */}
-                                                            <td className="px-3.5 py-3 text-center">
-                                                                <p className="text-slate-700 font-medium text-xs truncate max-w-[150px] mx-auto" title={t.insuranceCompany || 'N/A'}>
-                                                                    {t.insuranceCompany || '—'}
-                                                                </p>
-                                                                <div className="mt-1">
-                                                                    {iRem > 30 ? (
-                                                                        <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-teal-50 text-[#0B6B63] border border-teal-100/70">
-                                                                            {iRem}d left
-                                                                        </span>
-                                                                    ) : iRem > 0 ? (
-                                                                        <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-100/70">
-                                                                            {iRem}d left
+                                                                    ) : wRem > 0 ? (
+                                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium font-mono bg-amber-50 text-amber-800 border border-amber-200/70 whitespace-nowrap animate-pulse">
+                                                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                            {wRem}d Left
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200/60">
+                                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium font-mono bg-slate-100 text-slate-600 border border-slate-200/70 whitespace-nowrap">
+                                                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                                                                             Expired
                                                                         </span>
                                                                     )}
-                                                                </div>
-                                                            </td>
+                                                                    {wExp && (
+                                                                        <p className="text-[10px] text-slate-400 font-mono mt-1" title={`Warranty Period: ${t.warrantyMonths || 12} Months`}>
+                                                                            Exp: {formatDate(wExp)}
+                                                                        </p>
+                                                                    )}
+                                                                </td>
 
-                                                            {/* Warranty */}
-                                                            <td className="px-3.5 py-3 text-center">
-                                                                {wRem > 60 ? (
-                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/70 whitespace-nowrap">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                                        {wRem}d Active
-                                                                    </span>
-                                                                ) : wRem > 0 ? (
-                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-amber-50 text-amber-800 border border-amber-200/70 whitespace-nowrap">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                                        {wRem}d Left
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium font-mono bg-slate-100 text-slate-600 border border-slate-200/70 whitespace-nowrap">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                                                                        Expired
-                                                                    </span>
-                                                                )}
-                                                                {wExp && (
-                                                                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                                                        Exp: {formatDate(wExp)}
+                                                                {/* 5. Insurance Policy */}
+                                                                <td className="px-3.5 py-3 text-center">
+                                                                    <p className="text-slate-700 font-medium text-xs truncate max-w-[130px] mx-auto" title={t.insuranceCompany || 'N/A'}>
+                                                                        {t.insuranceCompany || '—'}
                                                                     </p>
-                                                                )}
-                                                            </td>
+                                                                    <div className="mt-1">
+                                                                        {iRem > 30 ? (
+                                                                            <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-teal-50 text-[#0B6B63] border border-teal-100/70">
+                                                                                {iRem}d left
+                                                                            </span>
+                                                                        ) : iRem > 0 ? (
+                                                                            <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-100/70">
+                                                                                {iRem}d left
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200/60">
+                                                                                Expired
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
 
-                                                            {/* Actions */}
-                                                            <td className="px-3.5 py-3 text-right pr-4">
-                                                                <div className="flex items-center justify-end gap-1 opacity-75 group-hover:opacity-100 transition-opacity">
-                                                                    <button
-                                                                        title="Commissioning & Driver Training Certificate"
-                                                                        onClick={() => {
-                                                                            const cust = customers.find(c => c.id === t.customerId);
-                                                                            const existingCert = (commCerts || []).find(c => c.truckId === t.id);
-                                                                            setSelectedCommissioningTruck({ truck: t, customer: cust, cert: existingCert });
-                                                                        }}
-                                                                        className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors cursor-pointer"
-                                                                    >
-                                                                        <Icon name="award" size={13.5}/>
-                                                                    </button>
-                                                                    <button
-                                                                        title="View / Print QR Code"
-                                                                        onClick={() => { setQrTruck(t); setShowQrModal(true); }}
-                                                                        className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-[#0B6B63] hover:bg-teal-50 rounded-md transition-colors cursor-pointer"
-                                                                    >
-                                                                        <Icon name="qr-code" size={13.5}/>
-                                                                    </button>
-                                                                    <button
-                                                                        title="View Complaints History"
-                                                                        onClick={() => setShowViewComplaintsModal({ customerId: t.customerId, orgName: customers.find(c => c.id === t.customerId)?.name || 'Org' })}
-                                                                        className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors cursor-pointer"
-                                                                    >
-                                                                        <Icon name="history" size={13.5}/>
-                                                                    </button>
-                                                                    <button
-                                                                        title="Edit Delivery"
-                                                                        onClick={() => { setEditingTruck(t); setNewTrk({ ...t }); setShowTruckModal(true); }}
-                                                                        className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
-                                                                    >
-                                                                        <Icon name="pencil" size={13.5}/>
-                                                                    </button>
-                                                                    <button
-                                                                        title="Delete Record"
-                                                                        onClick={() => setDeleteStep({ type: 'tender', data: t, step: 1 })}
-                                                                        className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
-                                                                    >
-                                                                        <Icon name="trash-2" size={13.5}/>
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    {trucks.length === 0 && (
-                                        <div className="py-16 text-center text-slate-400">
-                                            <Icon name="truck" size={28} className="mx-auto mb-2 text-slate-300"/>
-                                            <p className="text-xs font-medium">No vehicles registered in inventory</p>
+                                                                {/* 6. Actions Suite */}
+                                                                <td className="px-3.5 py-3 text-right pr-3.5">
+                                                                    <div className="flex items-center justify-end gap-1">
+                                                                        <button
+                                                                            title="Driver Training & Commissioning Certificate"
+                                                                            onClick={() => {
+                                                                                const cust = customers.find(c => c.id === t.customerId);
+                                                                                const existingCert = (commCerts || []).find(c => c.truckId === t.id);
+                                                                                setSelectedCommissioningTruck({ truck: t, customer: cust, cert: existingCert });
+                                                                            }}
+                                                                            className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                                                                        >
+                                                                            <Icon name="award" size={13.5}/>
+                                                                        </button>
+                                                                        <button
+                                                                            title="View / Print QR Code"
+                                                                            onClick={() => { setQrTruck(t); setShowQrModal(true); }}
+                                                                            className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-[#0B6B63] hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                                                                        >
+                                                                            <Icon name="qr-code" size={13.5}/>
+                                                                        </button>
+                                                                        <button
+                                                                            title={`Service History (${truckComplaints.length} tickets)`}
+                                                                            onClick={() => setShowViewComplaintsModal({ customerId: t.customerId, orgName: customers.find(c => c.id === t.customerId)?.name || 'Org' })}
+                                                                            className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer relative"
+                                                                        >
+                                                                            <Icon name="history" size={13.5}/>
+                                                                            {truckComplaints.length > 0 && (
+                                                                                <span className="absolute -top-1 -right-1 bg-indigo-600 text-white font-mono text-[8px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                                                                                    {truckComplaints.length}
+                                                                                </span>
+                                                                            )}
+                                                                        </button>
+                                                                        <button
+                                                                            title="Edit Delivery Specifications"
+                                                                            onClick={() => { setEditingTruck(t); setNewTrk({ ...t }); setShowTruckModal(true); }}
+                                                                            className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                                                        >
+                                                                            <Icon name="pencil" size={13.5}/>
+                                                                        </button>
+                                                                        <button
+                                                                            title="Delete Vehicle Record"
+                                                                            onClick={() => setDeleteStep({ type: 'tender', data: t, step: 1 })}
+                                                                            className="h-7 w-7 inline-flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                                                        >
+                                                                            <Icon name="trash-2" size={13.5}/>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
                                         </div>
-                                    )}
+
+                                        {/* Empty State */}
+                                        {filteredFleetTrucks.length === 0 && (
+                                            <div className="py-16 text-center text-slate-400">
+                                                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                                                    <Icon name="truck" size={22}/>
+                                                </div>
+                                                <p className="text-sm font-semibold text-slate-700">No vehicles match your active filters</p>
+                                                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                                                    Try modifying your search keywords, warranty coverage filter, or client selection.
+                                                </p>
+                                                {activeFilterCount > 0 && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setFleetSearch('');
+                                                            setFleetWarrantyFilter('All');
+                                                            setFleetCustomerFilter('All');
+                                                            setFleetTypeFilter('All');
+                                                        }}
+                                                        className="mt-4 px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                                                    >
+                                                        <Icon name="refresh-cw" size={12}/>
+                                                        <span>Clear All Filters</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Table Footer Summary */}
+                                        {filteredFleetTrucks.length > 0 && (
+                                            <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500 font-medium">
+                                                <div>
+                                                    Showing <span className="font-semibold text-slate-800">{filteredFleetTrucks.length}</span> of <span className="font-semibold text-slate-800">{trucks.length}</span> fleet units
+                                                    {activeFilterCount > 0 && <span className="text-slate-400"> (filtered)</span>}
+                                                </div>
+                                                <div className="flex items-center gap-3 font-mono text-[10.5px]">
+                                                    <span className="text-emerald-700">● {fleetKpis.active} In Warranty</span>
+                                                    <span className="text-amber-800">▲ {fleetKpis.expiring} Near Expiry</span>
+                                                    <span className="text-slate-500">○ {fleetKpis.expired} Expired</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         {/* ── DEDICATED PO AT GLANCE & COST CENTER HUB ── */}
                         {activeTab==='po-glance' && (() => {
