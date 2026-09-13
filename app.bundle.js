@@ -1693,172 +1693,491 @@ const sb=window.SupabaseClient;if(sb&&user){try{const dbPayload={capa_no:finalCa
 const handleCreateCapaFromComplaint=complaint=>{const trk=trucks.find(t=>t.id===complaint.truckId);const cust=trk?customers.find(c=>c.id===trk.customerId):null;const repeatedList=detectRepeatedComplaints(complaints,complaint);const prefilled={id:'LOCAL-CAPA-'+Date.now(),capaNo:generateNextCapaNo(capas),capaDate:new Date().toISOString().split('T')[0],capaType:'Corrective & Preventive Action',triggerType:repeatedList.length>0?'Repeated Complaint':complaint.status==='Open'?'Critical Complaint':'Major Complaint',priority:repeatedList.length>0?'High':'Medium',department:'Quality',status:'Under RCA',problemStatement:complaint.description||'',reportedBy:complaint.reportedBy||'Site / Customer',whenHow:'Date Received: '+(complaint.dateReceived||'N/A')+' ('+(complaint.mode||'Service')+')',whereOccurred:(cust?cust.name:'Customer Site')+' · '+(trk?trk.tenderType:'Fire Tender')+' (PO: '+(trk?trk.poNo:'N/A')+')',frequency:repeatedList.length>0?repeatedList.length+1+' occurrences observed in 90 days':'Single Occurrence',impact:'Operational interruption during routine readiness / training',criticality:'High',confirmedRootCause:complaint.diagnosis||'',rootCauseCategory:'Process',preparedBy:'Quality Engineer',approvedBy:'',approvedDate:'',targetClosureDate:'',closureDate:'',effectivenessRequired:true,effectivenessDate:'',verifiedBy:'',verificationMethod:'',verificationResult:'',repeatComplaintObserved:'No',followUpRequired:'No',effectivenessStatus:'Pending'};const initialLinkedIds=[complaint.id,...repeatedList.map(r=>r.id)];setPrefilledCapaData({prefilled,initialLinkedIds});setSelectedCapaForEdit(prefilled);setSelectedCapaForView(null);setActiveTab('capa');setCapaSubTab('workspace');};// ── CRUD helpers ──
 const updateRecord=async(type,id,data,setter,modalSetter,resetData)=>{const sb=window.SupabaseClient;if(!sb||!user){setter(prev=>prev.map(item=>item.id===id?{...item,...data}:item));if(modalSetter)modalSetter(false);if(resetData)resetData();return;}try{let payload={};if(type==='customers')payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email,po_date:data.poDate||null};else if(type==='trucks')payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate||null,oc_no:data.ocNo||null,oc_date:data.ocDate||null,cost_center_no:data.costCenterNo||null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm||null,pump_sr_no:data.pumpSrNo||null,foam_capacity:data.foamCapacity||null,water_capacity:data.waterCapacity||null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate||null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo||null,insurance_company:data.insuranceCompany||null,insurance_expiry_date:data.insuranceExpiryDate||null,cost_center_status:data.costCenterStatus||'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt||null,submitted_to_accounts_at:data.submittedToAccountsAt||null,cost_center_created_at:data.costCenterCreatedAt||null};else if(type==='complaints')payload={truck_id:data.truckId,category:data.category,description:data.description,date_received:data.dateReceived||null,mode:data.mode||'Mail',reported_by:data.reportedBy};else if(type==='feedbacks')payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate||null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};// Always update local state first
 setter(prev=>prev.map(item=>item.id===id?{...item,...data}:item));let{data:updated,error}=await sb.from(type).update(payload).eq('id',id).select().single();if(error&&isMissingColumnError(error)){console.warn("Retrying update without newer schema columns due to database version mismatch:",error.message);const fallbackPayload={...payload};delete fallbackPayload.insurance_policy_no;delete fallbackPayload.insurance_company;delete fallbackPayload.insurance_expiry_date;delete fallbackPayload.po_date;delete fallbackPayload.cost_center_status;delete fallbackPayload.po_at_glance_generated_at;delete fallbackPayload.submitted_to_accounts_at;delete fallbackPayload.cost_center_created_at;delete fallbackPayload.rating;const retry=await sb.from(type).update(fallbackPayload).eq('id',id).select().single();updated=retry.data;error=retry.error;}if(error){console.error(`Supabase update error for ${type}:`,error);alert(`Database Error: ${error.message||'Failed to update record'}`);return;}if(updated){let mapped=type==='customers'?mapCustomer(updated):type==='trucks'?mapTruck(updated):type==='complaints'?mapComplaint(updated):mapFeedback(updated);if(type==='trucks'){mapped={...mapped,poDate:mapped.poDate||data.poDate,ocNo:mapped.ocNo||data.ocNo,ocDate:mapped.ocDate||data.ocDate,costCenterNo:mapped.costCenterNo||data.costCenterNo,insurancePolicyNo:mapped.insurancePolicyNo||data.insurancePolicyNo,insuranceCompany:mapped.insuranceCompany||data.insuranceCompany,insuranceExpiryDate:mapped.insuranceExpiryDate||data.insuranceExpiryDate,pumpSrNo:mapped.pumpSrNo||data.pumpSrNo,costCenterStatus:mapped.costCenterStatus||data.costCenterStatus||'Not Generated',poAtGlanceGeneratedAt:mapped.poAtGlanceGeneratedAt||data.poAtGlanceGeneratedAt,submittedToAccountsAt:mapped.submittedToAccountsAt||data.submittedToAccountsAt,costCenterCreatedAt:mapped.costCenterCreatedAt||data.costCenterCreatedAt,poGlanceLd:mapped.poGlanceLd||data.poGlanceLd,poGlanceSd:mapped.poGlanceSd||data.poGlanceSd,poGlanceEmd:mapped.poGlanceEmd||data.poGlanceEmd,poGlanceDlp:mapped.poGlanceDlp||data.poGlanceDlp,poGlanceSez:mapped.poGlanceSez||data.poGlanceSez};}setter(prev=>prev.map(item=>item.id===id?mapped:item));}}catch(err){console.error('Update error:',err);alert(`System Error: ${err.message||'An unexpected error occurred'}`);return;}if(modalSetter)modalSetter(false);if(resetData)resetData();};const saveRecord=async(type,data,setter,modalSetter,resetData,editingId=null)=>{if(editingId)return updateRecord(type,editingId,data,setter,modalSetter,resetData);const sb=window.SupabaseClient;if(!sb||!user){setter(prev=>[{id:'LOCAL-'+Date.now(),...data,timestamp:new Date().toISOString()},...prev]);if(modalSetter)modalSetter(typeof modalSetter==='function'?false:null);if(resetData)resetData();return;}try{let payload={};if(type==='customers')payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email,po_date:data.poDate||null};else if(type==='trucks')payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate||null,oc_no:data.ocNo||null,oc_date:data.ocDate||null,cost_center_no:data.costCenterNo||null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm||null,pump_sr_no:data.pumpSrNo||null,foam_capacity:data.foamCapacity||null,water_capacity:data.waterCapacity||null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate||null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo||null,insurance_company:data.insuranceCompany||null,insurance_expiry_date:data.insuranceExpiryDate||null,cost_center_status:data.costCenterStatus||'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt||null,submitted_to_accounts_at:data.submittedToAccountsAt||null,cost_center_created_at:data.costCenterCreatedAt||null};else if(type==='complaints')payload={truck_id:data.truckId,complaint_id:data.complaintId,category:data.category,description:data.description,date_received:data.dateReceived||null,mode:data.mode||'Mail',reported_by:data.reportedBy,status:data.status||'Open'};else if(type==='feedbacks')payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate||null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};let{data:inserted,error}=await sb.from(type).insert(payload).select().single();if(error&&isMissingColumnError(error)){console.warn("Retrying insert without newer schema columns due to database version mismatch:",error.message);const fallbackPayload={...payload};delete fallbackPayload.insurance_policy_no;delete fallbackPayload.insurance_company;delete fallbackPayload.insurance_expiry_date;delete fallbackPayload.po_date;delete fallbackPayload.cost_center_status;delete fallbackPayload.po_at_glance_generated_at;delete fallbackPayload.submitted_to_accounts_at;delete fallbackPayload.cost_center_created_at;delete fallbackPayload.rating;const retry=await sb.from(type).insert(fallbackPayload).select().single();inserted=retry.data;error=retry.error;}if(error){console.error(`Supabase insert error for ${type}:`,error);alert(`Database Error: ${error.message||'Failed to save record'}`);return;}if(inserted){let mapped=type==='customers'?mapCustomer(inserted):type==='trucks'?mapTruck(inserted):type==='complaints'?mapComplaint(inserted):mapFeedback(inserted);if(type==='trucks'){mapped={...mapped,poDate:mapped.poDate||data.poDate,ocNo:mapped.ocNo||data.ocNo,ocDate:mapped.ocDate||data.ocDate,costCenterNo:mapped.costCenterNo||data.costCenterNo,insurancePolicyNo:mapped.insurancePolicyNo||data.insurancePolicyNo,insuranceCompany:mapped.insuranceCompany||data.insuranceCompany,insuranceExpiryDate:mapped.insuranceExpiryDate||data.insuranceExpiryDate,pumpSrNo:mapped.pumpSrNo||data.pumpSrNo,costCenterStatus:mapped.costCenterStatus||data.costCenterStatus||'Not Generated',poAtGlanceGeneratedAt:mapped.poAtGlanceGeneratedAt||data.poAtGlanceGeneratedAt,submittedToAccountsAt:mapped.submittedToAccountsAt||data.submittedToAccountsAt,costCenterCreatedAt:mapped.costCenterCreatedAt||data.costCenterCreatedAt,poGlanceLd:mapped.poGlanceLd||data.poGlanceLd,poGlanceSd:mapped.poGlanceSd||data.poGlanceSd,poGlanceEmd:mapped.poGlanceEmd||data.poGlanceEmd,poGlanceDlp:mapped.poGlanceDlp||data.poGlanceDlp,poGlanceSez:mapped.poGlanceSez||data.poGlanceSez};}setter(prev=>[mapped,...prev]);}}catch(err){console.error('Save error:',err);alert(`System Error: ${err.message||'An unexpected error occurred'}`);return;}if(modalSetter)modalSetter(typeof modalSetter==='function'?false:null);if(resetData)resetData();};// ── CONFIRMATION DELETION HANDLER ──
-const confirmDeletion=async()=>{if(!deleteStep)return;if(deleteStep.step===1){setDeleteStep({...deleteStep,step:2});return;}const{type,data}=deleteStep;const sb=window.SupabaseClient;const tryDbDelete=async(tableName,id)=>{if(sb&&user&&!String(id).startsWith('LOCAL')){try{await sb.from(tableName).delete().eq('id',id);}catch(e){}}};if(type==='customer'){await tryDbDelete('customers',data.id);setCustomers(prev=>prev.filter(c=>c.id!==data.id));}else if(type==='tender'){await tryDbDelete('trucks',data.id);setTrucks(prev=>prev.filter(t=>t.id!==data.id));}else if(type==='complaint'){await tryDbDelete('complaints',data.id);setComplaints(prev=>prev.filter(c=>c.id!==data.id));}else if(type==='feedback'){await tryDbDelete('feedbacks',data.id);setFeedbacks(prev=>prev.filter(f=>f.id!==data.id));}setDeleteStep(null);};const handleAddCategory=async catParam=>{const t=(typeof catParam==='string'?catParam:newCat).trim();if(!t||categories.includes(t))return;setCategories(prev=>[...prev,t]);const sb=window.SupabaseClient;if(user&&sb){try{await sb.from('categories').insert({name:t});}catch(e){}}setNewCat('');};const handleRemoveCategory=async cat=>{setCategories(prev=>prev.filter(c=>c!==cat));const sb=window.SupabaseClient;if(user&&sb){try{await sb.from('categories').delete().eq('name',cat);}catch(e){}}};const downloadClosureReport=complaint=>{const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');const trk=trucks.find(t=>t.id===complaint.truckId);const cust=trk?customers.find(c=>c.id===trk.customerId):null;const warrantyExp=trk?calculateWarrantyExpiry(trk.deliveryDate,trk.warrantyMonths):null;const dRem=warrantyExp?calculateDaysRemaining(warrantyExp):0;const tailwindScript='<script src="https://cdn.tailwindcss.com"></'+'script>';// Get all complaints for this specific truck, sorted chronologically
-const truckComplaints=complaints.filter(x=>x.truckId===complaint.truckId).sort((a,b)=>new Date(a.dateReceived)-new Date(b.dateReceived));const complaintsRows=truckComplaints.map(x=>{const isCurrent=x.complaintId===complaint.complaintId;const rowClass=isCurrent?'bg-indigo-50/30 font-semibold border-l-2 border-indigo-500':'';const statusClass=x.status==='Resolved'?'bg-emerald-100 text-emerald-800':'bg-rose-100 text-rose-800';const closedDateVal=x.closedDate?formatDate(x.closedDate):'—';return`<tr class="${rowClass}">
-                        <td class="px-4 py-2.5 text-slate-800 uppercase font-black">${x.complaintId}</td>
-                        <td class="px-4 py-2.5 text-slate-600">${formatDate(x.dateReceived)}</td>
-                        <td class="px-4 py-2.5 text-slate-500 uppercase text-[10px] truncate max-w-[150px]">${x.category}</td>
-                        <td class="px-4 py-2.5"><span class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${statusClass}">${x.status}</span></td>
-                        <td class="px-4 py-2.5 text-slate-600 text-right">${closedDateVal}</td>
-                    </tr>`;}).join('');const clientName=cust?cust.name:'N/A';const clientAddress=cust?cust.address:'';const clientContact=cust?`${cust.contactPerson} (${cust.phone})`:'';const tenderType=trk?trk.tenderType:'N/A';const poNo=trk?trk.poNo:'N/A';const pumpSrNo=trk?trk.pumpSrNo||'N/A':'N/A';const pumpMake=trk?trk.pumpMake||'N/A':'N/A';const pumpLpm=trk?trk.pumpLpm||'N/A':'N/A';const deliveryDateVal=formatDate(trk?trk.deliveryDate:null);const expiryDateVal=formatDate(warrantyExp);const remainingCoverage=dRem>0?`${dRem} Days Active`:'Warranty Expired';const remainingCoverageColor=dRem>0?'text-emerald-600':'text-rose-600';const complaintDateVal=formatDate(complaint.dateReceived);const complaintMode=complaint.mode||'Mail';const diagnosisVal=esc(complaint.diagnosis)||'Diagnosis details not available.';const remarksHtml=complaint.remarks?`
-                    <p class="text-xs font-semibold text-emerald-700 uppercase text-[9px] mt-3">Additional Engineer Notes</p>
-                    <p class="text-xs font-bold italic text-slate-600 whitespace-pre-line leading-relaxed mb-3">"${esc(complaint.remarks)}"</p>
-                `:'';const delayReasonHtml=complaint.delayReason?`
-                    <p class="text-xs font-semibold text-amber-700 uppercase text-[9px] mt-3">Delay / Rescheduling Notes</p>
-                    <p class="text-xs font-bold italic text-slate-600 leading-relaxed mb-3">"${complaint.delayReason}"</p>
-                `:'';const closedByVal=complaint.closedBy&&complaint.closedBy!=='N/A'?complaint.closedBy:'Service Engineer';const reportClosedDateVal=complaint.closedDate&&complaint.closedDate!=='N/A'?complaint.closedDate:(complaint.resolvedAt?complaint.resolvedAt.split('T')[0]:null)||complaint.dateReceived||new Date().toISOString().split('T')[0];const ticketDuration=calculateLifeCount(complaint.dateReceived);const reportWindow=window.open('','_blank');if(!reportWindow){alert('Please allow popups to generate and view the service closure report.');return;}const html=`<html>
-                    <head>
-                        <title>Service Closure Report - ${complaint.complaintId}</title>
-                        ${tailwindScript}
-                        <style>
-                            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-                            body { font-family: 'Inter', sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                            @media print {
-                                body { background-color: white; color: black; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                                .no-print { display: none !important; }
-                                .print-shadow-none { box-shadow: none !important; border: none !important; }
-                            }
-                        </style>
-                    </head>
-                    <body class="bg-slate-100 text-slate-800 p-6 md:p-12">
-                        <div class="no-print max-w-3xl mx-auto mb-6 flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border">
-                            <div>
-                                <h4 class="font-black text-slate-900 text-sm uppercase">Closure Report Preview</h4>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ready for save to PDF or print</p>
-                            </div>
-                            <button onclick="window.print()" class="bg-[#0B6B63] hover:bg-[#09544E] text-white font-black text-xs px-5 py-2.5 rounded-xl uppercase tracking-widest transition-all shadow-lg flex items-center gap-2">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                                Print / Save PDF
-                            </button>
-                        </div>
-                        <div class="max-w-3xl mx-auto bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden p-8 md:p-12 print-shadow-none relative">
-                            <!-- Watermark -->
-                            <div class="absolute inset-0 z-0 pointer-events-none flex items-center justify-center opacity-5">
-                                <img src="./logo.png" class="w-[500px] h-[500px] object-contain grayscale" />
-                            </div>
-                            <!-- Header -->
-                            <div class="relative z-10 flex justify-between items-start border-b border-slate-100 pb-6 mb-8 flex-wrap gap-4">
-                                <div>
-                                    <div class="flex items-center gap-3 mb-2">
-                                        <img src="./logo.png" alt="Indus Fire Safety Logo" class="w-12 h-12 object-contain" />
-                                        <span class="font-extrabold text-xl tracking-tighter uppercase text-slate-900">FireFlow</span>
-                                    </div>
-                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Indus Fire Safety Technical Division</p>
-                                    <p class="text-[10px] font-bold text-slate-500">Service, Maintenance & Warranty Management</p>
-                                </div>
-                                <div class="text-right">
-                                    <span class="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-3 py-1 rounded-full border border-emerald-200 uppercase tracking-wider mb-2">Service Closed</span>
-                                    <h2 class="text-2xl font-black text-slate-900 tracking-tight">CLOSURE REPORT</h2>
-                                    <p class="text-xs font-black text-indigo-600 mt-1 uppercase tracking-wider">TICKET: ${complaint.complaintId}</p>
-                                </div>
-                            </div>
-                            <!-- Customer & Vehicle Info Grid -->
-                            <div class="mb-8">
-                                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 border-b pb-1">1. Customer & Vehicle Specifications</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-xs">
-                                    <div>
-                                        <p class="text-slate-400 font-bold uppercase text-[9px]">Client / Organization</p>
-                                        <p class="font-black text-slate-800 text-sm uppercase">${clientName}</p>
-                                        <p class="text-slate-500 font-semibold mt-1">${clientAddress}</p>
-                                        <p class="text-slate-500 font-semibold">${clientContact}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-slate-400 font-bold uppercase text-[9px]">Fire Tender Type</p>
-                                        <p class="font-black text-slate-800 text-sm uppercase">${tenderType}</p>
-                                        <p class="text-slate-500 font-semibold mt-1">PO No: <span class="font-bold text-slate-700">${poNo}</span></p>
-                                        <p class="text-slate-500 font-semibold">Pump Serial: <span class="font-bold text-slate-700">${pumpSrNo}</span> (${pumpMake}, ${pumpLpm} LPM)</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Warranty Status Banner -->
-                            <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100 grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 text-xs">
-                                <div>
-                                    <p class="text-slate-400 font-bold uppercase text-[9px]">Delivery Date</p>
-                                    <p class="font-black text-slate-800 mt-0.5">${deliveryDateVal}</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-400 font-bold uppercase text-[9px]">Warranty Expiration</p>
-                                    <p class="font-black text-slate-800 mt-0.5">${expiryDateVal}</p>
-                                </div>
-                                <div class="col-span-2 md:col-span-1">
-                                    <p class="text-slate-400 font-bold uppercase text-[9px]">Remaining Coverage</p>
-                                    <p class="font-black mt-0.5 ${remainingCoverageColor}">${remainingCoverage}</p>
-                                </div>
-                            </div>
-                            <!-- Complaint & Closure Timeline Log -->
-                            <div class="mb-8">
-                                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-b pb-1">2. Support Incident & Resolution details</h3>
-                                <div class="space-y-4">
-                                    <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
-                                        <div class="flex justify-between items-center mb-2 text-xs flex-wrap gap-2">
-                                            <span class="font-black text-slate-800 uppercase tracking-tight">LOGGED COMPLAINT</span>
-                                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date Logged: ${complaintDateVal} (${complaintMode})</span>
-                                        </div>
-                                        <p class="text-xs font-semibold text-slate-500 uppercase text-[9px]">Category</p>
-                                        <p class="text-xs font-black text-slate-700 uppercase mb-2">${complaint.category}</p>
-                                        <p class="text-xs font-semibold text-slate-500 uppercase text-[9px]">Description</p>
-                                        <p class="text-xs font-bold text-slate-700 whitespace-pre-line leading-relaxed">"${esc(complaint.description)}"</p>
-                                        <p class="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wide">Reported By: ${esc(complaint.reportedBy)}</p>
-                                    </div>
-                                    <div class="border border-emerald-200 rounded-2xl p-4 bg-emerald-50/20">
-                                        <div class="flex justify-between items-center mb-2 text-xs flex-wrap gap-2">
-                                            <span class="font-black text-emerald-800 uppercase tracking-tight">DIAGNOSIS & REMEDY SUMMARY</span>
-                                            <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Date Resolved: ${formatDate(reportClosedDateVal)}</span>
-                                        </div>
-                                        <p class="text-xs font-semibold text-emerald-700 uppercase text-[9px]">Fix Applied / Diagnosis</p>
-                                        <p class="text-xs font-bold text-slate-800 whitespace-pre-line leading-relaxed mb-3">${diagnosisVal}</p>
-                                        ${delayReasonHtml}
-                                        ${remarksHtml}
-                                        <div class="grid grid-cols-2 gap-4 border-t border-emerald-100 pt-3 text-[10px] font-bold text-emerald-800 uppercase">
-                                            <p>Service Engineer: <span class="font-black text-slate-800">${closedByVal}</span></p>
-                                            <p class="text-right">Ticket Duration: <span class="font-black text-slate-800">${ticketDuration} Days</span></p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Vehicle Complaint History Summary -->
-                            <div class="mb-10">
-                                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 border-b pb-1">3. Fleet Vehicle Support History Summary</h3>
-                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Total Tickets Filed for this Unit: ${truckComplaints.length}</p>
-                                <div class="border border-slate-200 rounded-2xl overflow-hidden text-xs">
-                                    <table class="w-full text-left">
-                                        <thead class="bg-[#F8FAFC] text-[12px] font-semibold text-[#64748B] border-b border-slate-200 border-slate-200">
-                                            <tr>
-                                                <th class="px-4 py-2.5">Ticket ID</th>
-                                                <th class="px-4 py-2.5">Date Logged</th>
-                                                <th class="px-4 py-2.5">Category</th>
-                                                <th class="px-4 py-2.5">Status</th>
-                                                <th class="px-4 py-2.5 text-right">Closed Date</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-100">
-                                            ${complaintsRows}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <!-- Signature/Approvals Footer -->
-                            <div class="border-t border-slate-100 pt-8 grid grid-cols-2 gap-8 text-xs">
-                                <div class="text-left">
-                                    <p class="text-slate-400 font-bold uppercase text-[9px] mb-8">Prepared / Resolved By</p>
-                                    <div class="border-b border-slate-300 w-40 mb-1"></div>
-                                    <p class="font-bold text-slate-800 uppercase">${closedByVal}</p>
-                                    <p class="text-slate-400 font-bold text-[9px] uppercase mt-0.5">Indus Technical Division</p>
-                                </div>
-                                <div class="text-right flex flex-col items-end">
-                                    <p class="text-slate-400 font-bold uppercase text-[9px] mb-8">Client Acceptance Signature</p>
-                                    <div class="border-b border-slate-300 w-40 mb-1"></div>
-                                    <p class="font-bold text-slate-800 uppercase">${clientName}</p>
-                                    <p class="text-slate-400 font-bold text-[9px] uppercase mt-0.5">Date: ____ / ____ / ________</p>
-                                </div>
-                            </div>
-                            <!-- Footer note -->
-                            <div class="mt-12 pt-6 border-t border-slate-100 text-center text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                                Indus Fire Safety · Technical Warranty Hub · Support: helpdesk@indusfiresafety.com
-                            </div>
-                        </div>
-                    </body>
-                </html>`;if(!reportWindow){alert('Popup blocked! Please allow popups for this site to print reports.\n\nClick the popup icon in your browser address bar and select "Always allow".');return;}reportWindow.document.write(html);reportWindow.document.close();};if(loading)return/*#__PURE__*/React.createElement("div",{className:"min-h-screen flex items-center justify-center bg-slate-50"},/*#__PURE__*/React.createElement("div",{className:"text-center"},/*#__PURE__*/React.createElement("div",{className:"w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"}),/*#__PURE__*/React.createElement("p",{className:"text-[11px] font-black text-slate-400 uppercase tracking-widest"},"Connecting to server...")));// ── AGM MANAGEMENT VIEW ──
+const confirmDeletion=async()=>{if(!deleteStep)return;if(deleteStep.step===1){setDeleteStep({...deleteStep,step:2});return;}const{type,data}=deleteStep;const sb=window.SupabaseClient;const tryDbDelete=async(tableName,id)=>{if(sb&&user&&!String(id).startsWith('LOCAL')){try{await sb.from(tableName).delete().eq('id',id);}catch(e){}}};if(type==='customer'){await tryDbDelete('customers',data.id);setCustomers(prev=>prev.filter(c=>c.id!==data.id));}else if(type==='tender'){await tryDbDelete('trucks',data.id);setTrucks(prev=>prev.filter(t=>t.id!==data.id));}else if(type==='complaint'){await tryDbDelete('complaints',data.id);setComplaints(prev=>prev.filter(c=>c.id!==data.id));}else if(type==='feedback'){await tryDbDelete('feedbacks',data.id);setFeedbacks(prev=>prev.filter(f=>f.id!==data.id));}setDeleteStep(null);};const handleAddCategory=async catParam=>{const t=(typeof catParam==='string'?catParam:newCat).trim();if(!t||categories.includes(t))return;setCategories(prev=>[...prev,t]);const sb=window.SupabaseClient;if(user&&sb){try{await sb.from('categories').insert({name:t});}catch(e){}}setNewCat('');};const handleRemoveCategory=async cat=>{setCategories(prev=>prev.filter(c=>c!==cat));const sb=window.SupabaseClient;if(user&&sb){try{await sb.from('categories').delete().eq('name',cat);}catch(e){}}};const downloadClosureReport=complaint=>{const esc=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');const trk=trucks.find(t=>t.id===complaint.truckId);const cust=trk?customers.find(c=>c.id===trk.customerId):null;const clientName=cust?esc(cust.name):'Client Organization';const clientAddress=cust?esc(cust.address||'Site address on record'):'Site address on record';const clientContactPerson=cust?esc(cust.contactPerson||'Officer In-charge'):'Officer In-charge';const clientPhone=cust?esc(cust.phone||'N/A'):'N/A';const clientEmail=cust?esc(cust.email||'N/A'):'N/A';const tenderType=trk?esc(trk.tenderType||'Fire Tender'):'Fire Tender';const poNo=trk?esc(trk.poNo||'N/A'):'N/A';const poDate=trk&&trk.poDate?formatDate(trk.poDate):'';const pumpSrNo=trk?esc(trk.pumpSrNo||'N/A'):'N/A';const pumpMake=trk?esc(trk.pumpMake||'Standard'):'Standard';const pumpLpm=trk&&trk.pumpLpm?esc(trk.pumpLpm)+' LPM':'';const chassisMake=trk?esc(trk.chassisMake||'Commercial Chassis'):'Commercial Chassis';const modelNo=trk&&trk.modelNo?esc(trk.modelNo):'';const waterCapacity=trk&&trk.waterCapacity?esc(trk.waterCapacity):'';const foamCapacity=trk&&trk.foamCapacity?esc(trk.foamCapacity):'';const costCenterNo=trk&&trk.costCenterNo?esc(trk.costCenterNo):'';const warrantyMonths=trk&&trk.warrantyMonths?trk.warrantyMonths:12;const warrantyExp=trk?calculateWarrantyExpiry(trk.deliveryDate,warrantyMonths):null;const dRem=warrantyExp?calculateDaysRemaining(warrantyExp):0;const totalWarrantyDays=Math.round(warrantyMonths*30.4375);const deliveryDateObj=trk&&trk.deliveryDate?new Date(trk.deliveryDate):null;const daysElapsed=deliveryDateObj?Math.max(0,Math.round((new Date()-deliveryDateObj)/(1000*60*60*24))):0;const daysRemaining=Math.max(0,dRem);const remainingPct=totalWarrantyDays>0?Math.min(100,Math.max(0,Math.round(daysRemaining/totalWarrantyDays*100))):0;const elapsedPct=100-remainingPct;const circumference=377.0;const dashOffset=remainingPct/100*circumference;const dashArrayVal=dashOffset.toFixed(1)+' '+circumference.toFixed(1);const deliveryDateVal=formatDate(trk?trk.deliveryDate:null);const expiryDateVal=formatDate(warrantyExp);const complaintDateVal=formatDate(complaint.dateReceived);const complaintMode=complaint.mode||'Portal / Mail';const diagnosisVal=esc(complaint.diagnosis)||'Service inspection, system diagnosis and preventative maintenance completed in compliance with OEM standards.';const closedByVal=complaint.closedBy&&complaint.closedBy!=='N/A'?esc(complaint.closedBy):'Indus Field Service Engineer';const rawClosedDate=complaint.closedDate||(complaint.resolvedAt?complaint.resolvedAt.split('T')[0]:null)||complaint.dateReceived||new Date().toISOString().split('T')[0];const reportClosedDateVal=formatDate(rawClosedDate);const issuedDateVal=formatDate(new Date().toISOString().split('T')[0]);// Calculate duration
+let ticketDuration=0;try{const d1=new Date(complaint.dateReceived);const d2=new Date(rawClosedDate);ticketDuration=Math.max(1,Math.round((d2-d1)/(1000*60*60*24)));}catch(e){ticketDuration=calculateLifeCount(complaint.dateReceived)||1;}// QR helper — encodes current page URL + PO hash
+let base='https://riyazrthd.github.io/fireflow-warranty-/';try{if(typeof window!=='undefined'&&window.location){let locBase=window.location.origin+window.location.pathname;if(!locBase.startsWith('file:')&&!locBase.includes('localhost')&&!locBase.includes('127.0.0.1')){base=locBase;}}}catch(e){}const qrTargetUrl=trk?base+'#portal&po='+encodeURIComponent(trk.poNo):base+'#ticket='+encodeURIComponent(complaint.complaintId);const qrImageUrl='https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&color=1c2024&bgcolor=ffffff&data='+encodeURIComponent(qrTargetUrl);// Category styling helper
+const getCatClass=catStr=>{const c=(catStr||'').toLowerCase();if(c.includes('chassis')||c.includes('engine'))return'cat-chassis';if(c.includes('leak'))return'cat-leak';if(c.includes('elec'))return'cat-elec';if(c.includes('pto')||c.includes('pump'))return'cat-pto';if(c.includes('monitor')||c.includes('nozzle'))return'cat-monitor';return'cat-chassis';};const getCatTagClass=catStr=>{const c=(catStr||'').toLowerCase();if(c.includes('chassis')||c.includes('engine'))return'tag chassis';if(c.includes('leak'))return'tag leak';if(c.includes('elec'))return'tag elec';if(c.includes('pto')||c.includes('pump'))return'tag pto';if(c.includes('monitor')||c.includes('nozzle'))return'tag monitor';return'tag chassis';};// All complaints for this truck
+const truckComplaints=complaints.filter(x=>x.truckId===complaint.truckId).sort((a,b)=>new Date(a.dateReceived)-new Date(b.dateReceived));const complaintsRows=truckComplaints.map(x=>{const isCurrent=x.complaintId===complaint.complaintId;const rowClass=isCurrent?'highlight':'';const closedDateVal=x.closedDate?formatDate(x.closedDate):x.status==='Resolved'?formatDate(x.dateReceived):'—';const catClass=getCatClass(x.category);const statusText=x.status==='Resolved'?'RESOLVED':'ACTIVE';const statusColor=x.status==='Resolved'?'var(--green)':'var(--amber)';return'<tr class="'+rowClass+'">'+'<td class="ticket-id mono">'+esc(x.complaintId)+'</td>'+'<td class="mono">'+formatDate(x.dateReceived)+'</td>'+'<td><span class="cat-pill '+catClass+'">'+esc(x.category||'General')+'</span></td>'+'<td><span class="status-dot" style="color:'+statusColor+';"><span style="background:'+statusColor+'"></span>'+statusText+'</span></td>'+'<td class="mono" style="text-align:right;">'+closedDateVal+'</td>'+'</tr>';}).join('');// Fleet category distribution breakdown
+const catCounts={};truckComplaints.forEach(x=>{const cat=x.category||'General';catCounts[cat]=(catCounts[cat]||0)+1;});const catEntries=Object.entries(catCounts).sort((a,b)=>b[1]-a[1]);const maxCatCount=catEntries.length>0?catEntries[0][1]:1;const catColorMap={'leakage':'var(--amber)','chassis':'var(--blue)','engine':'var(--blue)','electrical':'var(--purple)','monitor':'var(--red)','nozzles':'var(--red)','pto':'var(--green)','pump':'var(--green)'};const fleetChartBars=catEntries.map(([catName,count])=>{const lower=catName.toLowerCase();let color='var(--blue)';for(const[key,val]of Object.entries(catColorMap)){if(lower.includes(key)){color=val;break;}}const widthPct=Math.round(count/maxCatCount*100);return'<div class="bar-row">'+'<div class="bar-label"><span>'+esc(catName)+'</span><span class="n">'+count+'</span></div>'+'<div class="bar-track"><div class="bar-fill" style="width:'+widthPct+'%;background:'+color+';"></div></div>'+'</div>';}).join('');const reportWindow=window.open('','_blank');if(!reportWindow){alert('Please allow popups to generate and view the service closure report.');return;}const html=`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Closure Report — ${esc(complaint.complaintId)}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3F2EE;
+    --sheet:#FFFFFF;
+    --ink:#1C2024;
+    --ink-soft:#6B7178;
+    --ink-faint:#9AA0A6;
+    --line:#E6E4DC;
+    --line-strong:#CFCDC3;
+
+    --red:#B23A22;
+    --red-dim:#F6E4DE;
+    --green:#1F6B4A;
+    --green-dim:#E1EEE6;
+    --amber:#A67418;
+    --amber-dim:#F4EAD3;
+    --blue:#2E5B73;
+    --blue-dim:#E2ECEF;
+    --purple:#6B3F8E;
+    --purple-dim:#EEE5F4;
+    --teal:#0B6B63;
+    --teal-dim:#E0F2F1;
+    --track:#EDECE5;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-weight:400;
+    -webkit-font-smoothing:antialiased;
+    padding:32px 16px 80px;
+  }
+
+  .mono{ font-family:"IBM Plex Mono", monospace; }
+
+  /* Toolbar */
+  .no-print-bar{
+    max-width:840px;
+    margin:0 auto 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:var(--sheet);
+    border:1px solid var(--line);
+    padding:12px 20px;
+    border-radius:4px;
+  }
+  .bar-title{ font-size:13px; font-weight:600; color:var(--ink); }
+  .bar-sub{ font-size:11px; color:var(--ink-soft); margin-top:1px; }
+  .bar-btn{
+    background:var(--teal);
+    color:#fff;
+    border:none;
+    padding:8px 18px;
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:0.04em;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    transition:background 0.15s ease;
+    border-radius:2px;
+  }
+  .bar-btn:hover{ background:#08524c; }
+  .bar-btn-close{
+    background:transparent;
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+    padding:7px 14px;
+    font-size:11.5px;
+    font-weight:500;
+    cursor:pointer;
+    margin-right:8px;
+    border-radius:2px;
+  }
+  .bar-btn-close:hover{ background:var(--paper); color:var(--ink); }
+
+  .sheet{
+    max-width:840px;
+    margin:0 auto;
+    background:var(--sheet);
+    border:1px solid var(--line);
+    box-shadow:0 2px 12px rgba(0,0,0,0.03);
+  }
+
+  /* Header */
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:28px;
+    padding:34px 40px 26px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand{ display:flex; gap:12px; align-items:center; }
+  .brand svg{ width:34px; height:34px; flex:none; }
+  .brand-name{ font-size:17px; font-weight:600; letter-spacing:-0.01em; color:var(--ink); }
+  .brand-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:1px; }
+
+  h1.title{
+    font-size:26px;
+    font-weight:300;
+    letter-spacing:-0.01em;
+    margin:18px 0 4px;
+  }
+  .ticket-line{ font-size:13px; color:var(--ink-soft); }
+  .ticket-line .mono{ color:var(--ink); font-weight:500; }
+
+  .status-pill{
+    display:inline-flex; align-items:center; gap:6px;
+    margin-top:14px; padding:5px 12px;
+    border:1px solid var(--green);
+    color:var(--green); font-size:11px; font-weight:600; letter-spacing:0.04em;
+    background:var(--green-dim);
+  }
+  .status-pill::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--green); display:inline-block; }
+
+  .verify{ text-align:right; flex:none; }
+  .verify img{ width:88px; height:88px; display:block; margin-left:auto; border:1px solid var(--line); padding:4px; background:#fff; }
+  .verify-label{ font-size:9.5px; color:var(--ink-faint); margin-top:6px; letter-spacing:0.02em; max-width:115px; margin-left:auto; text-align:right; line-height:1.4; }
+
+  /* Sections */
+  section{ padding:28px 40px; border-bottom:1px solid var(--line); }
+  section:last-of-type{ border-bottom:none; }
+
+  .sec-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:18px; }
+  .sec-num{
+    font-family:"IBM Plex Mono", monospace; font-size:11px; color:var(--ink-faint);
+    border:1px solid var(--line-strong); width:20px; height:20px;
+    display:flex; align-items:center; justify-content:center; flex:none;
+  }
+  .sec-title{ font-size:14.5px; font-weight:600; letter-spacing:-0.01em; color:var(--ink); }
+
+  /* Grid 2 */
+  .grid-2{ display:grid; grid-template-columns:1.15fr 1fr; gap:32px; }
+  .field-label{ font-size:9.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:4px; font-weight:500; }
+  .field-value{ font-size:14.5px; font-weight:500; margin-bottom:14px; color:var(--ink); }
+  .field-value.mono{ font-weight:400; font-size:13.5px; }
+  .field-sub{ font-size:12.5px; color:var(--ink-soft); margin-top:-11px; margin-bottom:14px; }
+
+  /* Warranty Wrap */
+  .warranty-wrap{ display:flex; align-items:center; gap:40px; flex-wrap:wrap; }
+  .donut-box{ flex:none; position:relative; width:140px; height:140px; }
+  .donut-center{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+  }
+  .donut-num{ font-size:24px; font-weight:600; line-height:1; font-family:"IBM Plex Mono", monospace; }
+  .donut-sub{ font-size:10px; color:var(--ink-soft); margin-top:4px; letter-spacing:0.03em; text-transform:uppercase; font-weight:500; }
+
+  .warranty-legend{ flex:1; min-width:220px; }
+  .leg-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .leg-row:last-child{ border-bottom:none; }
+  .leg-key{ display:flex; align-items:center; gap:9px; color:var(--ink-soft); }
+  .swatch{ width:9px; height:9px; border-radius:2px; flex:none; }
+  .leg-val{ font-weight:500; color:var(--ink); }
+  .leg-sub{ color:var(--ink-faint); font-size:11px; margin-left:3px; }
+
+  /* Incident */
+  .tag{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:0.03em; padding:3px 9px; }
+  .tag.chassis{ color:var(--blue); background:var(--blue-dim); }
+  .tag.leak{ color:var(--amber); background:var(--amber-dim); }
+  .tag.elec{ color:var(--purple); background:var(--purple-dim); }
+  .tag.pto{ color:var(--green); background:var(--green-dim); }
+  .tag.monitor{ color:var(--red); background:var(--red-dim); }
+
+  .desc{ font-size:14.5px; margin-top:10px; line-height:1.55; max-width:62ch; color:var(--ink); font-style:italic; }
+  .meta-line{ font-size:12px; color:var(--ink-soft); margin-top:8px; }
+
+  .incident-card{ border:1px solid var(--line); }
+  .incident-row{ padding:18px 22px; }
+
+  .timeline{ display:flex; align-items:center; margin:20px 22px 8px; }
+  .tl-node{ display:flex; flex-direction:column; align-items:center; width:118px; }
+  .tl-dot{ width:9px; height:9px; border-radius:50%; background:var(--ink); margin-bottom:8px; }
+  .tl-node.end .tl-dot{ background:var(--green); }
+  .tl-date{ font-size:12px; font-weight:500; }
+  .tl-label{ font-size:9.5px; letter-spacing:0.06em; color:var(--ink-faint); margin-top:3px; font-weight:500; }
+  .tl-line{ flex:1; height:1px; background:var(--line-strong); position:relative; top:-13px; }
+  .tl-duration{ position:relative; top:-13px; font-size:10.5px; font-weight:600; color:var(--amber); background:var(--sheet); padding:0 10px; white-space:nowrap; letter-spacing:0.04em; }
+
+  .resolve-block{ padding:16px 22px; background:#FBFAF7; border-top:1px solid var(--line); }
+  .resolve-grid{ display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+  .resolve-block .field-label{ color:var(--green); }
+  .resolve-block .field-value{ margin-bottom:0; font-size:13.5px; line-height:1.5; }
+
+  /* Fleet history */
+  .fleet-wrap{ display:flex; gap:32px; flex-wrap:wrap; }
+  .fleet-table{ flex:1.7; min-width:280px; }
+  .fleet-chart{ flex:1; min-width:180px; }
+
+  .fleet-summary{ font-size:12.5px; color:var(--ink-soft); margin-bottom:12px; }
+  .fleet-summary .mono{ color:var(--ink); font-weight:600; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12px; }
+  thead th{ text-align:left; font-size:9px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink-faint); font-weight:500; padding:0 8px 8px; border-bottom:1.5px solid var(--ink); }
+  tbody td{ padding:10px 8px; border-bottom:1px solid var(--line); }
+  tbody tr.highlight td{ background:#FBF3EF; }
+  tbody tr:last-child td{ border-bottom:none; }
+  td.ticket-id{ font-weight:600; }
+
+  .status-dot{ display:inline-flex; align-items:center; gap:5px; font-size:9.5px; font-weight:600; letter-spacing:0.02em; }
+  .status-dot span{ width:5px; height:5px; border-radius:50%; display:inline-block; }
+
+  .cat-pill{ display:inline-block; font-size:10px; padding:2px 7px; font-weight:500; }
+  .cat-chassis{ background:var(--blue-dim); color:var(--blue); }
+  .cat-leak{ background:var(--amber-dim); color:var(--amber); }
+  .cat-elec{ background:var(--purple-dim); color:var(--purple); }
+  .cat-pto{ background:var(--green-dim); color:var(--green); }
+  .cat-monitor{ background:var(--red-dim); color:var(--red); }
+
+  .bar-row{ margin-bottom:11px; }
+  .bar-row .bar-label{ display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:4px; }
+  .bar-row .bar-label .n{ color:var(--ink-faint); font-family:"IBM Plex Mono", monospace; font-size:11px; }
+  .bar-track{ height:5px; background:var(--track); overflow:hidden; }
+  .bar-fill{ height:100%; }
+
+  /* Sign-off */
+  .sign-grid{ display:grid; grid-template-columns:1fr 1fr; gap:40px; }
+  .sign-line{ border-top:1px solid var(--ink); margin-top:40px; padding-top:8px; }
+  .sign-name{ font-size:13px; font-weight:600; color:var(--ink); }
+  .sign-role{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .sign-date{ font-size:11.5px; color:var(--ink-soft); margin-top:40px; }
+
+  footer{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:16px 40px; font-size:10.5px; color:var(--ink-faint);
+  }
+  footer a{ color:var(--ink-faint); text-decoration:none; }
+
+  @media (max-width:640px){
+    body{ padding:0; }
+    .sheet{ border:none; box-shadow:none; }
+    header{ flex-direction:column; }
+    .verify{ text-align:left; }
+    .verify img{ margin-left:0; }
+    .verify-label{ margin-left:0; text-align:left; }
+    .grid-2{ grid-template-columns:1fr; }
+    .warranty-wrap{ flex-direction:column; align-items:flex-start; }
+    .fleet-wrap{ flex-direction:column; }
+    thead th:nth-child(2), tbody td:nth-child(2){ display:none; }
+    .sign-grid{ grid-template-columns:1fr; gap:24px; }
+  }
+
+  @media print{
+    body{ background:#fff; padding:0; }
+    .no-print{ display:none !important; }
+    .sheet{ border:none; max-width:100%; box-shadow:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print no-print-bar">
+  <div>
+    <div class="bar-title">Closure Report Preview — ${esc(complaint.complaintId)}</div>
+    <div class="bar-sub">Standard Enterprise Service Certificate · Ready for Print / Save to PDF</div>
+  </div>
+  <div>
+    <button onclick="window.close()" class="bar-btn-close">Close</button>
+    <button onclick="window.print()" class="bar-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print / Save PDF
+    </button>
+  </div>
+</div>
+
+<div class="sheet">
+
+  <header>
+    <div>
+      <div class="brand">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 3c-1.2 6-7 8.6-7 15.6a7 7 0 0 0 14 0c0-2.4-1-3.8-2.3-5 .3 2.3-1 3.6-2.3 3.6-1.7 0-2.7-1.4-2.3-3.5.7-2.8 2.3-3.6 2.3-7.1-1.1.7-1.9 2-2.4 3.5-.5-1.9-.7-4.2 0-7z" fill="#B23A22"/>
+        </svg>
+        <div>
+          <div class="brand-name">FireFlow</div>
+          <div class="brand-sub">Indus Fire Safety — Technical Warranty Hub</div>
+        </div>
+      </div>
+      <h1 class="title">Closure Report</h1>
+      <div class="ticket-line">Ticket <span class="mono">${esc(complaint.complaintId)}</span> · issued <span class="mono">${issuedDateVal}</span></div>
+      <div class="status-pill">${complaint.status==='Resolved'?'SERVICE CLOSED':'SERVICE ACTIVE'}</div>
+    </div>
+    <div class="verify">
+      <img src="${qrImageUrl}" alt="QR code linking to ticket ${esc(complaint.complaintId)}">
+      <div class="verify-label">Scan to verify ticket &amp; asset portal</div>
+    </div>
+  </header>
+
+  <!-- 1. Customer & Vehicle -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">1</span>
+      <span class="sec-title">Customer &amp; Vehicle Specifications</span>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="field-label">Client / Organisation</div>
+        <div class="field-value">${clientName}</div>
+        <div class="field-sub">${clientAddress}</div>
+        <div class="field-label">Contact Person</div>
+        <div class="field-value">${clientContactPerson}</div>
+        <div class="field-sub mono">${clientPhone} · ${clientEmail}</div>
+      </div>
+      <div>
+        <div class="field-label">Fire Tender Type</div>
+        <div class="field-value">${tenderType}</div>
+        <div class="field-label">PO Number &amp; Chassis</div>
+        <div class="field-value mono">${poNo} · ${chassisMake} ${modelNo?'('+modelNo+')':''}</div>
+        <div class="field-label">Pump Serial &amp; Specification</div>
+        <div class="field-value mono">${pumpSrNo} — ${pumpMake} ${pumpLpm}</div>
+        ${waterCapacity||foamCapacity||costCenterNo?`<div class="field-sub mono" style="font-size:11px;">${waterCapacity?'Water: '+waterCapacity:''} ${foamCapacity?'· Foam: '+foamCapacity:''} ${costCenterNo?'· CC: '+costCenterNo:''}</div>`:''}
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Warranty coverage -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">2</span>
+      <span class="sec-title">Warranty Coverage</span>
+    </div>
+    <div class="warranty-wrap">
+      <div class="donut-box">
+        <svg viewBox="0 0 150 150" width="140" height="140">
+          <circle cx="75" cy="75" r="60" fill="none" stroke="var(--track)" stroke-width="14"/>
+          <circle cx="75" cy="75" r="60" fill="none" stroke="${daysRemaining>0?'#1F6B4A':'#B23A22'}" stroke-width="14"
+                  stroke-dasharray="${dashArrayVal}" stroke-linecap="butt"
+                  transform="rotate(-90 75 75)"/>
+        </svg>
+        <div class="donut-center">
+          <div class="donut-num" style="color:${daysRemaining>0?'var(--ink)':'var(--red)'};">${daysRemaining}</div>
+          <div class="donut-sub">${daysRemaining>0?'days left':'expired'}</div>
+        </div>
+      </div>
+      <div class="warranty-legend">
+        <div class="leg-row">
+          <div class="leg-key"><span class="swatch" style="background:${daysRemaining>0?'#1F6B4A':'#B23A22'}"></span>Remaining coverage</div>
+          <div><span class="leg-val">${daysRemaining} days</span> <span class="leg-sub">(${remainingPct}%)</span></div>
+        </div>
+        <div class="leg-row">
+          <div class="leg-key"><span class="swatch" style="background:var(--track)"></span>Elapsed since delivery</div>
+          <div><span class="leg-val">${daysElapsed} days</span> <span class="leg-sub">(${elapsedPct}%)</span></div>
+        </div>
+        <div class="leg-row">
+          <div class="leg-key">Delivered</div>
+          <div class="mono leg-val">${deliveryDateVal}</div>
+        </div>
+        <div class="leg-row">
+          <div class="leg-key">Expires</div>
+          <div class="mono leg-val">${expiryDateVal} <span class="leg-sub">(${warrantyMonths}M Period)</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Incident -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">3</span>
+      <span class="sec-title">Support Incident &amp; Resolution</span>
+    </div>
+    <div class="incident-card">
+      <div class="incident-row">
+        <span class="${getCatTagClass(complaint.category)}">${esc((complaint.category||'SUPPORT TICKET').toUpperCase())}</span>
+        <div class="desc">"${esc(complaint.description||'No defect description logged.')}"</div>
+        <div class="meta-line">Reported by ${esc(complaint.reportedBy||'Client Officer')} · logged via ${esc(complaintMode)}</div>
+      </div>
+      <div class="timeline">
+        <div class="tl-node">
+          <div class="tl-dot"></div>
+          <div class="tl-date mono">${complaintDateVal}</div>
+          <div class="tl-label">LOGGED</div>
+        </div>
+        <div class="tl-line"></div>
+        <div class="tl-duration mono">${ticketDuration} ${ticketDuration===1?'DAY':'DAYS'}</div>
+        <div class="tl-line"></div>
+        <div class="tl-node end">
+          <div class="tl-dot"></div>
+          <div class="tl-date mono">${reportClosedDateVal}</div>
+          <div class="tl-label">RESOLVED</div>
+        </div>
+      </div>
+      <div class="resolve-block">
+        <div class="resolve-grid">
+          <div style="flex:1;">
+            <div class="field-label">Diagnosis &amp; Remedy Applied</div>
+            <div class="field-value">${diagnosisVal}</div>
+            ${complaint.remarks?`<div style="margin-top:8px;font-size:11.5px;color:var(--ink-soft);font-style:italic;"><b>Notes:</b> "${esc(complaint.remarks)}"</div>`:''}
+            ${complaint.delayReason?`<div style="margin-top:6px;font-size:11.5px;color:var(--amber);font-style:italic;"><b>Delay / Schedule note:</b> "${esc(complaint.delayReason)}"</div>`:''}
+          </div>
+          <div style="text-align:right;flex:none;min-width:180px;">
+            <div class="field-label">Service Engineer</div>
+            <div class="field-value mono">${closedByVal}</div>
+            <div style="font-size:11px;color:var(--ink-faint);margin-top:2px;">Certified Indus Field Tech</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Fleet history -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">4</span>
+      <span class="sec-title">Fleet Vehicle Support History</span>
+    </div>
+    <div class="fleet-summary">Total tickets filed for this unit — <span class="mono">${truckComplaints.length}</span></div>
+
+    <div class="fleet-wrap">
+      <div class="fleet-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket ID</th>
+              <th>Logged</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th style="text-align:right;">Closed</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${complaintsRows||'<tr><td colspan="5" style="text-align:center;color:var(--ink-faint);padding:14px;">No other records found for this unit.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="fleet-chart">
+        ${fleetChartBars||'<div style="font-size:11.5px;color:var(--ink-faint);">No breakdown data available.</div>'}
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Sign-off -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">5</span>
+      <span class="sec-title">Engineering Sign-Off &amp; Acceptance</span>
+    </div>
+    <div class="sign-grid">
+      <div>
+        <div class="sign-line">
+          <div class="sign-name">${closedByVal}</div>
+          <div class="sign-role">Indus Technical Division · Prepared / resolved by</div>
+        </div>
+      </div>
+      <div>
+        <div class="sign-line">
+          <div class="sign-name">${clientName}</div>
+          <div class="sign-role">Client acceptance signature &amp; station stamp</div>
+        </div>
+        <div class="sign-date mono">Date: ____ / ____ / ________</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Indus Fire Safety · Technical Warranty Hub</span>
+    <span>Support — <a href="mailto:helpdesk@indusfiresafety.com">helpdesk@indusfiresafety.com</a></span>
+  </footer>
+
+</div>
+
+</body>
+</html>`;reportWindow.document.write(html);reportWindow.document.close();};if(loading)return/*#__PURE__*/React.createElement("div",{className:"min-h-screen flex items-center justify-center bg-slate-50"},/*#__PURE__*/React.createElement("div",{className:"text-center"},/*#__PURE__*/React.createElement("div",{className:"w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"}),/*#__PURE__*/React.createElement("p",{className:"text-[11px] font-black text-slate-400 uppercase tracking-widest"},"Connecting to server...")));// ── AGM MANAGEMENT VIEW ──
 if(accessMode==='agm'){return/*#__PURE__*/React.createElement(AgmManagementView,{complaints:complaints,customers:customers,trucks:trucks,onExit:()=>setAccessMode('customer'),downloadClosureReport:downloadClosureReport,getQrImageUrl:getQrImageUrl});}// ── CUSTOMER PORTAL WITH TWO SUBTLE HIDDEN LOCKS ──
 if(accessMode==='customer')return/*#__PURE__*/React.createElement("div",{className:"min-h-screen relative"},/*#__PURE__*/React.createElement("button",{type:"button",onClick:()=>{setAuthPasswordInput('');setAuthPasswordError(false);setShowAgmAuthModal(true);},title:"","aria-label":"AGM Portal Access",className:"fixed bottom-4 right-4 z-50 w-7 h-7 rounded-full flex items-center justify-center opacity-10 hover:opacity-40 transition-opacity duration-300 cursor-pointer",style:{background:'transparent'}},/*#__PURE__*/React.createElement("svg",{width:"14",height:"14",viewBox:"0 0 24 24",fill:"none",stroke:"#64748b",strokeWidth:"2"},/*#__PURE__*/React.createElement("rect",{x:"3",y:"11",width:"18",height:"11",rx:"2",ry:"2"}),/*#__PURE__*/React.createElement("path",{d:"M7 11V7a5 5 0 0 1 10 0v4"}))),/*#__PURE__*/React.createElement("button",{type:"button",onClick:()=>{setAuthPasswordInput('');setAuthPasswordError(false);setShowMasterAuthModal(true);},title:"","aria-label":"Master Admin Portal Access",className:"fixed bottom-4 left-4 z-50 w-7 h-7 rounded-full flex items-center justify-center opacity-10 hover:opacity-40 transition-opacity duration-300 cursor-pointer",style:{background:'transparent'}},/*#__PURE__*/React.createElement("svg",{width:"14",height:"14",viewBox:"0 0 24 24",fill:"none",stroke:"#64748b",strokeWidth:"2"},/*#__PURE__*/React.createElement("rect",{x:"3",y:"11",width:"18",height:"11",rx:"2",ry:"2"}),/*#__PURE__*/React.createElement("path",{d:"M7 11V7a5 5 0 0 1 10 0v4"}))),showAgmAuthModal&&typeof document!=='undefined'&&document.body&&ReactDOM.createPortal(/*#__PURE__*/React.createElement("div",{className:"fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"},/*#__PURE__*/React.createElement("div",{className:"bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 modal-animate text-center border border-slate-200"},/*#__PURE__*/React.createElement("div",{className:"w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white"},/*#__PURE__*/React.createElement("svg",{width:"24",height:"24",viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2"},/*#__PURE__*/React.createElement("rect",{x:"3",y:"11",width:"18",height:"11",rx:"2",ry:"2"}),/*#__PURE__*/React.createElement("path",{d:"M7 11V7a5 5 0 0 1 10 0v4"}))),/*#__PURE__*/React.createElement("h3",{className:"font-black text-slate-900 uppercase tracking-tight text-base mb-1"},"Secure Access"),/*#__PURE__*/React.createElement("p",{className:"text-[11px] font-bold text-slate-400 mb-5 uppercase tracking-widest"},"Enter Access Password"),/*#__PURE__*/React.createElement("form",{onSubmit:async e=>{e.preventDefault();const role=await verifyPasswordLevel(authPasswordInput);if(role==='register_delivery'){setShowAgmAuthModal(false);setShowMasterAuthModal(false);setShowRegisterDeliveryModal(true);setAuthPasswordInput('');setAuthPasswordError(false);}else if(role==='agm'||role==='master_admin'){setAccessMode(role==='master_admin'?'master_admin':'agm');setShowAgmAuthModal(false);setAuthPasswordInput('');setAuthPasswordError(false);}else{setAuthPasswordError(true);}},className:"space-y-4"},/*#__PURE__*/React.createElement("div",{className:"space-y-1"},/*#__PURE__*/React.createElement("input",{type:"password",value:authPasswordInput,onChange:async e=>{const val=e.target.value;setAuthPasswordInput(val);setAuthPasswordError(false);if(val.trim().length>=4){const role=await verifyPasswordLevel(val.trim());if(role==='register_delivery'){setShowAgmAuthModal(false);setShowMasterAuthModal(false);setShowRegisterDeliveryModal(true);setAuthPasswordInput('');setAuthPasswordError(false);}else if(role==='agm'||role==='master_admin'){setAccessMode(role==='master_admin'?'master_admin':'agm');setShowAgmAuthModal(false);setAuthPasswordInput('');setAuthPasswordError(false);}}},placeholder:"Enter access password...",autoFocus:true,required:true,className:"w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-slate-900 transition-all text-center tracking-widest"})),authPasswordError&&/*#__PURE__*/React.createElement("p",{className:"text-rose-500 text-[11px] font-black uppercase tracking-wider animate-pulse"},"Invalid access password."),/*#__PURE__*/React.createElement("div",{className:"flex gap-2.5 pt-1"},/*#__PURE__*/React.createElement("button",{type:"button",onClick:()=>{setShowAgmAuthModal(false);setAuthPasswordInput('');setAuthPasswordError(false);},className:"flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"},"Cancel"),/*#__PURE__*/React.createElement("button",{type:"submit",className:"flex-1 bg-slate-900 hover:bg-black text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider shadow-lg transition-all cursor-pointer"},"Unlock"))))),document.body),showRegisterDeliveryModal&&/*#__PURE__*/React.createElement(RegisterClientToDeliveryModal,{onClose:()=>setShowRegisterDeliveryModal(false),existingCustomers:customers,onSubmitted:newSub=>{setDeliverySubmissions(prev=>{const updated=[newSub,...prev];try{localStorage.setItem('ff_delivery_submissions',JSON.stringify(updated));}catch(e){}return updated;});},onDirectPunch:(newCust,newTrk)=>{setCustomers(prev=>{const updated=[...prev,newCust];try{localStorage.setItem('ff_cust',JSON.stringify(updated));}catch(e){}return updated;});setTrucks(prev=>{const updated=[newTrk,...prev];try{localStorage.setItem('ff_trks',JSON.stringify(updated));}catch(e){}return updated;});}}),showPendingSubmissionsModal&&/*#__PURE__*/React.createElement("div",{className:"fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto"},/*#__PURE__*/React.createElement("div",{className:"bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-slate-200 flex flex-col max-h-[92vh]"},/*#__PURE__*/React.createElement("div",{className:"bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 flex items-center justify-between border-b border-white/10 shrink-0"},/*#__PURE__*/React.createElement("div",{className:"flex items-center gap-3"},/*#__PURE__*/React.createElement("div",{className:"w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg"},"\uD83D\uDD14"),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("h2",{className:"text-base font-black uppercase tracking-tight text-white"},"Staged Delivery Submissions Queue"),/*#__PURE__*/React.createElement("p",{className:"text-[11px] font-bold text-slate-400 mt-0.5"},"Submitted via Dispatch Entry \xB7 Accept to punch into live system & generate QR code"))),/*#__PURE__*/React.createElement("button",{onClick:()=>setShowPendingSubmissionsModal(false),className:"w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"},"\u2715")),/*#__PURE__*/React.createElement("div",{className:"p-5 overflow-y-auto flex-1 space-y-4"},deliverySubmissions.length===0?/*#__PURE__*/React.createElement("div",{className:"py-12 text-center text-slate-400 space-y-2"},/*#__PURE__*/React.createElement("p",{className:"text-3xl"},"\uD83D\uDCED"),/*#__PURE__*/React.createElement("p",{className:"text-xs font-black uppercase"},"No delivery submissions in queue")):deliverySubmissions.map((sub,idx)=>/*#__PURE__*/React.createElement("div",{key:sub.id||idx,className:"bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3"},/*#__PURE__*/React.createElement("div",{className:"flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200"},/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("div",{className:"flex items-center gap-2"},/*#__PURE__*/React.createElement("span",{className:"font-black text-slate-900 text-sm uppercase"},sub.customerName||sub.customer_name),/*#__PURE__*/React.createElement("span",{className:"font-mono text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200"},"PO: ",sub.poNo||sub.po_no)),/*#__PURE__*/React.createElement("p",{className:"text-[10px] font-bold text-slate-400 uppercase mt-0.5"},sub.tenderType||sub.tender_type," \xB7 Ref: ",sub.id)),/*#__PURE__*/React.createElement("div",{className:"flex items-center gap-2"},/*#__PURE__*/React.createElement("span",{className:`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${sub.status==='Punched in System'?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}`},sub.status||'Pending Approval'),sub.status!=='Punched in System'&&/*#__PURE__*/React.createElement("button",{onClick:async()=>{try{// 1. Check or create Customer
 let custId=customers.find(c=>c.name.trim().toUpperCase()===(sub.customerName||sub.customer_name||'').trim().toUpperCase())?.id;let custRecord=null;if(!custId){const newCustId='CUST-'+Math.random().toString(36).substring(2,9).toUpperCase();custRecord={id:newCustId,name:sub.customerName||sub.customer_name,contactPerson:sub.contactPerson||sub.contact_person||'',phone:sub.phone||'',email:sub.email||'',address:sub.address||'',poDate:sub.poDate||sub.po_date||null};setCustomers(prev=>[...prev,custRecord]);custId=newCustId;const sb=window.SupabaseClient;if(sb){try{await sb.from('customers').insert({id:newCustId,name:custRecord.name,contact_person:custRecord.contactPerson,phone:custRecord.phone,email:custRecord.email,address:custRecord.address,po_date:custRecord.poDate});}catch(e){}}}// 2. Create Truck Delivery
