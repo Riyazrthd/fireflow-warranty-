@@ -13872,6 +13872,11 @@ function App() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
   :root{
     --paper:#F3F2EE;
     --sheet:#FFFFFF;
@@ -13968,142 +13973,143 @@ function App() {
     justify-content:space-between;
     align-items:flex-start;
     gap:28px;
-    padding:34px 40px 26px;
+    padding:28px 36px 20px;
     border-bottom:1px solid var(--line);
   }
-  .brand{ display:flex; gap:12px; align-items:center; }
-  .brand svg{ width:34px; height:34px; flex:none; }
-  .brand-name{ font-size:17px; font-weight:600; letter-spacing:-0.01em; color:var(--ink); }
-  .brand-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:1px; }
+  .brand{ display:flex; gap:10px; align-items:center; }
+  .brand svg{ width:30px; height:30px; flex:none; }
+  .brand-name{ font-size:16px; font-weight:600; letter-spacing:-0.01em; color:var(--ink); }
+  .brand-sub{ font-size:11px; color:var(--ink-soft); margin-top:1px; }
 
   h1.title{
-    font-size:26px;
+    font-size:22px;
     font-weight:300;
     letter-spacing:-0.01em;
-    margin:18px 0 4px;
+    margin:12px 0 3px;
   }
-  .ticket-line{ font-size:13px; color:var(--ink-soft); }
+  .ticket-line{ font-size:12px; color:var(--ink-soft); }
   .ticket-line .mono{ color:var(--ink); font-weight:500; }
 
   .status-pill{
-    display:inline-flex; align-items:center; gap:6px;
-    margin-top:14px; padding:5px 12px;
+    display:inline-flex; align-items:center; gap:5px;
+    margin-top:10px; padding:4px 10px;
     border:1px solid var(--green);
-    color:var(--green); font-size:11px; font-weight:600; letter-spacing:0.04em;
+    color:var(--green); font-size:10.5px; font-weight:600; letter-spacing:0.04em;
     background:var(--green-dim);
   }
-  .status-pill::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--green); display:inline-block; }
+  .status-pill::before{ content:""; width:5px; height:5px; border-radius:50%; background:var(--green); display:inline-block; }
 
   .verify{ text-align:right; flex:none; }
-  .verify img{ width:88px; height:88px; display:block; margin-left:auto; border:1px solid var(--line); padding:4px; background:#fff; }
-  .verify-label{ font-size:9.5px; color:var(--ink-faint); margin-top:6px; letter-spacing:0.02em; max-width:115px; margin-left:auto; text-align:right; line-height:1.4; }
+  .verify img{ width:80px; height:80px; display:block; margin-left:auto; border:1px solid var(--line); padding:3px; background:#fff; }
+  .verify-label{ font-size:9px; color:var(--ink-faint); margin-top:4px; letter-spacing:0.02em; max-width:110px; margin-left:auto; text-align:right; line-height:1.3; }
 
   /* Sections */
-  section{ padding:28px 40px; border-bottom:1px solid var(--line); }
+  section{ padding:20px 36px; border-bottom:1px solid var(--line); }
   section:last-of-type{ border-bottom:none; }
 
-  .sec-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:18px; }
+  .sec-head{ display:flex; align-items:baseline; gap:8px; margin-bottom:14px; }
   .sec-num{
-    font-family:"IBM Plex Mono", monospace; font-size:11px; color:var(--ink-faint);
-    border:1px solid var(--line-strong); width:20px; height:20px;
+    font-family:"IBM Plex Mono", monospace; font-size:10.5px; color:var(--ink-faint);
+    border:1px solid var(--line-strong); width:18px; height:18px;
     display:flex; align-items:center; justify-content:center; flex:none;
   }
-  .sec-title{ font-size:14.5px; font-weight:600; letter-spacing:-0.01em; color:var(--ink); }
+  .sec-title{ font-size:13.5px; font-weight:600; letter-spacing:-0.01em; color:var(--ink); }
 
   /* Grid 2 */
-  .grid-2{ display:grid; grid-template-columns:1.15fr 1fr; gap:32px; }
-  .field-label{ font-size:9.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:4px; font-weight:500; }
-  .field-value{ font-size:14.5px; font-weight:500; margin-bottom:14px; color:var(--ink); }
-  .field-value.mono{ font-weight:400; font-size:13.5px; }
-  .field-sub{ font-size:12.5px; color:var(--ink-soft); margin-top:-11px; margin-bottom:14px; }
+  .grid-2{ display:grid; grid-template-columns:1.15fr 1fr; gap:24px; }
+  .field-label{ font-size:9px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:3px; font-weight:500; }
+  .field-value{ font-size:13.5px; font-weight:500; margin-bottom:10px; color:var(--ink); }
+  .field-value.mono{ font-weight:400; font-size:12.5px; }
+  .field-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:-8px; margin-bottom:10px; }
 
   /* Warranty Wrap */
-  .warranty-wrap{ display:flex; align-items:center; gap:40px; flex-wrap:wrap; }
-  .donut-box{ flex:none; position:relative; width:140px; height:140px; }
+  .warranty-wrap{ display:flex; align-items:center; gap:32px; flex-wrap:wrap; }
+  .donut-box{ flex:none; position:relative; width:110px; height:110px; }
+  .donut-box svg{ width:110px; height:110px; }
   .donut-center{
     position:absolute; inset:0; display:flex; flex-direction:column;
     align-items:center; justify-content:center;
   }
-  .donut-num{ font-size:24px; font-weight:600; line-height:1; font-family:"IBM Plex Mono", monospace; }
-  .donut-sub{ font-size:10px; color:var(--ink-soft); margin-top:4px; letter-spacing:0.03em; text-transform:uppercase; font-weight:500; }
+  .donut-num{ font-size:22px; font-weight:600; line-height:1; font-family:"IBM Plex Mono", monospace; }
+  .donut-sub{ font-size:9px; color:var(--ink-soft); margin-top:3px; letter-spacing:0.03em; text-transform:uppercase; font-weight:500; }
 
-  .warranty-legend{ flex:1; min-width:220px; }
-  .leg-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .warranty-legend{ flex:1; min-width:200px; }
+  .leg-row{ display:flex; align-items:center; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--line); font-size:12px; }
   .leg-row:last-child{ border-bottom:none; }
-  .leg-key{ display:flex; align-items:center; gap:9px; color:var(--ink-soft); }
-  .swatch{ width:9px; height:9px; border-radius:2px; flex:none; }
+  .leg-key{ display:flex; align-items:center; gap:8px; color:var(--ink-soft); }
+  .swatch{ width:8px; height:8px; border-radius:2px; flex:none; }
   .leg-val{ font-weight:500; color:var(--ink); }
-  .leg-sub{ color:var(--ink-faint); font-size:11px; margin-left:3px; }
+  .leg-sub{ color:var(--ink-faint); font-size:10.5px; margin-left:3px; }
 
   /* Incident */
-  .tag{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:0.03em; padding:3px 9px; }
+  .tag{ display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.03em; padding:2.5px 8px; }
   .tag.chassis{ color:var(--blue); background:var(--blue-dim); }
   .tag.leak{ color:var(--amber); background:var(--amber-dim); }
   .tag.elec{ color:var(--purple); background:var(--purple-dim); }
   .tag.pto{ color:var(--green); background:var(--green-dim); }
   .tag.monitor{ color:var(--red); background:var(--red-dim); }
 
-  .desc{ font-size:14.5px; margin-top:10px; line-height:1.55; max-width:62ch; color:var(--ink); font-style:italic; }
-  .meta-line{ font-size:12px; color:var(--ink-soft); margin-top:8px; }
+  .desc{ font-size:13.5px; margin-top:8px; line-height:1.45; max-width:64ch; color:var(--ink); font-style:italic; }
+  .meta-line{ font-size:11.5px; color:var(--ink-soft); margin-top:6px; }
 
   .incident-card{ border:1px solid var(--line); }
-  .incident-row{ padding:18px 22px; }
+  .incident-row{ padding:14px 18px; }
 
-  .timeline{ display:flex; align-items:center; margin:20px 22px 8px; }
-  .tl-node{ display:flex; flex-direction:column; align-items:center; width:118px; }
-  .tl-dot{ width:9px; height:9px; border-radius:50%; background:var(--ink); margin-bottom:8px; }
+  .timeline{ display:flex; align-items:center; margin:14px 18px 6px; }
+  .tl-node{ display:flex; flex-direction:column; align-items:center; width:110px; }
+  .tl-dot{ width:8px; height:8px; border-radius:50%; background:var(--ink); margin-bottom:6px; }
   .tl-node.end .tl-dot{ background:var(--green); }
-  .tl-date{ font-size:12px; font-weight:500; }
-  .tl-label{ font-size:9.5px; letter-spacing:0.06em; color:var(--ink-faint); margin-top:3px; font-weight:500; }
-  .tl-line{ flex:1; height:1px; background:var(--line-strong); position:relative; top:-13px; }
-  .tl-duration{ position:relative; top:-13px; font-size:10.5px; font-weight:600; color:var(--amber); background:var(--sheet); padding:0 10px; white-space:nowrap; letter-spacing:0.04em; }
+  .tl-date{ font-size:11.5px; font-weight:500; }
+  .tl-label{ font-size:9px; letter-spacing:0.06em; color:var(--ink-faint); margin-top:2px; font-weight:500; }
+  .tl-line{ flex:1; height:1px; background:var(--line-strong); position:relative; top:-11px; }
+  .tl-duration{ position:relative; top:-11px; font-size:10px; font-weight:600; color:var(--amber); background:var(--sheet); padding:0 8px; white-space:nowrap; letter-spacing:0.04em; }
 
-  .resolve-block{ padding:16px 22px; background:#FBFAF7; border-top:1px solid var(--line); }
-  .resolve-grid{ display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+  .resolve-block{ padding:12px 18px; background:#FBFAF7; border-top:1px solid var(--line); }
+  .resolve-grid{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
   .resolve-block .field-label{ color:var(--green); }
-  .resolve-block .field-value{ margin-bottom:0; font-size:13.5px; line-height:1.5; }
+  .resolve-block .field-value{ margin-bottom:0; font-size:12.5px; line-height:1.45; }
 
   /* Fleet history */
-  .fleet-wrap{ display:flex; gap:32px; flex-wrap:wrap; }
-  .fleet-table{ flex:1.7; min-width:280px; }
-  .fleet-chart{ flex:1; min-width:180px; }
+  .fleet-wrap{ display:flex; gap:24px; flex-wrap:wrap; }
+  .fleet-table{ flex:1.7; min-width:260px; }
+  .fleet-chart{ flex:1; min-width:160px; }
 
-  .fleet-summary{ font-size:12.5px; color:var(--ink-soft); margin-bottom:12px; }
+  .fleet-summary{ font-size:11.5px; color:var(--ink-soft); margin-bottom:8px; }
   .fleet-summary .mono{ color:var(--ink); font-weight:600; }
 
-  table{ width:100%; border-collapse:collapse; font-size:12px; }
-  thead th{ text-align:left; font-size:9px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink-faint); font-weight:500; padding:0 8px 8px; border-bottom:1.5px solid var(--ink); }
-  tbody td{ padding:10px 8px; border-bottom:1px solid var(--line); }
+  table{ width:100%; border-collapse:collapse; font-size:11.5px; }
+  thead th{ text-align:left; font-size:8.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink-faint); font-weight:500; padding:0 6px 6px; border-bottom:1.5px solid var(--ink); }
+  tbody td{ padding:7px 6px; border-bottom:1px solid var(--line); }
   tbody tr.highlight td{ background:#FBF3EF; }
   tbody tr:last-child td{ border-bottom:none; }
   td.ticket-id{ font-weight:600; }
 
-  .status-dot{ display:inline-flex; align-items:center; gap:5px; font-size:9.5px; font-weight:600; letter-spacing:0.02em; }
+  .status-dot{ display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:600; letter-spacing:0.02em; }
   .status-dot span{ width:5px; height:5px; border-radius:50%; display:inline-block; }
 
-  .cat-pill{ display:inline-block; font-size:10px; padding:2px 7px; font-weight:500; }
+  .cat-pill{ display:inline-block; font-size:9.5px; padding:2px 6px; font-weight:500; }
   .cat-chassis{ background:var(--blue-dim); color:var(--blue); }
   .cat-leak{ background:var(--amber-dim); color:var(--amber); }
   .cat-elec{ background:var(--purple-dim); color:var(--purple); }
   .cat-pto{ background:var(--green-dim); color:var(--green); }
   .cat-monitor{ background:var(--red-dim); color:var(--red); }
 
-  .bar-row{ margin-bottom:11px; }
-  .bar-row .bar-label{ display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:4px; }
-  .bar-row .bar-label .n{ color:var(--ink-faint); font-family:"IBM Plex Mono", monospace; font-size:11px; }
-  .bar-track{ height:5px; background:var(--track); overflow:hidden; }
+  .bar-row{ margin-bottom:8px; }
+  .bar-row .bar-label{ display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; }
+  .bar-row .bar-label .n{ color:var(--ink-faint); font-family:"IBM Plex Mono", monospace; font-size:10.5px; }
+  .bar-track{ height:4px; background:var(--track); overflow:hidden; }
   .bar-fill{ height:100%; }
 
   /* Sign-off */
-  .sign-grid{ display:grid; grid-template-columns:1fr 1fr; gap:40px; }
-  .sign-line{ border-top:1px solid var(--ink); margin-top:40px; padding-top:8px; }
-  .sign-name{ font-size:13px; font-weight:600; color:var(--ink); }
-  .sign-role{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
-  .sign-date{ font-size:11.5px; color:var(--ink-soft); margin-top:40px; }
+  .sign-grid{ display:grid; grid-template-columns:1fr 1fr; gap:32px; }
+  .sign-line{ border-top:1px solid var(--ink); margin-top:28px; padding-top:6px; }
+  .sign-name{ font-size:12.5px; font-weight:600; color:var(--ink); }
+  .sign-role{ font-size:10.5px; color:var(--ink-soft); margin-top:2px; }
+  .sign-date{ font-size:11px; color:var(--ink-soft); margin-top:28px; }
 
   footer{
     display:flex; justify-content:space-between; align-items:center;
-    padding:16px 40px; font-size:10.5px; color:var(--ink-faint);
+    padding:12px 36px; font-size:10px; color:var(--ink-faint);
   }
   footer a{ color:var(--ink-faint); text-decoration:none; }
 
@@ -14118,13 +14124,216 @@ function App() {
     .warranty-wrap{ flex-direction:column; align-items:flex-start; }
     .fleet-wrap{ flex-direction:column; }
     thead th:nth-child(2), tbody td:nth-child(2){ display:none; }
-    .sign-grid{ grid-template-columns:1fr; gap:24px; }
+    .sign-grid{ grid-template-columns:1fr; gap:20px; }
   }
 
+  /* Enterprise Print Styles — Eliminates browser headers/footers & prevents cross-page block splits */
   @media print{
-    body{ background:#fff; padding:0; }
-    .no-print{ display:none !important; }
-    .sheet{ border:none; max-width:100%; box-shadow:none; }
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    html, body {
+      background: #ffffff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      width: 100% !important;
+    }
+
+    .no-print, .no-print-bar {
+      display: none !important;
+    }
+
+    .sheet {
+      border: none !important;
+      box-shadow: none !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 6mm 10mm !important;
+    }
+
+    /* Prevent splitting inside important continuous cards, tables & sign-offs */
+    header,
+    section,
+    .incident-card,
+    .resolve-block,
+    .warranty-wrap,
+    .fleet-wrap,
+    .sign-grid,
+    footer,
+    tr {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+
+    header {
+      padding: 0 0 12px !important;
+      gap: 16px !important;
+    }
+    .brand svg { width: 26px !important; height: 26px !important; }
+    .brand-name { font-size: 14px !important; }
+    .brand-sub { font-size: 10px !important; }
+    h1.title { font-size: 18px !important; margin: 6px 0 2px !important; }
+    .ticket-line { font-size: 11px !important; }
+    .status-pill { margin-top: 6px !important; padding: 2.5px 8px !important; font-size: 9.5px !important; }
+    .verify img { width: 68px !important; height: 68px !important; padding: 2px !important; }
+    .verify-label { font-size: 8px !important; max-width: 95px !important; margin-top: 3px !important; }
+
+    section {
+      padding: 10px 0 !important;
+    }
+    .sec-head {
+      margin-bottom: 8px !important;
+    }
+    .sec-num {
+      width: 16px !important;
+      height: 16px !important;
+      font-size: 9.5px !important;
+    }
+    .sec-title {
+      font-size: 12px !important;
+    }
+
+    .grid-2 {
+      gap: 16px !important;
+    }
+    .field-label {
+      font-size: 8px !important;
+      margin-bottom: 2px !important;
+    }
+    .field-value {
+      font-size: 12px !important;
+      margin-bottom: 6px !important;
+    }
+    .field-value.mono {
+      font-size: 11.5px !important;
+    }
+    .field-sub {
+      font-size: 10.5px !important;
+      margin-top: -5px !important;
+      margin-bottom: 6px !important;
+    }
+
+    .warranty-wrap {
+      gap: 20px !important;
+    }
+    .donut-box {
+      width: 80px !important;
+      height: 80px !important;
+    }
+    .donut-box svg {
+      width: 80px !important;
+      height: 80px !important;
+    }
+    .donut-num {
+      font-size: 18px !important;
+    }
+    .donut-sub {
+      font-size: 8px !important;
+    }
+    .leg-row {
+      padding: 3px 0 !important;
+      font-size: 11px !important;
+    }
+
+    .incident-row {
+      padding: 10px 14px !important;
+    }
+    .desc {
+      font-size: 12px !important;
+      margin-top: 4px !important;
+      line-height: 1.4 !important;
+    }
+    .meta-line {
+      font-size: 10.5px !important;
+      margin-top: 4px !important;
+    }
+    .timeline {
+      margin: 10px 14px 6px !important;
+    }
+    .tl-node {
+      width: 90px !important;
+    }
+    .tl-dot {
+      width: 6px !important;
+      height: 6px !important;
+      margin-bottom: 4px !important;
+    }
+    .tl-date {
+      font-size: 10.5px !important;
+    }
+    .tl-label {
+      font-size: 8px !important;
+    }
+    .tl-line {
+      top: -9px !important;
+    }
+    .tl-duration {
+      top: -9px !important;
+      font-size: 9px !important;
+      padding: 0 6px !important;
+    }
+    .resolve-block {
+      padding: 8px 14px !important;
+    }
+    .resolve-block .field-value {
+      font-size: 11.5px !important;
+    }
+
+    .fleet-wrap {
+      gap: 16px !important;
+    }
+    .fleet-summary {
+      font-size: 10.5px !important;
+      margin-bottom: 6px !important;
+    }
+    thead th {
+      font-size: 8px !important;
+      padding: 0 4px 4px !important;
+    }
+    tbody td {
+      padding: 5px 4px !important;
+      font-size: 10.5px !important;
+    }
+    .bar-row {
+      margin-bottom: 5px !important;
+    }
+    .bar-row .bar-label {
+      font-size: 10px !important;
+      margin-bottom: 2px !important;
+    }
+    .bar-track {
+      height: 3.5px !important;
+    }
+
+    .sign-grid {
+      gap: 24px !important;
+    }
+    .sign-line {
+      margin-top: 18px !important;
+      padding-top: 4px !important;
+    }
+    .sign-name {
+      font-size: 11.5px !important;
+    }
+    .sign-role {
+      font-size: 9.5px !important;
+    }
+    .sign-date {
+      margin-top: 18px !important;
+      font-size: 10px !important;
+    }
+
+    footer {
+      padding: 6px 0 0 !important;
+      font-size: 8.5px !important;
+      break-before: avoid !important;
+      page-break-before: avoid !important;
+    }
   }
 </style>
 </head>
@@ -14202,7 +14411,7 @@ function App() {
     </div>
     <div class="warranty-wrap">
       <div class="donut-box">
-        <svg viewBox="0 0 150 150" width="140" height="140">
+        <svg viewBox="0 0 150 150" width="110" height="110">
           <circle cx="75" cy="75" r="60" fill="none" stroke="var(--track)" stroke-width="14"/>
           <circle cx="75" cy="75" r="60" fill="none" stroke="${daysRemaining > 0 ? '#1F6B4A' : '#B23A22'}" stroke-width="14"
                   stroke-dasharray="${dashArrayVal}" stroke-linecap="butt"
@@ -14266,13 +14475,13 @@ function App() {
           <div style="flex:1;">
             <div class="field-label">Diagnosis &amp; Remedy Applied</div>
             <div class="field-value">${diagnosisVal}</div>
-            ${complaint.remarks ? `<div style="margin-top:8px;font-size:11.5px;color:var(--ink-soft);font-style:italic;"><b>Notes:</b> "${esc(complaint.remarks)}"</div>` : ''}
-            ${complaint.delayReason ? `<div style="margin-top:6px;font-size:11.5px;color:var(--amber);font-style:italic;"><b>Delay / Schedule note:</b> "${esc(complaint.delayReason)}"</div>` : ''}
+            ${complaint.remarks ? `<div style="margin-top:6px;font-size:11px;color:var(--ink-soft);font-style:italic;"><b>Notes:</b> "${esc(complaint.remarks)}"</div>` : ''}
+            ${complaint.delayReason ? `<div style="margin-top:4px;font-size:11px;color:var(--amber);font-style:italic;"><b>Delay / Schedule note:</b> "${esc(complaint.delayReason)}"</div>` : ''}
           </div>
-          <div style="text-align:right;flex:none;min-width:180px;">
+          <div style="text-align:right;flex:none;min-width:160px;">
             <div class="field-label">Service Engineer</div>
             <div class="field-value mono">${closedByVal}</div>
-            <div style="font-size:11px;color:var(--ink-faint);margin-top:2px;">Certified Indus Field Tech</div>
+            <div style="font-size:10.5px;color:var(--ink-faint);margin-top:2px;">Certified Indus Field Tech</div>
           </div>
         </div>
       </div>
@@ -14300,13 +14509,13 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            ${complaintsRows || '<tr><td colspan="5" style="text-align:center;color:var(--ink-faint);padding:14px;">No other records found for this unit.</td></tr>'}
+            ${complaintsRows || '<tr><td colspan="5" style="text-align:center;color:var(--ink-faint);padding:10px;">No other records found for this unit.</td></tr>'}
           </tbody>
         </table>
       </div>
 
       <div class="fleet-chart">
-        ${fleetChartBars || '<div style="font-size:11.5px;color:var(--ink-faint);">No breakdown data available.</div>'}
+        ${fleetChartBars || '<div style="font-size:11px;color:var(--ink-faint);">No breakdown data available.</div>'}
       </div>
     </div>
   </section>
