@@ -4981,16 +4981,16 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             );
         };
         // ── Customer Portal ──
-        const CustomerPortal = ({ trucks, customers, complaints, categories, pmRecords = [], onSavePmRecord, commCerts = [], onSaveCommCert, setComplaints, feedbacks, setFeedbacks, user, initialPo = '', getQrImageUrl }) => {
+        const CustomerPortal = ({ trucks, customers, complaints, categories, pmRecords = [], onSavePmRecord, commCerts = [], onSaveCommCert, setComplaints, feedbacks, setFeedbacks, user, initialPo = '', initialTicket = '', getQrImageUrl }) => {
             const [selectedPmMilestone, setSelectedPmMilestone] = useState(null);
             const [selectedCommissioningTruck, setSelectedCommissioningTruck] = useState(null);
             const [customerViewSoftCopyCert, setCustomerViewSoftCopyCert] = useState(null);
-            const [tab, setTab] = useState('lookup');
+            const [tab, setTab] = useState(initialTicket ? 'tracker' : 'lookup');
             const [lookupQuery, setLookupQuery] = useState(initialPo);
             const [foundTruck, setFoundTruck] = useState(null);
             const [lookupError, setLookupError] = useState('');
             const [showComplaintForm, setShowComplaintForm] = useState(false);
-            const [ticketQuery, setTicketQuery] = useState('');
+            const [ticketQuery, setTicketQuery] = useState(initialTicket || '');
             const [foundTicket, setFoundTicket] = useState(null);
             const [ticketError, setTicketError] = useState('');
             const [compForm, setCompForm] = useState({ category:'', description:'', reportedBy:'', contactPhone:'', contactEmail:'', attachment: null, attachmentPreview: '' });
@@ -5036,6 +5036,40 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                     }
                 }
             }, [initialPo, trucks]);
+
+            // Auto-trigger ticket tracking if initialTicket provided (from QR scan)
+            useEffect(() => {
+                if (initialTicket) {
+                    setTab('tracker');
+                    setTicketQuery(initialTicket);
+                    const q = initialTicket.trim().toUpperCase();
+                    const localFound = (complaints || []).find(c => (c.complaintId || '').trim().toUpperCase() === q);
+                    if (localFound) {
+                        setFoundTicket(localFound);
+                        setTicketError('');
+                    }
+                    const sb = window.SupabaseClient;
+                    if (sb) {
+                        sb.from('complaints').select('*').eq('complaint_id', q).then(({ data, error }) => {
+                            if (!error && data && data.length > 0) {
+                                const freshComplaint = mapComplaint(data[0]);
+                                setFoundTicket(freshComplaint);
+                                setTicketError('');
+                                setComplaints(prev => {
+                                    const exists = prev.some(c => c.id === freshComplaint.id);
+                                    return exists ? prev.map(c => c.id === freshComplaint.id ? freshComplaint : c) : [freshComplaint, ...prev];
+                                });
+                            } else if (!localFound) {
+                                setTicketError('Ticket #' + q + ' not found. Please check with your service team.');
+                            }
+                        }).catch(err => {
+                            console.error('Error fetching ticket in real-time:', err);
+                        });
+                    } else if (!localFound && complaints && complaints.length > 0) {
+                        setTicketError('Ticket #' + q + ' not found in records.');
+                    }
+                }
+            }, [initialTicket, complaints]);
 
             const handleLookup = () => {
                 setLookupError(''); setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null);
@@ -12311,6 +12345,7 @@ function App() {
             const [poAtGlanceTruck, setPoAtGlanceTruck] = useState(null);
             const [qrTruck, setQrTruck] = useState(null);
             const [portalInitialPo, setPortalInitialPo] = useState('');
+            const [portalInitialTicket, setPortalInitialTicket] = useState('');
 
             const [editingCustomer, setEditingCustomer] = useState(null);
             const [editingTruck, setEditingTruck] = useState(null);
@@ -12976,22 +13011,51 @@ function App() {
                 printWindow.document.close();
             }, []);
 
-            // URL hash detection — auto-open portal if opened via QR or hash changes
+            // URL hash & query detection — auto-open portal or track specific ticket if opened via QR or link
             useEffect(() => {
-                const handleHashChange = () => {
+                const handleUrlParams = () => {
+                    // Check search query parameters (?ticket=... or ?po=...)
+                    try {
+                        const searchParams = new URLSearchParams(window.location.search);
+                        const sTicket = searchParams.get('ticket') || searchParams.get('complaint') || searchParams.get('id');
+                        const sPo = searchParams.get('po');
+                        if (sTicket) {
+                            setPortalInitialTicket(decodeURIComponent(sTicket).trim());
+                            setAccessMode('customer');
+                        }
+                        if (sPo) {
+                            setPortalInitialPo(decodeURIComponent(sPo).trim());
+                            setAccessMode('customer');
+                        }
+                    } catch(e) {}
+
+                    // Check hash parameters (#ticket=... or #portal&ticket=... or #portal&po=...)
                     const hash = window.location.hash;
-                    if (hash.startsWith('#portal')) {
+                    if (hash) {
                         try {
-                            const raw = hash.replace('#portal', '').replace(/^&/, '?');
-                            const params = new URLSearchParams(raw);
-                            const po = params.get('po');
-                            if (po) { setPortalInitialPo(po); setAccessMode('customer'); }
+                            const raw = hash.replace(/^#/, '');
+                            if (raw.includes('ticket=')) {
+                                const match = raw.match(/ticket=([^&]+)/);
+                                if (match && match[1]) {
+                                    setPortalInitialTicket(decodeURIComponent(match[1]).trim());
+                                    setAccessMode('customer');
+                                }
+                            } else if (raw.includes('po=')) {
+                                const match = raw.match(/po=([^&]+)/);
+                                if (match && match[1]) {
+                                    setPortalInitialPo(decodeURIComponent(match[1]).trim());
+                                    setAccessMode('customer');
+                                }
+                            } else if (/^\d{4}-[A-Z]{2}-\d{4}$/i.test(raw)) {
+                                setPortalInitialTicket(raw.trim());
+                                setAccessMode('customer');
+                            }
                         } catch(e) {}
                     }
                 };
-                handleHashChange();
-                window.addEventListener('hashchange', handleHashChange);
-                return () => window.removeEventListener('hashchange', handleHashChange);
+                handleUrlParams();
+                window.addEventListener('hashchange', handleUrlParams);
+                return () => window.removeEventListener('hashchange', handleUrlParams);
             }, []);
 
             // Persist to localStorage
@@ -13765,19 +13829,12 @@ function App() {
                     ticketDuration = calculateLifeCount(complaint.dateReceived) || 1;
                 }
 
-                // QR helper — encodes current page URL + PO hash
-                let base = 'https://riyazrthd.github.io/fireflow-warranty-/';
-                try {
-                    if (typeof window !== 'undefined' && window.location) {
-                        let locBase = window.location.origin + window.location.pathname;
-                        if (!locBase.startsWith('file:') && !locBase.includes('localhost') && !locBase.includes('127.0.0.1')) {
-                            base = locBase;
-                        }
-                    }
-                } catch(e) {}
-
-                const qrTargetUrl = trk ? (base + '#portal&po=' + encodeURIComponent(trk.poNo)) : (base + '#ticket=' + encodeURIComponent(complaint.complaintId));
-                const qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&color=1c2024&bgcolor=ffffff&data=' + encodeURIComponent(qrTargetUrl);
+                // QR Target URL: Direct link to live GitHub Pages ticket tracking for this particular ticket!
+                const ticketId = (complaint.complaintId || '').trim();
+                const githubBase = 'https://riyazrthd.github.io/fireflow-warranty-/';
+                const qrTargetUrl = githubBase + '?ticket=' + encodeURIComponent(ticketId) + '#ticket=' + encodeURIComponent(ticketId);
+                // Scannable QR code with crisp 250x250 resolution, quiet zone margin=12 and ECC Level M for instant mobile camera detection
+                const qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=12&ecc=M&color=1c2024&bgcolor=ffffff&data=' + encodeURIComponent(qrTargetUrl);
 
                 // Category styling helper
                 const getCatClass = (catStr) => {
@@ -14371,8 +14428,8 @@ function App() {
       <div class="status-pill">${complaint.status === 'Resolved' ? 'SERVICE CLOSED' : 'SERVICE ACTIVE'}</div>
     </div>
     <div class="verify">
-      <img src="${qrImageUrl}" alt="QR code linking to ticket ${esc(complaint.complaintId)}">
-      <div class="verify-label">Scan to verify ticket &amp; asset portal</div>
+      <img src="${qrImageUrl}" alt="Scan to view Ticket ${esc(complaint.complaintId)} on GitHub portal" width="76" height="76">
+      <div class="verify-label">Scan to view ticket<br><span class="mono" style="font-weight:600;color:var(--ink);">${esc(complaint.complaintId)}</span> on portal</div>
     </div>
   </header>
 
@@ -15031,6 +15088,7 @@ function App() {
                         setFeedbacks={setFeedbacks} 
                         user={user} 
                         initialPo={portalInitialPo} 
+                        initialTicket={portalInitialTicket}
                         getQrImageUrl={getQrImageUrl}
                     />
                 </div>
