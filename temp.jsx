@@ -5502,24 +5502,25 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 </div>
                             </div>
                         ) : isTrainerMode ? (
-                            <div className="space-y-6 fade-up text-left">
-                                {/* Trainer Header Banner */}
-                                <div className="bg-linear-to-r from-amber-500/15 via-amber-500/5 to-transparent p-4 rounded-3xl border border-amber-500/25 flex flex-wrap items-center justify-between gap-3 shadow-sm">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-xl font-black shadow-md">
-                                            ????
+                            <div className="space-y-2.5 fade-up text-left max-w-4xl mx-auto w-full overflow-y-auto max-h-[calc(100vh-170px)] pr-1 custom-scrollbar">
+                                {/* Compact Executive Session Strip */}
+                                <div className="bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/90 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center shrink-0">
+                                            <Icon name="award" size={16} className="text-amber-600"/>
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">
-                                                    Field Trainer Commissioning Hub
+                                                <h2 className="text-xs font-black text-slate-900 uppercase tracking-tight">
+                                                    Active Commissioning Session
                                                 </h2>
-                                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                                    ??? Authorized Session
+                                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                    Authorized
                                                 </span>
                                             </div>
-                                            <p className="text-xs font-bold text-slate-500">
-                                                Multi-Day Operator Training &amp; Apparatus Handover System
+                                            <p className="text-[10px] font-semibold text-slate-400">
+                                                Logged in as Field Trainer &bull; Apparatus Handover &amp; Commissioning Mode
                                             </p>
                                         </div>
                                     </div>
@@ -5530,13 +5531,13 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             setSelectedTrainerCustomer(null);
                                             setSelectedTrainerTruck(null);
                                         }}
-                                        className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                                        className="inline-flex items-center gap-1 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded-lg text-[10.5px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
                                     >
-                                        <Icon name="log-out" size={14}/> Exit Trainer Mode
+                                        <Icon name="log-out" size={12} className="text-slate-400"/> Exit Session
                                     </button>
                                 </div>
 
-                                {/* STEP 1: SELECT CUSTOMER (FOCUS ON PENDING COMMISSIONING) */}
+                                {/* STEP 1: SELECT CUSTOMER */}
                                 {(() => {
                                     const customersWithStats = customers.map(c => {
                                         const cTrucks = trucks.filter(t => t.customerId === c.id);
@@ -5550,38 +5551,43 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     const displayCustomers = showCompletedCustomers ? customersWithStats : pendingCustomers;
 
                                     return (
-                                        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                                        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5">
                                             <div className="flex flex-wrap justify-between items-center gap-2">
-                                                <label className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5 tracking-wider">
-                                                    <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">1</span>
-                                                    Select Customer Organization
-                                                </label>
                                                 <div className="flex items-center gap-2">
+                                                    <span className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-black">1</span>
+                                                    <label className="text-[11px] font-black uppercase text-slate-800 tracking-wider">
+                                                        Select Customer Organization
+                                                    </label>
+                                                </div>
+                                                <div className="flex items-center gap-2 flex-wrap">
                                                     {completedOnlyCustomers.length > 0 && (
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowCompletedCustomers(!showCompletedCustomers)}
-                                                            className="text-[9px] font-extrabold text-slate-500 hover:text-slate-900 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg cursor-pointer transition-all"
+                                                            className="inline-flex items-center gap-1 text-[9.5px] font-extrabold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-2 py-0.5 rounded-md cursor-pointer transition-all"
                                                         >
-                                                            {showCompletedCustomers ? '??? Hide Fully Trained Customers' : (`???? Show All (${completedOnlyCustomers.length} Fully Trained)`)}
+                                                            <Icon name={showCompletedCustomers ? "eye-off" : "eye"} size={10}/>
+                                                            {showCompletedCustomers ? 'Hide Trained' : (`Show All (${completedOnlyCustomers.length} Trained)`)}
                                                         </button>
                                                     )}
                                                     {selectedTrainerCustomer && (
-                                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                                                            ??? Selected: {selectedTrainerCustomer.name}
+                                                        <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                                            <Icon name="check" size={9} className="text-emerald-600"/>
+                                                            {selectedTrainerCustomer.name}
                                                         </span>
                                                     )}
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                                 <div className="relative">
+                                                    <Icon name="search" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
                                                     <input
                                                         type="text"
-                                                        placeholder="???? Search customer by name / location..."
+                                                        placeholder="Search customer by name or location..."
                                                         value={trainerCustomerSearch}
                                                         onChange={e => setTrainerCustomerSearch(e.target.value)}
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900"
+                                                        className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 rounded-lg pl-9 pr-3 py-2 text-xs font-bold text-slate-800 outline-none transition-all placeholder:text-slate-400"
                                                     />
                                                 </div>
                                                 <div>
@@ -5593,7 +5599,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                             setSelectedTrainerTruck(null);
                                                             setShowCompletedTrucks(false);
                                                         }}
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 cursor-pointer"
+                                                        className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 outline-none cursor-pointer transition-all"
                                                     >
                                                         <option value="">
                                                             {displayCustomers.length > 0 
@@ -5604,7 +5610,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                             .filter(c => !trainerCustomerSearch.trim() || (c.name || '').toLowerCase().includes(trainerCustomerSearch.toLowerCase()) || (c.location || '').toLowerCase().includes(trainerCustomerSearch.toLowerCase()))
                                                             .map(c => (
                                                                 <option key={c.id} value={c.id}>
-                                                                    {c.name} {c.location ? '(' + c.location + ')' : ''} ??? {c.pendingCount > 0 ? `(${c.pendingCount} Pending Training)` : '??? Training Done'}
+                                                                    {c.name} {c.location ? '(' + c.location + ')' : ''} {c.pendingCount > 0 ? `• (${c.pendingCount} Pending Training)` : '✓ (Training Done)'}
                                                                 </option>
                                                             ))}
                                                     </select>
@@ -5614,7 +5620,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     );
                                 })()}
 
-                                {/* STEP 2: SELECT VEHICLE / TRUCK (PENDING VEHICLES SHOWN FIRST) */}
+                                {/* STEP 2: SELECT VEHICLE / TRUCK */}
                                 {selectedTrainerCustomer && (() => {
                                     const allClientTrucks = trucks.filter(t => t.customerId === selectedTrainerCustomer.id);
                                     const pendingTrucks = allClientTrucks.filter(t => !isTruckTrainingCompleted(t.id));
@@ -5622,53 +5628,56 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     const visibleTrucks = showCompletedTrucks ? allClientTrucks : pendingTrucks;
 
                                     return (
-                                        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3 fade-up">
+                                        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5 fade-up">
                                             <div className="flex flex-wrap justify-between items-center gap-2">
-                                                <label className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5 tracking-wider">
-                                                    <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">2</span>
-                                                    Select Vehicle / Project Tender
-                                                </label>
                                                 <div className="flex items-center gap-2">
+                                                    <span className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-black">2</span>
+                                                    <label className="text-[11px] font-black uppercase text-slate-800 tracking-wider">
+                                                        Select Vehicle / Tender Apparatus
+                                                    </label>
+                                                </div>
+                                                <div className="flex items-center gap-2 flex-wrap">
                                                     {completedTrucks.length > 0 && (
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowCompletedTrucks(!showCompletedTrucks)}
-                                                            className="text-[9px] font-extrabold text-slate-500 hover:text-slate-900 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg cursor-pointer transition-all"
+                                                            className="inline-flex items-center gap-1 text-[9.5px] font-extrabold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-2 py-0.5 rounded-md cursor-pointer transition-all"
                                                         >
-                                                            {showCompletedTrucks ? '??? Hide Completed Vehicles' : (`???? View Completed Vehicles (${completedTrucks.length})`)}
+                                                            <Icon name={showCompletedTrucks ? "eye-off" : "eye"} size={10}/>
+                                                            {showCompletedTrucks ? 'Hide Completed' : (`View Completed (${completedTrucks.length})`)}
                                                         </button>
                                                     )}
-                                                    <span className="text-[10px] font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                                                        {pendingTrucks.length} Pending Commissioning
+                                                    <span className="text-[9.5px] font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                                        {pendingTrucks.length} Pending Handover
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {allClientTrucks.length === 0 ? (
-                                                <div className="p-6 text-center text-slate-400 font-bold bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+                                                <div className="p-4 text-center text-slate-400 font-bold bg-slate-50 rounded-lg border border-slate-200 text-xs">
                                                     No fire apparatus records linked to this customer yet.
                                                 </div>
                                             ) : visibleTrucks.length === 0 ? (
-                                                <div className="p-6 text-center bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-2 fade-up">
-                                                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto text-sm font-black">
-                                                        ???
+                                                <div className="p-4 text-center bg-emerald-50/60 rounded-lg border border-emerald-200 space-y-1.5 fade-up">
+                                                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto text-xs font-black">
+                                                        <Icon name="check-circle" size={16} className="text-emerald-600"/>
                                                     </div>
                                                     <h5 className="text-xs font-black uppercase text-emerald-950">
                                                         All Vehicles Commissioned &amp; Trained
                                                     </h5>
-                                                    <p className="text-[10px] font-bold text-emerald-700 max-w-md mx-auto">
-                                                        All {completedTrucks.length} vehicle(s) for {selectedTrainerCustomer.name} have successfully completed commissioning &amp; training.
+                                                    <p className="text-[10px] font-bold text-emerald-700">
+                                                        All {completedTrucks.length} vehicle(s) for {selectedTrainerCustomer.name} have successfully completed training.
                                                     </p>
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowCompletedTrucks(true)}
-                                                        className="mt-1 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-2xs transition-all"
+                                                        className="mt-1 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-md text-[9.5px] font-black uppercase tracking-wider cursor-pointer shadow-2xs transition-all"
                                                     >
-                                                        ???? View Completed Certificates ({completedTrucks.length})
+                                                        View Certificates ({completedTrucks.length})
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto pr-1">
                                                     {visibleTrucks.map(t => {
                                                         const isSelected = selectedTrainerTruck?.id === t.id;
                                                         const existingCert = (commCerts || []).find(c => c.truckId === t.id);
@@ -5677,33 +5686,48 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                         return (
                                                             <div
                                                                 key={t.id}
+                                                                data-truck-card="true"
                                                                 onClick={() => setSelectedTrainerTruck(t)}
-                                                                className={'p-4 rounded-2xl border-2 transition-all cursor-pointer text-left space-y-2 ' + (
+                                                                className={`p-2.5 rounded-lg border transition-all cursor-pointer text-left space-y-1.5 relative ${
                                                                     isSelected
-                                                                        ? 'bg-amber-500/10 border-amber-500 shadow-md scale-[1.01]'
+                                                                        ? 'bg-amber-500/10 border-amber-500 shadow-2xs ring-2 ring-amber-500/25'
                                                                         : isDone
-                                                                            ? 'bg-emerald-50/40 border-emerald-200 hover:bg-emerald-50/70 opacity-80'
-                                                                            : 'bg-slate-50 border-slate-200 hover:border-slate-400 hover:bg-white'
-                                                                )}
+                                                                            ? 'bg-emerald-50/30 border-emerald-200 hover:bg-emerald-50/60'
+                                                                            : 'bg-slate-50 hover:bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
+                                                                }`}
                                                             >
-                                                                <div className="flex justify-between items-start">
-                                                                    <span className="font-black text-xs text-slate-900 uppercase">
+                                                                <div className="flex justify-between items-start gap-1.5">
+                                                                    <span className="font-black text-[11px] text-slate-900 uppercase tracking-tight">
                                                                         {t.tenderType || 'Fire Tender'}
                                                                     </span>
-                                                                    {existingCert && (
-                                                                        <span className={'text-[8.5px] font-black uppercase px-2 py-0.5 rounded-md ' + (
+                                                                    {existingCert ? (
+                                                                        <span className={'inline-flex items-center gap-0.5 text-[8px] font-black uppercase px-1.5 py-0.5 rounded ' + (
                                                                             existingCert.status === 'Finalized'
-                                                                                ? 'bg-emerald-100 text-emerald-800'
-                                                                                : 'bg-amber-100 text-amber-900'
+                                                                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                                                                : 'bg-amber-100 text-amber-900 border border-amber-200'
                                                                         )}>
-                                                                            {existingCert.status === 'Finalized' ? '??? Training Done' : '??? Draft'}
+                                                                            <Icon name={existingCert.status === 'Finalized' ? "check" : "clock"} size={8}/>
+                                                                            {existingCert.status === 'Finalized' ? 'Done' : `Day ${existingCert.currentDay || 1}`}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700">
+                                                                            Pending
                                                                         </span>
                                                                     )}
                                                                 </div>
-                                                                <div className="text-[10px] space-y-0.5 text-slate-600 font-semibold">
-                                                                    <div>PO No: <span className="font-extrabold text-slate-800">{t.poNo || 'N/A'}</span></div>
-                                                                    <div>Chassis: <span className="font-bold text-slate-800">{t.chassisMake || 'Tata'} {t.chassisModel || ''}</span></div>
-                                                                    <div>Pump: <span className="font-bold text-slate-800">{t.pumpMake || 'Godiva'} ({t.pumpSrNo || 'N/A'})</span></div>
+                                                                <div className="text-[9.5px] space-y-0.5 text-slate-600 font-semibold border-t border-slate-200/60 pt-1.5">
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-slate-400 font-bold">PO No:</span>
+                                                                        <span className="font-extrabold text-slate-800">{t.poNo || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-slate-400 font-bold">Chassis:</span>
+                                                                        <span className="font-bold text-slate-800">{t.chassisMake || 'Tata'} {t.chassisModel || ''}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-slate-400 font-bold">Pump:</span>
+                                                                        <span className="font-bold text-slate-800">{t.pumpMake || 'Godiva'} ({t.pumpSrNo || 'N/A'})</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         );
@@ -5721,85 +5745,91 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                     const existingCert = (commCerts || []).find(c => c.truckId === selectedTrainerTruck.id);
                                     const completedQuestions = existingCert?.questions?.filter(q => q.completed)?.length || 0;
                                     const totalQuestions = existingCert?.questions?.length || 10;
-                                    const attendeesSummary = existingCert ? buildTrainingAttendeeSummary(existingCert.attendanceByDay || (existingCert.attendees ? {1: existingCert.attendees} : {}), parseInt(existingCert.trainingDays) || 3, existingCert.startDate) : [];
+                                    const attendeesSummary = existingCert ? buildTrainingAttendeeSummary(existingCert) : [];
 
                                     return (
-                                        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 fade-up">
-                                            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                                                <div>
-                                                    <h3 className="text-xs font-black uppercase text-slate-900 flex items-center gap-1.5 tracking-wider">
-                                                        <Icon name="lock" size={13}/> Verified Customer &amp; Vehicle Specifications (Read-Only)
-                                                    </h3>
-                                                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-                                                        Automatically loaded from FireFlow Master. No manual re-typing required.
-                                                    </p>
+                                        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-3 fade-up">
+                                            <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 pb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-black">3</span>
+                                                    <div>
+                                                        <h3 className="text-[11px] font-black uppercase text-slate-900 tracking-wider">
+                                                            Verified Apparatus Specifications
+                                                        </h3>
+                                                        <p className="text-[9.5px] font-semibold text-slate-400">
+                                                            Master data loaded automatically from FireFlow registry.
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                                                    ???? Snapshot Protected
+                                                <span className="inline-flex items-center gap-1 text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                                    <Icon name="lock" size={9} className="text-slate-400"/> Snapshot Protected
                                                 </span>
                                             </div>
 
                                             {/* Specification Grid */}
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50/80 p-2.5 rounded-lg border border-slate-200/80 text-[10px]">
                                                 <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Customer</span>
-                                                    <span className="font-extrabold text-slate-900">{selectedTrainerCustomer.name}</span>
+                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Customer</span>
+                                                    <span className="font-extrabold text-slate-900 truncate block">{selectedTrainerCustomer.name}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Purchase Order (PO)</span>
-                                                    <span className="font-extrabold text-slate-900">{selectedTrainerTruck.poNo || 'N/A'}</span>
+                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">PO Number</span>
+                                                    <span className="font-extrabold text-slate-900 block">{selectedTrainerTruck.poNo || 'N/A'}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Tender Type / Model</span>
-                                                    <span className="font-extrabold text-slate-900">{selectedTrainerTruck.tenderType || 'Fire Tender'}</span>
+                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Tender Type</span>
+                                                    <span className="font-extrabold text-slate-900 block">{selectedTrainerTruck.tenderType || 'Fire Tender'}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Delivery / Handover</span>
-                                                    <span className="font-extrabold text-slate-900">{formatDate(selectedTrainerTruck.deliveryDate)}</span>
+                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Delivery Date</span>
+                                                    <span className="font-extrabold text-slate-900 block">{formatDate(selectedTrainerTruck.deliveryDate)}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Chassis Make &amp; Model</span>
-                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.chassisMake || chassisOem.brand}</span>
+                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Chassis</span>
+                                                    <span className="font-bold text-slate-800 block">{selectedTrainerTruck.chassisMake || chassisOem.brand} {selectedTrainerTruck.chassisModel || ''}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Fire Pump OEM</span>
-                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.pumpMake || pumpOem.brand}</span>
+                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Fire Pump</span>
+                                                    <span className="font-bold text-slate-800 block">{selectedTrainerTruck.pumpMake || pumpOem.brand}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Pump Serial No</span>
-                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.pumpSrNo || 'N/A'}</span>
+                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Pump Serial</span>
+                                                    <span className="font-bold text-slate-800 block">{selectedTrainerTruck.pumpSrNo || 'N/A'}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Water / Foam Capacity</span>
-                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.waterCapacity || 'Std'}L / {selectedTrainerTruck.foamCapacity || 'Std'}L</span>
+                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Capacity</span>
+                                                    <span className="font-bold text-slate-800 block">{selectedTrainerTruck.waterCapacity || 'Std'}L / {selectedTrainerTruck.foamCapacity || 'Std'}L</span>
                                                 </div>
                                             </div>
 
-                                            {/* EXISTING TRAINING DETECTION / ACTION BUTTONS */}
+                                            {/* Action Box */}
                                             {existingCert ? (
-                                                <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-500/30 space-y-3">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs font-black uppercase text-amber-950">Existing Training Record Found</span>
-                                                                <span className={'text-[9px] font-black uppercase px-2 py-0.5 rounded-md ' + (
-                                                                    existingCert.status === 'Finalized' ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
-                                                                )}>
-                                                                    {existingCert.status === 'Finalized' ? 'Finalized & Issued' : ('Day ' + (existingCert.currentDay || 1) + ' ??? In Progress')}
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-[10px] font-bold text-amber-800 mt-1">
-                                                                Cert No: <b>{existingCert.certNo}</b> ?? {completedQuestions}/{totalQuestions} Checklist points cleared ?? {attendeesSummary.length} Attendees recorded
-                                                            </p>
+                                                <div className="bg-amber-500/10 p-3 rounded-lg border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                                    <div>
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className="text-[11px] font-black uppercase text-amber-950">Existing Record Found</span>
+                                                            <span className={'inline-flex items-center gap-0.5 text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded ' + (
+                                                                existingCert.status === 'Finalized' ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
+                                                            )}>
+                                                                <Icon name={existingCert.status === 'Finalized' ? "check-circle" : "clock"} size={9}/>
+                                                                {existingCert.status === 'Finalized' ? 'Issued' : (`Day ${existingCert.currentDay || 1} In Progress`)}
+                                                            </span>
                                                         </div>
+                                                        <p className="text-[9.5px] font-semibold text-amber-900/80 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                                            <span>Cert: <b className="text-amber-950">{existingCert.certNo}</b></span>
+                                                            <span className="text-amber-400">&bull;</span>
+                                                            <span>{completedQuestions}/{totalQuestions} Checked</span>
+                                                            <span className="text-amber-400">&bull;</span>
+                                                            <span>{attendeesSummary.length} Attendees</span>
+                                                        </p>
                                                     </div>
-                                                    <div className="flex flex-wrap gap-2 pt-1">
+                                                    <div className="flex flex-wrap items-center gap-2">
                                                         <button
                                                             type="button"
                                                             onClick={() => setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: existingCert })}
-                                                            className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md cursor-pointer transition-all"
+                                                            className="bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-lg text-[10.5px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all"
                                                         >
-                                                            <Icon name="play" size={14}/> Continue Training (Resume Day {existingCert.currentDay || 1})
+                                                            <Icon name="play" size={12} className="text-amber-400"/> Continue Day {existingCert.currentDay || 1}
                                                         </button>
                                                         <button
                                                             type="button"
@@ -5808,20 +5838,28 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                                     setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: null });
                                                                 }
                                                             }}
-                                                            className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all"
+                                                            className="bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all"
                                                         >
-                                                            ???? Start Fresh Record
+                                                            <Icon name="rotate-ccw" size={11}/> Fresh
                                                         </button>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="pt-2 flex justify-end">
+                                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                                    <div>
+                                                        <h4 className="text-[11px] font-black uppercase text-slate-800">
+                                                            Ready to Initiate Handover &amp; Training
+                                                        </h4>
+                                                        <p className="text-[9.5px] font-semibold text-slate-500 mt-0.5">
+                                                            Multi-day operator checklist, attendance, and handover certificate wizard.
+                                                        </p>
+                                                    </div>
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: null })}
-                                                        className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-600/20 cursor-pointer transition-all"
+                                                        className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-[10.5px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 shadow-xs shadow-amber-600/20 cursor-pointer transition-all shrink-0"
                                                     >
-                                                        <Icon name="arrow-right" size={15}/> Start Commissioning &amp; Training Wizard ???
+                                                        <Icon name="award" size={13}/> Launch Training Wizard <Icon name="arrow-right" size={12}/>
                                                     </button>
                                                 </div>
                                             )}
@@ -5910,7 +5948,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     <div className="relative flex items-center justify-between border-b border-white/5 pb-5 mb-6 z-10">
                                                         <div className="flex items-center gap-2">
                                                             <Icon name="shield-check" className="text-amber-500" size={18} />
-                                                            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">??????? Warranty Status</span>
+                                                            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">Warranty Status</span>
                                                         </div>
                                                         {/* KPI Badge */}
                                                         <div className={`bg-gradient-to-r ${wState.badgeGrad} text-white px-3 py-1.5 rounded-full flex items-center gap-2 shadow-md shrink-0`}>
@@ -5975,7 +6013,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                                             foundTruck.uhpPumpLpm ? `(${foundTruck.uhpPumpLpm})` : '',
                                                                             foundTruck.uhpPumpSrNo ? `Sr: ${foundTruck.uhpPumpSrNo}` : ''
                                                                         ].filter(Boolean).join(' ');
-                                                                        specs.push({ l: '??? UHP Pump (Make / LPM / Sr)', v: uhpDesc, i: 'zap' });
+                                                                        specs.push({ l: 'UHP Pump (Make / LPM / Sr)', v: uhpDesc, i: 'zap' });
                                                                     }
 
                                                                     // Conditionally show DCP System if provided
@@ -5984,7 +6022,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                                             foundTruck.dcpCapacity ? `${foundTruck.dcpCapacity} Kg Capacity` : 'DCP System',
                                                                             foundTruck.dcpHptDueDate ? `HPT Due: ${formatDate(foundTruck.dcpHptDueDate)}` : ''
                                                                         ].filter(Boolean).join(' ?? ');
-                                                                        specs.push({ l: '???? DCP System & HPT Due', v: dcpDesc, i: 'shield' });
+                                                                        specs.push({ l: 'DCP System & HPT Due', v: dcpDesc, i: 'shield' });
                                                                     }
 
                                                                     specs.push({ l: 'Location / Plant', v: cust?.address || cust?.location || 'Gujarat, India', i: 'map-pin' });
@@ -6014,7 +6052,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                                                     </span>
                                                                                     {existingCert ? (
                                                                                         <span className="text-[8.5px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500 text-slate-950">
-                                                                                            {existingCert.status === 'Finalized' ? '??? Finalized Soft Copy Available' : '??? Site Training in Progress'}
+                                                                                            {existingCert.status === 'Finalized' ? 'Finalized Soft Copy Available' : 'Site Training in Progress'}
                                                                                         </span>
                                                                                     ) : (
                                                                                         <span className="text-[8.5px] font-bold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/10">
@@ -6057,7 +6095,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                             {/* Action Footer */}
                                                             <div className="relative mt-6 pt-4 border-t border-white/5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 z-10">
                                                                 <div className="text-left max-w-xl">
-                                                                    <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">??????? Direct Support Desk</p>
+                                                                    <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Direct Support Desk</p>
                                                                     <p className="text-xs font-semibold text-slate-300 mt-0.5 leading-relaxed">
                                                                         Need assistance? Dial <a href="tel:+919313927647" className="text-amber-400 font-bold hover:underline">+91 93139 27647</a> or email <a href="mailto:customercare@indusfire.com" className="text-amber-400 hover:underline">customercare@indusfire.com</a>.
                                                                     </p>
@@ -6162,7 +6200,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                 </div>
                                                 {foundTicket.status === 'Resolved' && (
                                                     <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900">
-                                                        <span className="text-[9px] font-black uppercase text-emerald-700 block mb-1">??? Resolution Summary:</span>
+                                                        <span className="text-[9px] font-black uppercase text-emerald-700 block mb-1">Resolution Summary:</span>
                                                         <p className="font-bold">{foundTicket.diagnosis || 'Maintenance and service completed per OEM standards.'}</p>
                                                     </div>
                                                 )}
@@ -6177,7 +6215,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
                                             <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="help-circle" size={18} className="text-amber-500"/> Knowledge Base &amp; FAQ</h2>
                                             <p className="text-[11px] text-slate-500 font-semibold mb-4">Frequently asked operational questions and troubleshooting steps.</p>
-                                            <input type="text" placeholder="???? Search guides..." value={faqSearch} onChange={e=>setFaqSearch(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none"/>
+                                            <input type="text" placeholder="Search guides..." value={faqSearch} onChange={e=>setFaqSearch(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none"/>
                                         </div>
                                         <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                                             {FAQ_DATA.filter(f => f.q.toLowerCase().includes(faqSearch.toLowerCase()) || f.a.toLowerCase().includes(faqSearch.toLowerCase())).map((item, i) => <FaqItem key={i} item={item}/>)}
@@ -6222,15 +6260,15 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                     {showTrainerAuthModal && (
                         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
                             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 modal-animate text-center border border-slate-200 space-y-4 text-slate-800">
-                                <div className="w-12 h-12 bg-amber-50 text-amber-700 rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-2xs">
-                                    ????
+                                <div className="w-12 h-12 bg-amber-100/80 text-amber-700 rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-2xs">
+                                    <Icon name="award" size={24} className="text-amber-600"/>
                                 </div>
                                 <div>
                                     <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">
                                         Trainer Access
                                     </h3>
                                     <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">
-                                        ???? Enter Trainer Access Password
+                                        Enter 4-Digit Trainer Access Passcode
                                     </p>
                                 </div>
 
@@ -6251,7 +6289,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             type={showTrainerPass ? "text" : "password"}
                                             value={trainerPassInput}
                                             onChange={e => { setTrainerPassInput(e.target.value); setTrainerPassError(false); }}
-                                            placeholder="????????????"
+                                            placeholder="••••"
                                             autoFocus
                                             required
                                             className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-slate-900 text-center tracking-widest"
