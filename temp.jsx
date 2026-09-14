@@ -4981,26 +4981,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             );
         };
         // ── Customer Portal ──
-        const CustomerPortal = ({ 
-            trucks, 
-            customers, 
-            complaints, 
-            categories, 
-            pmRecords = [], 
-            onSavePmRecord, 
-            commCerts = [], 
-            onSaveCommCert, 
-            setComplaints, 
-            feedbacks, 
-            setFeedbacks, 
-            user, 
-            initialPo = '', 
-            initialTicket = '', 
-            getQrImageUrl,
-            onAdminLogin,
-            onOpenMasterAuth,
-            onOpenAgmAuth
-        }) => {
+        const CustomerPortal = ({ trucks, customers, complaints, categories, pmRecords = [], onSavePmRecord, commCerts = [], onSaveCommCert, setComplaints, feedbacks, setFeedbacks, user, initialPo = '', initialTicket = '', getQrImageUrl, onAdminLogin }) => {
             const [selectedPmMilestone, setSelectedPmMilestone] = useState(null);
             const [selectedCommissioningTruck, setSelectedCommissioningTruck] = useState(null);
             const [customerViewSoftCopyCert, setCustomerViewSoftCopyCert] = useState(null);
@@ -5016,24 +4997,59 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const [compSubmitted, setCompSubmitted] = useState(null);
             const [fbForm, setFbForm] = useState({ rating: 5, feedbackText:'', personName:'', contactNumber:'' });
             const [fbSubmitted, setFbSubmitted] = useState(false);
+            const [directTruck, setDirectTruck] = useState(null);
             const [faqSearch, setFaqSearch] = useState('');
-
             // Mode: 'portal' (Customer Search) vs 'login' (Dedicated Staff/Admin Login View)
-            const [portalMode, setPortalMode] = useState(() => {
-                try {
-                    const search = new URLSearchParams(window.location.search);
-                    if (search.get('mode') === 'login' || window.location.hash === '#login') return 'login';
-                } catch(e) {}
-                return 'portal';
-            });
+            // Forcefully default to 'portal' on initial load or refresh
+            const [portalMode, setPortalMode] = useState('portal');
 
-            // Dedicated Login Screen State
+            // Dedicated Staff Login State
             const [loginInput, setLoginInput] = useState('');
             const [loginError, setLoginError] = useState(false);
             const [showLoginPass, setShowLoginPass] = useState(false);
             const [isVerifying, setIsVerifying] = useState(false);
 
-            // ── TRAINER COMMISSIONING ACCESS STATE ──
+            // Password verification handler (Auto-Unlock on matching 4-digit code)
+            const handlePasscodeCheck = async (val) => {
+                const str = (val || '').trim();
+                if (!str) return;
+                setIsVerifying(true);
+                setLoginError(false);
+                try {
+                    const role = await verifyPasswordLevel(str);
+                    if (role === 'master_admin') {
+                        setIsVerifying(false);
+                        setLoginInput('');
+                        if (onAdminLogin) onAdminLogin('master_admin');
+                        return;
+                    } else if (role === 'agm') {
+                        setIsVerifying(false);
+                        setLoginInput('');
+                        if (onAdminLogin) onAdminLogin('agm');
+                        return;
+                    } else if (role === 'register_delivery') {
+                        setIsVerifying(false);
+                        setLoginInput('');
+                        if (onAdminLogin) onAdminLogin('register_delivery');
+                        return;
+                    } else if (str === getTrainerPortalPassword() || str === '6655') {
+                        setIsVerifying(false);
+                        setLoginInput('');
+                        setIsTrainerMode(true);
+                        setPortalMode('portal');
+                        return;
+                    } else {
+                        setIsVerifying(false);
+                        setLoginError(true);
+                    }
+                } catch(err) {
+                    setIsVerifying(false);
+                    setLoginError(true);
+                }
+            };
+
+
+            // ?????? TRAINER COMMISSIONING ACCESS STATE ??????
             const [isTrainerMode, setIsTrainerMode] = useState(false);
             const [showTrainerAuthModal, setShowTrainerAuthModal] = useState(false);
             const [trainerPassInput, setTrainerPassInput] = useState('');
@@ -5104,53 +5120,14 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                 }
             }, [initialTicket, complaints]);
 
-            // Password verification handler (Auto-Unlock on matching 4-digit code)
-            const handlePasscodeCheck = async (val) => {
-                const str = (val || '').trim();
-                if (!str) return;
-                setIsVerifying(true);
-                setLoginError(false);
-                try {
-                    const role = await verifyPasswordLevel(str);
-                    if (role === 'master_admin') {
-                        setIsVerifying(false);
-                        setLoginInput('');
-                        if (onAdminLogin) onAdminLogin('master_admin');
-                        return;
-                    } else if (role === 'agm') {
-                        setIsVerifying(false);
-                        setLoginInput('');
-                        if (onAdminLogin) onAdminLogin('agm');
-                        return;
-                    } else if (role === 'register_delivery') {
-                        setIsVerifying(false);
-                        setLoginInput('');
-                        if (onAdminLogin) onAdminLogin('register_delivery');
-                        return;
-                    } else if (str === getTrainerPortalPassword() || str === '6655') {
-                        setIsVerifying(false);
-                        setIsTrainerMode(true);
-                        setPortalMode('portal');
-                        setLoginInput('');
-                        return;
-                    }
-                    if (str.length >= 4) {
-                        setIsVerifying(false);
-                        setLoginError(true);
-                    }
-                } catch(e) {
-                    setIsVerifying(false);
-                }
-            };
-
             const handleLookup = () => {
                 setLookupError(''); setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null);
                 const q = lookupQuery.trim().toUpperCase();
                 if (!q) { setLookupError('Please enter a PO, Pump Serial, or Chassis/Model Number.'); return; }
                 const found = trucks.find(t => 
                     (t.poNo||'').trim().toUpperCase() === q || 
-                    (t.pumpSrNo||'').trim().toUpperCase() === q || 
-                    (t.chassisMake||'').trim().toUpperCase() === q || 
+                    (t.pumpSrNo||'').trim().toUpperCase() === q ||
+                    (t.chassisMake||'').trim().toUpperCase() === q ||
                     (t.modelNo||'').trim().toUpperCase() === q
                 );
                 if (found) { 
@@ -5270,31 +5247,70 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         fillColor: 'bg-emerald-500',
                         glowClass: 'shadow-[0_0_15px_rgba(16,185,129,0.4)]',
                         borderGlow: 'border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.15)]',
+                        pulse: false,
+                        glow: false,
+                        expired: false,
                         icon: 'shield-check'
                     };
-                } else if (dRemaining > 0) {
+                } else if (dRemaining >= 90) {
+                    return {
+                        status: 'GOOD',
+                        colorClass: 'text-blue-400',
+                        bgClass: 'bg-blue-500/10 border-blue-500/20',
+                        badgeGrad: 'from-blue-500 to-indigo-600',
+                        strokeColor: 'text-blue-500',
+                        fillColor: 'bg-blue-500',
+                        glowClass: 'shadow-[0_0_15px_rgba(59,130,246,0.4)]',
+                        borderGlow: 'border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.15)]',
+                        pulse: false,
+                        glow: false,
+                        expired: false,
+                        icon: 'badge-check'
+                    };
+                } else if (dRemaining >= 30) {
                     return {
                         status: 'EXPIRING SOON',
                         colorClass: 'text-amber-400',
                         bgClass: 'bg-amber-500/10 border-amber-500/20',
-                        badgeGrad: 'from-amber-500 to-orange-600',
+                        badgeGrad: 'from-amber-500 to-orange-600 animate-pulse',
                         strokeColor: 'text-amber-500',
                         fillColor: 'bg-amber-500',
                         glowClass: 'shadow-[0_0_15px_rgba(245,158,11,0.4)]',
                         borderGlow: 'border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.15)]',
-                        icon: 'alert-triangle'
+                        pulse: true,
+                        glow: false,
+                        expired: false,
+                        icon: 'clock'
+                    };
+                } else if (dRemaining > 0) {
+                    return {
+                        status: 'URGENT',
+                        colorClass: 'text-orange-400',
+                        bgClass: 'bg-orange-500/10 border-orange-500/20',
+                        badgeGrad: 'from-orange-500 to-red-600 animate-pulse',
+                        strokeColor: 'text-orange-500',
+                        fillColor: 'bg-orange-500',
+                        glowClass: 'shadow-[0_0_20px_rgba(249,115,22,0.6)]',
+                        borderGlow: 'border-orange-500/40 shadow-[0_0_40px_rgba(249,115,22,0.25)] animate-pulse',
+                        pulse: false,
+                        glow: true,
+                        expired: false,
+                        icon: 'shield-alert'
                     };
                 } else {
                     return {
                         status: 'EXPIRED',
-                        colorClass: 'text-rose-400',
+                        colorClass: 'text-rose-500',
                         bgClass: 'bg-rose-500/10 border-rose-500/20',
-                        badgeGrad: 'from-rose-500 to-red-600',
+                        badgeGrad: 'from-rose-600 to-red-700',
                         strokeColor: 'text-rose-500',
                         fillColor: 'bg-rose-500',
-                        glowClass: 'shadow-[0_0_15px_rgba(244,63,94,0.4)]',
-                        borderGlow: 'border-rose-500/30 shadow-[0_0_30px_rgba(244,63,94,0.15)]',
-                        icon: 'alert-octagon'
+                        glowClass: 'shadow-none',
+                        borderGlow: 'border-rose-500/45 shadow-[0_0_40px_rgba(244,63,94,0.3)] animate-pulse',
+                        pulse: false,
+                        glow: false,
+                        expired: true,
+                        icon: 'shield-alert'
                     };
                 }
             };
@@ -5308,670 +5324,933 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             ];
 
             return (
-                <div className="h-screen max-h-screen overflow-hidden bg-[#f8fafc] text-slate-900 p-2 sm:p-4 flex flex-col justify-between select-none">
-                    
-                    {/* ═══ TOP HEADER & ROLE SWITCHER BAR ═══ */}
-                    <div className="max-w-2xl mx-auto w-full shrink-0 text-center pt-1">
-                        <div className="flex justify-center mb-1">
-                            <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-xs" />
+                <div className="h-screen max-h-screen overflow-hidden bg-[#f8fafc] text-slate-800 p-3 sm:p-5 lg:p-6 flex flex-col justify-between select-none relative">
+                    {/* Portal Header */}
+                    <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col justify-center">
+                        <div className="text-center mb-3 sm:mb-4 fade-up">
+                            <div className="flex justify-center mb-1.5">
+                                <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-14 h-14 object-contain drop-shadow-xs" />
+                            </div>
+                            <div className="flex justify-center items-center gap-2 mb-1.5 flex-wrap">
+                                <button
+                                    type="button"
+                                    onClick={() => { setPortalMode('portal'); setIsTrainerMode(false); }}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9.5px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+                                        portalMode === 'portal' && !isTrainerMode
+                                            ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
+                                    }`}
+                                >
+                                    <div className={`w-1.5 h-1.5 rounded-full ${portalMode === 'portal' && !isTrainerMode ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`}></div>
+                                    <span>Customer Portal</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (isTrainerMode) {
+                                            setIsTrainerMode(false);
+                                        } else {
+                                            setTrainerPassInput('');
+                                            setTrainerPassError(false);
+                                            setShowTrainerAuthModal(true);
+                                        }
+                                    }}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9.5px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+                                        isTrainerMode
+                                            ? 'bg-amber-600 border-amber-600 text-white shadow-xs'
+                                            : 'bg-white border-slate-200 text-slate-700 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 shadow-2xs'
+                                    }`}
+                                    title="Access Commissioning & Training Wizard for Field Engineers"
+                                >
+                                    <Icon name="award" size={11} className={isTrainerMode ? 'text-white' : 'text-amber-500'}/>
+                                    <span>Training / Commissioning</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsTrainerMode(false);
+                                        setPortalMode(portalMode === 'login' ? 'portal' : 'login');
+                                    }}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9.5px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+                                        portalMode === 'login'
+                                            ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
+                                    }`}
+                                    title="Authorized Staff & Executive Sign-In"
+                                >
+                                    <Icon name="lock" size={11} className={portalMode === 'login' ? 'text-amber-400' : 'text-slate-500'}/>
+                                    <span>Staff Login</span>
+                                </button>
+                            </div>
+                            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-tight mb-0.5">
+                                {portalMode === 'login' ? (
+                                    <>FireFlow Enterprise <span className="text-amber-600">Access</span></>
+                                ) : isTrainerMode ? (
+                                    <>Field Trainer <span className="text-amber-600">Commissioning Hub</span></>
+                                ) : (
+                                    <>FireFlow Warranty <span className="text-amber-600">Support Hub</span></>
+                                )}
+                            </h1>
+                            <p className="text-slate-500 text-[11px] sm:text-xs font-semibold">
+                                {portalMode === 'login'
+                                    ? 'Authorized Staff & Executive Credentials Gateway • Auto-Unlock Terminal'
+                                    : isTrainerMode
+                                        ? 'Multi-Day Operator Training & Apparatus Handover System'
+                                        : 'Look up warranty status • Log complaints • Track ticket progress • Self-help guides'}
+                            </p>
                         </div>
-                        
-                        {/* Header Pill Nav: Customer Portal / Training / Staff Login */}
-                        <div className="flex justify-center items-center gap-1 sm:gap-1.5 mb-1.5">
-                            <button
-                                type="button"
-                                onClick={() => { setPortalMode('portal'); setLoginError(false); }}
-                                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer border ${portalMode === 'portal' ? 'bg-white border-slate-400 text-slate-950 shadow-xs' : 'bg-white/70 border-slate-200 text-slate-500 hover:text-slate-900'}`}
-                            >
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                <span className="hidden sm:inline">Customer Portal</span>
-                                <span className="sm:hidden">Portal</span>
-                            </button>
 
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setTrainerPassInput('');
-                                    setTrainerPassError(false);
-                                    setShowTrainerAuthModal(true);
-                                }}
-                                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[9.5px] font-black text-slate-700 bg-white hover:bg-amber-50 hover:text-amber-950 border border-slate-200 shadow-2xs hover:shadow-xs transition-all cursor-pointer uppercase tracking-wider"
-                                title="Access Commissioning & Training Wizard for Field Engineers"
-                            >
-                                <span>🎓</span>
-                                <span className="hidden sm:inline">Training / Commissioning</span>
-                                <span className="sm:hidden">Training</span>
-                            </button>
+                        {/* ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? */}
+                        {/* TRAINER MODE DASHBOARD (ISOLATED & RESTRICTED ACCESS)  */}
+                        {/* ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? */}
+                        {portalMode === 'login' ? (
+                            /* CLEAN CENTERED STAFF LOGIN TERMINAL ('OLD IS GOLD') */
+                            <div className="max-w-md mx-auto w-full flex-1 flex flex-col justify-center items-center py-3 fade-up">
+                                <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 border border-slate-200/90 w-full text-center space-y-4">
+                                    <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto text-white shadow-md">
+                                        <Icon name="lock" size={24} className="text-amber-400"/>
+                                    </div>
 
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setLoginInput('');
-                                    setLoginError(false);
-                                    setPortalMode(prev => prev === 'login' ? 'portal' : 'login');
-                                }}
-                                className={`inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer border ${portalMode === 'login' ? 'bg-slate-900 border-slate-900 text-white shadow-xs' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 shadow-2xs'}`}
-                                title="Authorized Staff & Executive Sign In"
-                            >
-                                <span>🔐</span>
-                                <span>Staff Login</span>
-                            </button>
-                        </div>
+                                    <div>
+                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-base sm:text-lg">
+                                            Secure Access Terminal
+                                        </h3>
+                                        <p className="text-[11px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest">
+                                            Enter 4-Digit Passcode to Unlock
+                                        </p>
+                                    </div>
 
-                        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
-                            {portalMode === 'login' ? (
-                                <>FireFlow Enterprise <span className="text-amber-600">Access</span></>
-                            ) : (
-                                <>FireFlow Warranty <span className="text-amber-600">Support Hub</span></>
-                            )}
-                        </h1>
-                        <p className="text-slate-500 text-[10px] sm:text-[11px] font-semibold truncate max-w-md mx-auto">
-                            {portalMode === 'login' 
-                                ? 'Single Sign-On · Enter 4-digit PIN for Master Admin, AGM, or Delivery'
-                                : 'Look up warranty status · Log complaints · Track ticket progress · Guides'
-                            }
-                        </p>
-                    </div>
+                                    <form onSubmit={(e) => { e.preventDefault(); handlePasscodeCheck(loginInput); }} className="space-y-3 max-w-xs mx-auto">
+                                        <div className="relative">
+                                            <input
+                                                type={showLoginPass ? "text" : "password"}
+                                                value={loginInput}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setLoginInput(val);
+                                                    setLoginError(false);
+                                                    if (val.length === 4) {
+                                                        handlePasscodeCheck(val);
+                                                    }
+                                                }}
+                                                placeholder="••••"
+                                                autoFocus
+                                                maxLength={4}
+                                                className="w-full bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-2xl px-4 py-2.5 text-lg font-black text-slate-900 outline-none text-center tracking-[0.4em] transition-all"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowLoginPass(!showLoginPass)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                                                title={showLoginPass ? "Hide Passcode" : "Show Passcode"}
+                                            >
+                                                <Icon name={showLoginPass ? "eye-off" : "eye"} size={16}/>
+                                            </button>
+                                        </div>
 
-                    {/* ═══ CENTER MAIN WORKSPACE (STRICT ZERO-SCROLL FIT) ═══ */}
-                    <div className="max-w-xl mx-auto w-full flex-1 flex flex-col justify-center min-h-0 py-2">
-                        
-                        {/* ── VIEW 1: FIELD TRAINER MODE DASHBOARD ── */}
-                        {isTrainerMode ? (
-                            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm max-h-[72vh] overflow-y-auto space-y-3 text-left">
-                                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black">🎓</div>
+                                        {loginError && (
+                                            <p className="text-rose-600 text-[11px] font-black uppercase tracking-wider animate-pulse">
+                                                Invalid passcode. Try 0706, 2410, 2038, or 6655.
+                                            </p>
+                                        )}
+
+                                        <div className="flex gap-2 pt-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setPortalMode('portal'); setLoginInput(''); setLoginError(false); }}
+                                                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                                            >
+                                                ← Customer
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={isVerifying}
+                                                className="flex-1 bg-slate-900 hover:bg-black text-white py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer disabled:opacity-60"
+                                            >
+                                                {isVerifying ? 'Verifying...' : 'Unlock →'}
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    <div className="pt-3 border-t border-slate-100">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                                            Quick Role Shortcuts
+                                        </span>
+                                        <div className="flex flex-wrap items-center justify-center gap-2">
+                                            {[
+                                                { label: 'Admin: 0706', pin: '0706' },
+                                                { label: 'AGM: 2410', pin: '2410' },
+                                                { label: 'Dispatch: 2038', pin: '2038' },
+                                                { label: 'Trainer: 6655', pin: '6655' }
+                                            ].map(r => (
+                                                <button
+                                                    key={r.pin}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setLoginInput(r.pin);
+                                                        handlePasscodeCheck(r.pin);
+                                                    }}
+                                                    className="bg-slate-50 hover:bg-amber-50 hover:border-amber-300 border border-slate-200 px-3 py-1.5 rounded-xl text-[10px] font-black text-slate-700 transition-all cursor-pointer"
+                                                >
+                                                    {r.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : isTrainerMode ? (
+                            <div className="space-y-6 fade-up text-left">
+                                {/* Trainer Header Banner */}
+                                <div className="bg-linear-to-r from-amber-500/15 via-amber-500/5 to-transparent p-4 rounded-3xl border border-amber-500/25 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-xl font-black shadow-md">
+                                            ????
+                                        </div>
                                         <div>
-                                            <h3 className="text-xs font-black text-slate-900 uppercase">Field Trainer Commissioning</h3>
-                                            <p className="text-[10px] text-slate-400 font-bold">Authorized Engineering Session</p>
+                                            <div className="flex items-center gap-2">
+                                                <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                                                    Field Trainer Commissioning Hub
+                                                </h2>
+                                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                    ??? Authorized Session
+                                                </span>
+                                            </div>
+                                            <p className="text-xs font-bold text-slate-500">
+                                                Multi-Day Operator Training &amp; Apparatus Handover System
+                                            </p>
                                         </div>
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={() => { setIsTrainerMode(false); setSelectedTrainerCustomer(null); setSelectedTrainerTruck(null); }}
-                                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                                        onClick={() => {
+                                            setIsTrainerMode(false);
+                                            setSelectedTrainerCustomer(null);
+                                            setSelectedTrainerTruck(null);
+                                        }}
+                                        className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                                     >
-                                        ✕ Exit Trainer
+                                        <Icon name="log-out" size={14}/> Exit Trainer Mode
                                     </button>
                                 </div>
 
-                                {/* Customer Selection */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-slate-600">Select Customer:</label>
-                                    <input
-                                        type="text"
-                                        value={trainerCustomerSearch}
-                                        onChange={e => setTrainerCustomerSearch(e.target.value)}
-                                        placeholder="Search customer name or location..."
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-                                    />
-                                    <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
-                                        {customers.filter(c => (c.name||'').toLowerCase().includes(trainerCustomerSearch.toLowerCase())).map(c => (
-                                            <div
-                                                key={c.id}
-                                                onClick={() => { setSelectedTrainerCustomer(c); setSelectedTrainerTruck(null); }}
-                                                className={`p-2 rounded-xl text-xs font-bold cursor-pointer transition-all flex justify-between items-center ${selectedTrainerCustomer?.id === c.id ? 'bg-amber-500 text-slate-950 font-black shadow-xs' : 'bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
-                                            >
-                                                <span>{c.name}</span>
-                                                <span className="text-[9px] uppercase opacity-80">{trucks.filter(t => t.customerId === c.id).length} Tenders</span>
+                                {/* STEP 1: SELECT CUSTOMER (FOCUS ON PENDING COMMISSIONING) */}
+                                {(() => {
+                                    const customersWithStats = customers.map(c => {
+                                        const cTrucks = trucks.filter(t => t.customerId === c.id);
+                                        const pendingCount = cTrucks.filter(t => !isTruckTrainingCompleted(t.id)).length;
+                                        const completedCount = cTrucks.filter(t => isTruckTrainingCompleted(t.id)).length;
+                                        return { ...c, totalTrucks: cTrucks.length, pendingCount, completedCount };
+                                    });
+
+                                    const pendingCustomers = customersWithStats.filter(c => c.pendingCount > 0);
+                                    const completedOnlyCustomers = customersWithStats.filter(c => c.totalTrucks > 0 && c.pendingCount === 0);
+                                    const displayCustomers = showCompletedCustomers ? customersWithStats : pendingCustomers;
+
+                                    return (
+                                        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                                            <div className="flex flex-wrap justify-between items-center gap-2">
+                                                <label className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5 tracking-wider">
+                                                    <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">1</span>
+                                                    Select Customer Organization
+                                                </label>
+                                                <div className="flex items-center gap-2">
+                                                    {completedOnlyCustomers.length > 0 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowCompletedCustomers(!showCompletedCustomers)}
+                                                            className="text-[9px] font-extrabold text-slate-500 hover:text-slate-900 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg cursor-pointer transition-all"
+                                                        >
+                                                            {showCompletedCustomers ? '??? Hide Fully Trained Customers' : (`???? Show All (${completedOnlyCustomers.length} Fully Trained)`)}
+                                                        </button>
+                                                    )}
+                                                    {selectedTrainerCustomer && (
+                                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                                                            ??? Selected: {selectedTrainerCustomer.name}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
 
-                                {/* Vehicle Selection & Wizard Launch */}
-                                {selectedTrainerCustomer && (
-                                    <div className="pt-2 border-t border-slate-100 space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-slate-600">Select Apparatus for {selectedTrainerCustomer.name}:</label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            {trucks.filter(t => t.customerId === selectedTrainerCustomer.id).map(t => {
-                                                const isSelected = selectedTrainerTruck?.id === t.id;
-                                                const isDone = isTruckTrainingCompleted(t.id);
-                                                return (
-                                                    <div
-                                                        key={t.id}
-                                                        onClick={() => setSelectedTrainerTruck(t)}
-                                                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${isSelected ? 'bg-amber-50 border-amber-500 shadow-xs' : isDone ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div className="relative">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="???? Search customer by name / location..."
+                                                        value={trainerCustomerSearch}
+                                                        onChange={e => setTrainerCustomerSearch(e.target.value)}
+                                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <select
+                                                        value={selectedTrainerCustomer?.id || ''}
+                                                        onChange={e => {
+                                                            const found = customers.find(c => c.id === e.target.value);
+                                                            setSelectedTrainerCustomer(found || null);
+                                                            setSelectedTrainerTruck(null);
+                                                            setShowCompletedTrucks(false);
+                                                        }}
+                                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 cursor-pointer"
                                                     >
-                                                        <div className="flex justify-between items-center text-[10.5px] font-black text-slate-900">
-                                                            <span>{t.tenderType || 'Fire Tender'}</span>
-                                                            <span className="text-[8px] uppercase">{isDone ? '✓ Done' : 'Pending'}</span>
-                                                        </div>
-                                                        <div className="text-[9px] font-semibold text-slate-500 mt-0.5">PO: {t.poNo || '—'} · Chassis: {t.chassisMake || '—'}</div>
-                                                    </div>
-                                                );
-                                            })}
+                                                        <option value="">
+                                                            {displayCustomers.length > 0 
+                                                                ? `-- Choose Customer (${displayCustomers.length} Available) --`
+                                                                : '-- No Customers Needing Training --'}
+                                                        </option>
+                                                        {displayCustomers
+                                                            .filter(c => !trainerCustomerSearch.trim() || (c.name || '').toLowerCase().includes(trainerCustomerSearch.toLowerCase()) || (c.location || '').toLowerCase().includes(trainerCustomerSearch.toLowerCase()))
+                                                            .map(c => (
+                                                                <option key={c.id} value={c.id}>
+                                                                    {c.name} {c.location ? '(' + c.location + ')' : ''} ??? {c.pendingCount > 0 ? `(${c.pendingCount} Pending Training)` : '??? Training Done'}
+                                                                </option>
+                                                            ))}
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </div>
+                                    );
+                                })()}
 
-                                        {selectedTrainerTruck && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: null })}
-                                                className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm cursor-pointer mt-2"
-                                            >
-                                                🚀 Launch Commissioning &amp; Training Wizard →
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        ) : portalMode === 'login' ? (
-                            
-                            /* ── VIEW 2: DEDICATED SINGLE-PAGE ZERO-SCROLL LOGIN CARD ── */
-                            <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-md border border-slate-200 text-center relative">
-                                <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                </div>
-                                <h2 className="font-black text-slate-900 uppercase tracking-tight text-sm sm:text-base mb-0.5">
-                                    Secure Access Portal
-                                </h2>
-                                <p className="text-[10px] sm:text-[10.5px] font-bold text-slate-500 mb-4 uppercase tracking-wider">
-                                    Enter 4-Digit Passcode to Unlock
-                                </p>
+                                {/* STEP 2: SELECT VEHICLE / TRUCK (PENDING VEHICLES SHOWN FIRST) */}
+                                {selectedTrainerCustomer && (() => {
+                                    const allClientTrucks = trucks.filter(t => t.customerId === selectedTrainerCustomer.id);
+                                    const pendingTrucks = allClientTrucks.filter(t => !isTruckTrainingCompleted(t.id));
+                                    const completedTrucks = allClientTrucks.filter(t => isTruckTrainingCompleted(t.id));
+                                    const visibleTrucks = showCompletedTrucks ? allClientTrucks : pendingTrucks;
 
-                                <form onSubmit={(e) => { e.preventDefault(); handlePasscodeCheck(loginInput); }} className="space-y-3">
-                                    <div className="relative max-w-xs mx-auto">
-                                        <input
-                                            type={showLoginPass ? "text" : "password"}
-                                            value={loginInput}
-                                            onChange={(e) => {
-                                                const v = e.target.value;
-                                                setLoginInput(v);
-                                                handlePasscodeCheck(v);
-                                            }}
-                                            placeholder="••••"
-                                            autoFocus
-                                            required
-                                            className="w-full bg-slate-50 border-2 border-slate-300 focus:border-slate-900 rounded-2xl px-4 py-3 text-base sm:text-lg font-black text-slate-900 outline-none text-center tracking-[0.35em] transition-all shadow-inner"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowLoginPass(!showLoginPass)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                                            title={showLoginPass ? "Hide Passcode" : "Show Passcode"}
-                                        >
-                                            <Icon name={showLoginPass ? "eye-off" : "eye"} size={16}/>
-                                        </button>
-                                    </div>
+                                    return (
+                                        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3 fade-up">
+                                            <div className="flex flex-wrap justify-between items-center gap-2">
+                                                <label className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5 tracking-wider">
+                                                    <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">2</span>
+                                                    Select Vehicle / Project Tender
+                                                </label>
+                                                <div className="flex items-center gap-2">
+                                                    {completedTrucks.length > 0 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowCompletedTrucks(!showCompletedTrucks)}
+                                                            className="text-[9px] font-extrabold text-slate-500 hover:text-slate-900 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg cursor-pointer transition-all"
+                                                        >
+                                                            {showCompletedTrucks ? '??? Hide Completed Vehicles' : (`???? View Completed Vehicles (${completedTrucks.length})`)}
+                                                        </button>
+                                                    )}
+                                                    <span className="text-[10px] font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                                        {pendingTrucks.length} Pending Commissioning
+                                                    </span>
+                                                </div>
+                                            </div>
 
-                                    {loginError && (
-                                        <p className="text-rose-600 text-[10.5px] font-black uppercase tracking-wider animate-pulse">
-                                            Invalid passcode. Please re-enter your PIN.
-                                        </p>
-                                    )}
+                                            {allClientTrucks.length === 0 ? (
+                                                <div className="p-6 text-center text-slate-400 font-bold bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+                                                    No fire apparatus records linked to this customer yet.
+                                                </div>
+                                            ) : visibleTrucks.length === 0 ? (
+                                                <div className="p-6 text-center bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-2 fade-up">
+                                                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto text-sm font-black">
+                                                        ???
+                                                    </div>
+                                                    <h5 className="text-xs font-black uppercase text-emerald-950">
+                                                        All Vehicles Commissioned &amp; Trained
+                                                    </h5>
+                                                    <p className="text-[10px] font-bold text-emerald-700 max-w-md mx-auto">
+                                                        All {completedTrucks.length} vehicle(s) for {selectedTrainerCustomer.name} have successfully completed commissioning &amp; training.
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowCompletedTrucks(true)}
+                                                        className="mt-1 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-2xs transition-all"
+                                                    >
+                                                        ???? View Completed Certificates ({completedTrucks.length})
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                    {visibleTrucks.map(t => {
+                                                        const isSelected = selectedTrainerTruck?.id === t.id;
+                                                        const existingCert = (commCerts || []).find(c => c.truckId === t.id);
+                                                        const isDone = isTruckTrainingCompleted(t.id);
 
-                                    {isVerifying && (
-                                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider animate-pulse">
-                                            Verifying credentials...
-                                        </p>
-                                    )}
+                                                        return (
+                                                            <div
+                                                                key={t.id}
+                                                                onClick={() => setSelectedTrainerTruck(t)}
+                                                                className={'p-4 rounded-2xl border-2 transition-all cursor-pointer text-left space-y-2 ' + (
+                                                                    isSelected
+                                                                        ? 'bg-amber-500/10 border-amber-500 shadow-md scale-[1.01]'
+                                                                        : isDone
+                                                                            ? 'bg-emerald-50/40 border-emerald-200 hover:bg-emerald-50/70 opacity-80'
+                                                                            : 'bg-slate-50 border-slate-200 hover:border-slate-400 hover:bg-white'
+                                                                )}
+                                                            >
+                                                                <div className="flex justify-between items-start">
+                                                                    <span className="font-black text-xs text-slate-900 uppercase">
+                                                                        {t.tenderType || 'Fire Tender'}
+                                                                    </span>
+                                                                    {existingCert && (
+                                                                        <span className={'text-[8.5px] font-black uppercase px-2 py-0.5 rounded-md ' + (
+                                                                            existingCert.status === 'Finalized'
+                                                                                ? 'bg-emerald-100 text-emerald-800'
+                                                                                : 'bg-amber-100 text-amber-900'
+                                                                        )}>
+                                                                            {existingCert.status === 'Finalized' ? '??? Training Done' : '??? Draft'}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-[10px] space-y-0.5 text-slate-600 font-semibold">
+                                                                    <div>PO No: <span className="font-extrabold text-slate-800">{t.poNo || 'N/A'}</span></div>
+                                                                    <div>Chassis: <span className="font-bold text-slate-800">{t.chassisMake || 'Tata'} {t.chassisModel || ''}</span></div>
+                                                                    <div>Pump: <span className="font-bold text-slate-800">{t.pumpMake || 'Godiva'} ({t.pumpSrNo || 'N/A'})</span></div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
 
-                                    <div className="flex gap-2 max-w-xs mx-auto pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => { setPortalMode('portal'); setLoginInput(''); setLoginError(false); }}
-                                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
-                                        >
-                                            ← Customer
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            className="flex-1 bg-slate-900 hover:bg-black text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer"
-                                        >
-                                            Unlock →
-                                        </button>
-                                    </div>
-                                </form>
+                                {/* STEP 3: READ-ONLY TECHNICAL SUMMARY & LAUNCH CARD */}
+                                {selectedTrainerCustomer && selectedTrainerTruck && (() => {
+                                    const pumpOem = getPumpOemSpecs(selectedTrainerTruck.pumpMake);
+                                    const chassisOem = getChassisOemSpecs(selectedTrainerTruck.chassisMake);
+                                    const existingCert = (commCerts || []).find(c => c.truckId === selectedTrainerTruck.id);
+                                    const completedQuestions = existingCert?.questions?.filter(q => q.completed)?.length || 0;
+                                    const totalQuestions = existingCert?.questions?.length || 10;
+                                    const attendeesSummary = existingCert ? buildTrainingAttendeeSummary(existingCert.attendanceByDay || (existingCert.attendees ? {1: existingCert.attendees} : {}), parseInt(existingCert.trainingDays) || 3, existingCert.startDate) : [];
 
-                                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center gap-1.5 flex-wrap text-[8.5px] font-extrabold text-slate-500 uppercase tracking-wider">
-                                    <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200">Admin: 0706</span>
-                                    <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200">AGM: 2410</span>
-                                    <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200">Dispatch: 2038</span>
-                                    <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200">Trainer: 6655</span>
-                                </div>
+                                    return (
+                                        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 fade-up">
+                                            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                                                <div>
+                                                    <h3 className="text-xs font-black uppercase text-slate-900 flex items-center gap-1.5 tracking-wider">
+                                                        <Icon name="lock" size={13}/> Verified Customer &amp; Vehicle Specifications (Read-Only)
+                                                    </h3>
+                                                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                                                        Automatically loaded from FireFlow Master. No manual re-typing required.
+                                                    </p>
+                                                </div>
+                                                <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                                    ???? Snapshot Protected
+                                                </span>
+                                            </div>
+
+                                            {/* Specification Grid */}
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+                                                <div>
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Customer</span>
+                                                    <span className="font-extrabold text-slate-900">{selectedTrainerCustomer.name}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Purchase Order (PO)</span>
+                                                    <span className="font-extrabold text-slate-900">{selectedTrainerTruck.poNo || 'N/A'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Tender Type / Model</span>
+                                                    <span className="font-extrabold text-slate-900">{selectedTrainerTruck.tenderType || 'Fire Tender'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Delivery / Handover</span>
+                                                    <span className="font-extrabold text-slate-900">{formatDate(selectedTrainerTruck.deliveryDate)}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Chassis Make &amp; Model</span>
+                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.chassisMake || chassisOem.brand}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Fire Pump OEM</span>
+                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.pumpMake || pumpOem.brand}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Pump Serial No</span>
+                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.pumpSrNo || 'N/A'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Water / Foam Capacity</span>
+                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.waterCapacity || 'Std'}L / {selectedTrainerTruck.foamCapacity || 'Std'}L</span>
+                                                </div>
+                                            </div>
+
+                                            {/* EXISTING TRAINING DETECTION / ACTION BUTTONS */}
+                                            {existingCert ? (
+                                                <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-500/30 space-y-3">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-xs font-black uppercase text-amber-950">Existing Training Record Found</span>
+                                                                <span className={'text-[9px] font-black uppercase px-2 py-0.5 rounded-md ' + (
+                                                                    existingCert.status === 'Finalized' ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
+                                                                )}>
+                                                                    {existingCert.status === 'Finalized' ? 'Finalized & Issued' : ('Day ' + (existingCert.currentDay || 1) + ' ??? In Progress')}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-[10px] font-bold text-amber-800 mt-1">
+                                                                Cert No: <b>{existingCert.certNo}</b> ?? {completedQuestions}/{totalQuestions} Checklist points cleared ?? {attendeesSummary.length} Attendees recorded
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2 pt-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: existingCert })}
+                                                            className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md cursor-pointer transition-all"
+                                                        >
+                                                            <Icon name="play" size={14}/> Continue Training (Resume Day {existingCert.currentDay || 1})
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (confirm('Are you sure you want to start a fresh training record? This will create a new draft certificate for this vehicle.')) {
+                                                                    setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: null });
+                                                                }
+                                                            }}
+                                                            className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all"
+                                                        >
+                                                            ???? Start Fresh Record
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="pt-2 flex justify-end">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: null })}
+                                                        className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-600/20 cursor-pointer transition-all"
+                                                    >
+                                                        <Icon name="arrow-right" size={15}/> Start Commissioning &amp; Training Wizard ???
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         ) : (
-                            
-                            /* ── VIEW 3: CUSTOMER PORTAL SEARCH (LOOKUP · TICKET · FAQ) ── */
-                            <div className="space-y-2.5">
-                                
-                                {/* Compact Tab Nav */}
-                                <div className="flex gap-1.5 justify-center">
+                            <>
+                                {/* Tab Nav */}
+                                <div className="flex gap-2.5 mb-8 flex-wrap justify-center">
                                     {tabs.map(t => {
                                         const isActive = tab === t.id;
                                         return (
-                                            <button 
-                                                key={t.id} 
-                                                onClick={() => setTab(t.id)} 
-                                                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10.5px] font-bold uppercase tracking-wider transition-all border cursor-pointer ${isActive ? 'bg-white border-slate-900 text-slate-900 shadow-2xs' : 'bg-white/80 border-slate-200 text-slate-500 hover:bg-white hover:text-slate-900'}`}
-                                            >
-                                                <Icon name={t.icon} size={12} className={isActive ? 'text-amber-500' : 'text-slate-400'}/>
-                                                <span>{t.label}</span>
+                                            <button key={t.id} onClick={()=>setTab(t.id)} 
+                                                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border
+                                                    ${isActive 
+                                                        ? 'bg-white border-slate-900 text-slate-900 shadow-sm' 
+                                                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}>
+                                                <Icon name={t.icon} size={14} className={isActive ? 'text-amber-500' : 'text-slate-400'}/>
+                                                {t.label}
                                             </button>
                                         );
                                     })}
                                 </div>
 
-                                {/* TAB 1: WARRANTY LOOKUP CARD */}
-                                {tab === 'lookup' && (
-                                    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm border border-slate-200 text-center">
-                                        <div className="flex items-center justify-center gap-1.5 mb-0.5 text-slate-900 font-black uppercase text-xs sm:text-sm tracking-wider">
-                                            <Icon name="shield-check" size={16} className="text-amber-500"/>
-                                            <span>Warranty &amp; Vehicle Lookup</span>
+                                {/* ?????? TAB: LOOKUP ?????? */}
+                                {tab==='lookup' && (
+                                    <div className="space-y-5 fade-up">
+                                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 portal-glow">
+                                            <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="shield-check" size={18} className="text-amber-500"/> Warranty & Vehicle Lookup</h2>
+                                            <p className="text-[11px] text-slate-500 font-semibold mb-5">Enter your Purchase Order (PO) Number, Pump Serial Number, or Chassis/Model Number to check warranty status.</p>
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                <input type="text" value={lookupQuery} onChange={e=>setLookupQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleLookup()} placeholder="e.g. PO-802 or Pump Serial or Chassis..." className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-slate-800 transition-all placeholder:text-slate-300"/>
+                                                <button onClick={handleLookup} className="bg-slate-900 text-white hover:bg-slate-800 px-7 py-3.5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-md transition-all w-full sm:w-auto cursor-pointer">Search Vehicle</button>
+                                            </div>
+                                            {lookupError && <div className="mt-3 flex items-center gap-2 text-rose-600 text-sm font-bold bg-rose-50 px-4 py-3 rounded-xl border border-rose-100"><Icon name="alert-circle" size={16}/>{lookupError}</div>}
+                                            
+                                            {/* Quick Sample PO Chips */}
+                                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap text-xs font-bold text-slate-500">
+                                                <span className="text-[10px] uppercase font-black text-slate-400">Sample POs:</span>
+                                                <button type="button" onClick={() => setLookupQuery('GEMC-5116877931')} className="bg-slate-50 hover:bg-amber-50 hover:text-amber-950 px-2.5 py-1 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-700 transition-all cursor-pointer">
+                                                    ISRO (GEMC-5116877931)
+                                                </button>
+                                                <button type="button" onClick={() => setLookupQuery('PO-PETRONET-2026')} className="bg-slate-50 hover:bg-amber-50 hover:text-amber-950 px-2.5 py-1 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-700 transition-all cursor-pointer">
+                                                    Petronet (PO-PETRONET-2026)
+                                                </button>
+                                                <button type="button" onClick={() => setLookupQuery('PO-IOCL-802')} className="bg-slate-50 hover:bg-amber-50 hover:text-amber-950 px-2.5 py-1 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-700 transition-all cursor-pointer">
+                                                    IOCL (PO-IOCL-802)
+                                                </button>
+                                            </div>
                                         </div>
-                                        <p className="text-[10px] sm:text-[10.5px] text-slate-500 font-medium mb-3 truncate max-w-sm mx-auto">
-                                            Enter Purchase Order (PO), Pump Serial, or Chassis Number
-                                        </p>
 
-                                        <div className="flex gap-2 max-w-md mx-auto items-center">
-                                            <input 
-                                                type="text" 
-                                                value={lookupQuery} 
-                                                onChange={e => setLookupQuery(e.target.value)} 
-                                                onKeyDown={e => e.key === 'Enter' && handleLookup()} 
-                                                placeholder="e.g. PO-802, GEMC-5116877931..." 
-                                                className="flex-1 min-w-0 border-2 border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold outline-none focus:border-slate-800 transition-all placeholder:text-slate-400 bg-slate-50/70 text-slate-900"
-                                            />
-                                            <button 
-                                                onClick={handleLookup} 
-                                                className="bg-slate-900 hover:bg-slate-800 text-white px-4 sm:px-5 py-2 rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition-all shrink-0 cursor-pointer"
+                                        {foundTruck && (
+                                    <div className="fixed inset-0 z-100 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+                                        <div className="relative w-full max-w-4xl my-auto">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null); }}
+                                                className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center text-sm font-black transition-all cursor-pointer"
+                                                title="Close details"
                                             >
-                                                Search
+                                                ✕
                                             </button>
+                                            
+                                            <div className="slide-in-right space-y-4">
+                                                <div className={`relative bg-slate-950/85 backdrop-blur-3xl rounded-[24px] border ${wState.borderGlow} p-6 sm:p-8 text-white transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl fade-up overflow-hidden group`}>
+                                                    
+                                                    {/* Style Injection */}
+                                                    <style dangerouslySetInnerHTML={{__html: `
+                                                        @keyframes ember-float {
+                                                            0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+                                                            10% { opacity: 0.8; }
+                                                            90% { opacity: 0.6; }
+                                                            100% { transform: translateY(-300px) translateX(25px) scale(0.4); opacity: 0; }
+                                                        }
+                                                        @keyframes shimmer {
+                                                            100% { transform: translateX(100%); }
+                                                        }
+                                                        .ember-particle {
+                                                            animation-iteration-count: infinite;
+                                                            animation-timing-function: linear;
+                                                        }
+                                                    `}}/>
+
+                                                    {/* Subtle floating ember particles */}
+                                                    <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20 z-0">
+                                                        <div className="ember-particle absolute w-1.5 h-1.5 bg-amber-500/60 rounded-full blur-[1px]" style={{bottom: '-10px', left: '15%', animation: 'ember-float 7s infinite linear'}}></div>
+                                                        <div className="ember-particle absolute w-1.5 h-1.5 bg-red-500/40 rounded-full blur-[1px]" style={{bottom: '-10px', left: '45%', animation: 'ember-float 10s infinite linear 1.5s'}}></div>
+                                                        <div className="ember-particle absolute w-2 h-2 bg-orange-500/50 rounded-full blur-[2px]" style={{bottom: '-10px', left: '75%', animation: 'ember-float 12s infinite linear 3s'}}></div>
+                                                        <div className="ember-particle absolute w-1 h-1 bg-yellow-500/50 rounded-full" style={{bottom: '-10px', left: '30%', animation: 'ember-float 9s infinite linear 4.5s'}}></div>
+                                                    </div>
+
+                                                    {/* Ambient Red Glow Leak */}
+                                                    <div className="absolute bottom-0 right-0 w-64 h-64 bg-red-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+                                                    <div className="absolute top-0 left-0 w-64 h-64 bg-slate-850/20 rounded-full blur-[80px] pointer-events-none z-0"></div>
+
+                                                    {/* Top Banner Row */}
+                                                    <div className="relative flex items-center justify-between border-b border-white/5 pb-5 mb-6 z-10">
+                                                        <div className="flex items-center gap-2">
+                                                            <Icon name="shield-check" className="text-amber-500" size={18} />
+                                                            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">??????? Warranty Status</span>
+                                                        </div>
+                                                        {/* KPI Badge */}
+                                                        <div className={`bg-gradient-to-r ${wState.badgeGrad} text-white px-3 py-1.5 rounded-full flex items-center gap-2 shadow-md shrink-0`}>
+                                                            <span className="text-[9px] font-black tracking-widest uppercase">{wState.status}</span>
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                                            <span className="text-[9px] font-black tracking-widest uppercase">{dRem > 0 ? `${dRem} Days` : 'EXPIRED'}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Columns Grid */}
+                                                    <div className="relative grid grid-cols-1 md:grid-cols-12 gap-8 items-center z-10">
+                                                        {/* Circular Progress Gauge */}
+                                                        <div className="md:col-span-4 flex flex-col items-center justify-center text-center">
+                                                            <div className="relative w-40 h-40 flex items-center justify-center bg-slate-900/40 rounded-full border border-white/5 shadow-inner">
+                                                                <svg className="w-40 h-40 transform -rotate-90 absolute">
+                                                                    <circle cx="80" cy="80" r="64" className="stroke-slate-800/60" strokeWidth="6" fill="transparent" />
+                                                                    <circle 
+                                                                        cx="80" 
+                                                                        cy="80" 
+                                                                        r="64" 
+                                                                        className={`transition-all duration-[1500ms] ease-out stroke-current ${wState.colorClass}`} 
+                                                                        strokeWidth="6" 
+                                                                        fill="transparent" 
+                                                                        strokeDasharray={2 * Math.PI * 64}
+                                                                        strokeDashoffset={(2 * Math.PI * 64) - (animatedPercent / 100) * (2 * Math.PI * 64)}
+                                                                        strokeLinecap="round" 
+                                                                    />
+                                                                </svg>
+                                                                {/* Center content */}
+                                                                <div className="flex flex-col items-center justify-center">
+                                                                    <p className="text-3xl font-extrabold text-white tracking-tight">{dRem > 0 ? `${animatedPercent}%` : '0%'}</p>
+                                                                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-1">
+                                                                        {dRem > 0 ? `${dRem} Days` : 'Expired'}
+                                                                    </p>
+                                                                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-wider mt-0.5">Remaining</p>
+                                                                </div>
+                                                            </div>
+                                                            <p className={`text-[11px] font-black tracking-wider uppercase mt-4 ${wState.colorClass} flex items-center gap-1.5`}>
+                                                                <Icon name={wState.icon} size={13}/>
+                                                                {wState.status === 'EXPIRED' ? 'Coverage Expired' : 'Active Warranty'}
+                                                            </p>
+                                                        </div>
+
+                                                        {/* Details Card */}
+                                                        <div className="md:col-span-8 flex flex-col justify-center text-left">
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                {(() => {
+                                                                    const specs = [
+                                                                        { l: 'Customer / Organization', v: cust?.name, i: 'building-2' },
+                                                                        { l: 'PO Number', v: foundTruck.poNo, i: 'hash' },
+                                                                        { l: 'Tender Type / Model', v: foundTruck.tenderType || 'Fire Tender', i: 'shield' },
+                                                                        { l: 'Delivery Date', v: formatDate(foundTruck.deliveryDate), i: 'calendar' },
+                                                                        { l: 'Warranty Expiry', v: formatDate(warrantyExp), i: 'clock' },
+                                                                        { l: 'Chassis Make', v: foundTruck.chassisMake, i: 'truck' },
+                                                                        { l: 'Pump Make & Sr. No.', v: `${foundTruck.pumpMake || 'Standard'} (${foundTruck.pumpSrNo || 'N/A'})`, i: 'activity' }
+                                                                    ];
+
+                                                                    // Conditionally show UHP Pump if provided
+                                                                    if (foundTruck.uhpPumpMake || foundTruck.uhpPumpSrNo || foundTruck.uhpPumpLpm) {
+                                                                        const uhpDesc = [
+                                                                            foundTruck.uhpPumpMake,
+                                                                            foundTruck.uhpPumpLpm ? `(${foundTruck.uhpPumpLpm})` : '',
+                                                                            foundTruck.uhpPumpSrNo ? `Sr: ${foundTruck.uhpPumpSrNo}` : ''
+                                                                        ].filter(Boolean).join(' ');
+                                                                        specs.push({ l: '??? UHP Pump (Make / LPM / Sr)', v: uhpDesc, i: 'zap' });
+                                                                    }
+
+                                                                    // Conditionally show DCP System if provided
+                                                                    if (foundTruck.dcpCapacity || foundTruck.dcpHptDueDate) {
+                                                                        const dcpDesc = [
+                                                                            foundTruck.dcpCapacity ? `${foundTruck.dcpCapacity} Kg Capacity` : 'DCP System',
+                                                                            foundTruck.dcpHptDueDate ? `HPT Due: ${formatDate(foundTruck.dcpHptDueDate)}` : ''
+                                                                        ].filter(Boolean).join(' ?? ');
+                                                                        specs.push({ l: '???? DCP System & HPT Due', v: dcpDesc, i: 'shield' });
+                                                                    }
+
+                                                                    specs.push({ l: 'Location / Plant', v: cust?.address || cust?.location || 'Gujarat, India', i: 'map-pin' });
+
+                                                                    return specs.map((it, idx) => (
+                                                                    <div key={idx} className="bg-slate-900/50 p-2.5 rounded-xl border border-white/5">
+                                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">{it.l}</span>
+                                                                        <span className="text-xs font-bold text-slate-100">{it.v || 'N/A'}</span>
+                                                                    </div>
+                                                                    ));
+                                                                })()}
+                                                            </div>
+
+                                                            {/* ???? Official Training Sheet & Commissioning Soft Copy Banner */}
+                                                            {(() => {
+                                                                const existingCert = (commCerts || []).find(c => c.truckId === foundTruck.id);
+                                                                return (
+                                                                    <div className="mt-5 p-4 rounded-2xl bg-linear-to-r from-amber-500/20 via-amber-500/10 to-slate-900/40 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                                                                        <div className="flex items-start gap-3">
+                                                                            <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shrink-0 shadow-md">
+                                                                                ????
+                                                                            </div>
+                                                                            <div>
+                                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                                    <span className="text-xs font-black text-amber-300 uppercase tracking-tight">
+                                                                                        Training Sheet &amp; Commissioning Certificate
+                                                                                    </span>
+                                                                                    {existingCert ? (
+                                                                                        <span className="text-[8.5px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500 text-slate-950">
+                                                                                            {existingCert.status === 'Finalized' ? '??? Finalized Soft Copy Available' : '??? Site Training in Progress'}
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <span className="text-[8.5px] font-bold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/10">
+                                                                                            Pending Site Clearance
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <p className="text-[11px] font-medium text-slate-300 mt-0.5">
+                                                                                    {existingCert 
+                                                                                        ? `Cert No: ${existingCert.certNo || 'IFS/COMM'} ?? ${parseInt(existingCert.trainingDays)||3} Days Program ?? Complete Crew Attendance & Literature Records`
+                                                                                        : 'Official training sheet and certificate soft copy will be available here once site training is completed.'}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {existingCert && (
+                                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => printCommissioningCertificatePdf(existingCert, foundTruck, cust)}
+                                                                                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                                                                                    title="Download or Print PDF Soft Copy"
+                                                                                >
+                                                                                    <Icon name="printer" size={14}/> Download PDF
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setCustomerViewSoftCopyCert({ cert: existingCert, truck: foundTruck, customer: cust })}
+                                                                                    className="bg-white/15 hover:bg-white/25 text-white border border-white/25 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
+                                                                                    title="View Training Sheet Details"
+                                                                                >
+                                                                                    <Icon name="eye" size={14}/> View Sheet
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
+
+                                                            {/* Action Footer */}
+                                                            <div className="relative mt-6 pt-4 border-t border-white/5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 z-10">
+                                                                <div className="text-left max-w-xl">
+                                                                    <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">??????? Direct Support Desk</p>
+                                                                    <p className="text-xs font-semibold text-slate-300 mt-0.5 leading-relaxed">
+                                                                        Need assistance? Dial <a href="tel:+919313927647" className="text-amber-400 font-bold hover:underline">+91 93139 27647</a> or email <a href="mailto:customercare@indusfire.com" className="text-amber-400 hover:underline">customercare@indusfire.com</a>.
+                                                                    </p>
+                                                                </div>
+                                                                <button onClick={()=>setShowComplaintForm(!showComplaintForm)} className="w-full lg:w-auto flex items-center justify-center gap-2 bg-rose-600 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider hover:bg-rose-700 shadow-md cursor-pointer transition-all shrink-0">
+                                                                    <Icon name="message-square-plus" size={14}/>Log a Complaint
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Complaint Form */}
+                                                {showComplaintForm && (
+                                                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 fade-up text-left">
+                                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm mb-4">Log a Support Ticket / Complaint</h3>
+                                                        <form onSubmit={handleSubmitComplaint} className="space-y-3">
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                <div>
+                                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Issue Category *</label>
+                                                                    <select value={compForm.category} onChange={e=>setCompForm({...compForm,category:e.target.value})} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none">
+                                                                        <option value="">Select Category</option>
+                                                                        {categories.map((c,i)=><option key={i} value={c}>{c}</option>)}
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Reported By (Name) *</label>
+                                                                    <input type="text" value={compForm.reportedBy} onChange={e=>setCompForm({...compForm,reportedBy:e.target.value})} required placeholder="Your full name" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"/>
+                                                                </div>
+                                                            </div>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                <div>
+                                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Phone Number *</label>
+                                                                    <input type="tel" value={compForm.contactPhone} onChange={e=>setCompForm({...compForm,contactPhone:e.target.value})} required placeholder="+91..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"/>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Email Address</label>
+                                                                    <input type="email" value={compForm.contactEmail} onChange={e=>setCompForm({...compForm,contactEmail:e.target.value})} placeholder="officer@domain.com" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"/>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Description of Issue *</label>
+                                                                <textarea value={compForm.description} onChange={e=>setCompForm({...compForm,description:e.target.value})} required placeholder="Detailed description of the issue..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-800 outline-none min-h-[70px]"/>
+                                                            </div>
+                                                            <div className="flex justify-end gap-2">
+                                                                <button type="button" onClick={()=>setShowComplaintForm(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase cursor-pointer">Cancel</button>
+                                                                <button type="submit" className="px-5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase shadow-md cursor-pointer">Submit Ticket</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                )}
+
+                                                {compSubmitted && (
+                                                    <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-5 text-left text-emerald-950 space-y-2 fade-up">
+                                                        <div className="flex items-center gap-2">
+                                                            <Icon name="check-circle" size={18} className="text-emerald-600"/>
+                                                            <h4 className="text-xs font-black uppercase">Ticket Logged Successfully</h4>
+                                                        </div>
+                                                        <p className="text-xs font-bold">Ticket ID: <span className="font-black text-emerald-800">{compSubmitted.complaintId}</span></p>
+                                                        <p className="text-[10px] text-emerald-700 font-medium">Our engineering service team will review your complaint and respond within 24 hours.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                    </div>
+                                )}
+
+                                {/* ?????? TAB: TRACK TICKET ?????? */}
+                                {tab==='tracker' && (
+                                    <div className="space-y-5 fade-up text-left">
+                                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                                            <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="activity" size={18} className="text-amber-500"/> Track Support Ticket</h2>
+                                            <p className="text-[11px] text-slate-500 font-semibold mb-4">Enter your Ticket ID (e.g. 2908-IW-1234) to check real-time resolution status.</p>
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                <input type="text" value={ticketQuery} onChange={e=>setTicketQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleTicketLookup()} placeholder="Enter Ticket ID..." className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3 text-sm font-bold outline-none focus:border-slate-800"/>
+                                                <button onClick={handleTicketLookup} className="bg-slate-900 text-white hover:bg-slate-800 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wider cursor-pointer">Track Ticket</button>
+                                            </div>
+                                            {ticketError && <div className="mt-3 flex items-center gap-2 text-rose-600 text-xs font-bold bg-rose-50 px-3 py-2 rounded-xl border border-rose-100">{ticketError}</div>}
                                         </div>
 
-                                        {lookupError && (
-                                            <div className="mt-2.5 flex items-center justify-center gap-1.5 text-rose-600 text-[11px] font-bold bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100 max-w-md mx-auto">
-                                                <Icon name="alert-circle" size={14}/>
-                                                <span>{lookupError}</span>
+                                        {foundTicket && (
+                                            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-4">
+                                                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                                                    <div>
+                                                        <h3 className="text-xs font-black uppercase text-slate-900">Ticket #{foundTicket.complaintId}</h3>
+                                                        <p className="text-[10px] text-slate-400 font-bold">Logged on {formatDate(foundTicket.dateReceived)}</p>
+                                                    </div>
+                                                    <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${foundTicket.status==='Resolved'?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}`}>
+                                                        {foundTicket.status}
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                                                    <div><span className="text-slate-400 text-[9px] font-black uppercase block">Category</span><span className="font-bold">{foundTicket.category}</span></div>
+                                                    <div><span className="text-slate-400 text-[9px] font-black uppercase block">Reported By</span><span className="font-bold">{foundTicket.reportedBy}</span></div>
+                                                    <div><span className="text-slate-400 text-[9px] font-black uppercase block">Target Resolution</span><span className="font-bold text-amber-800">{formatDate(foundTicket.targetDate || foundTicket.closedDate)}</span></div>
+                                                </div>
+                                                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Issue Description:</span>
+                                                    <p className="font-medium text-slate-700">{foundTicket.description}</p>
+                                                </div>
+                                                {foundTicket.status === 'Resolved' && (
+                                                    <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900">
+                                                        <span className="text-[9px] font-black uppercase text-emerald-700 block mb-1">??? Resolution Summary:</span>
+                                                        <p className="font-bold">{foundTicket.diagnosis || 'Maintenance and service completed per OEM standards.'}</p>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
+                                    </div>
+                                )}
 
-                                        {/* Sample PO Quick Chips */}
-                                        <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[9px] font-bold text-slate-400">
-                                            <span>Recent POs:</span>
-                                            <button type="button" onClick={() => { setLookupQuery('GEMC-5116877931'); }} className="text-slate-600 hover:text-slate-900 underline cursor-pointer">ISRO</button>
-                                            <span>·</span>
-                                            <button type="button" onClick={() => { setLookupQuery('PO-PETRONET-2026'); }} className="text-slate-600 hover:text-slate-900 underline cursor-pointer">Petronet</button>
-                                            <span>·</span>
-                                            <button type="button" onClick={() => { setLookupQuery('PO-IOCL-802'); }} className="text-slate-600 hover:text-slate-900 underline cursor-pointer">IOCL</button>
+                                {/* ?????? TAB: SELF-HELP FAQ ?????? */}
+                                {tab==='faq' && (
+                                    <div className="space-y-4 fade-up text-left">
+                                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                                            <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="help-circle" size={18} className="text-amber-500"/> Knowledge Base &amp; FAQ</h2>
+                                            <p className="text-[11px] text-slate-500 font-semibold mb-4">Frequently asked operational questions and troubleshooting steps.</p>
+                                            <input type="text" placeholder="???? Search guides..." value={faqSearch} onChange={e=>setFaqSearch(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none"/>
+                                        </div>
+                                        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                                            {FAQ_DATA.filter(f => f.q.toLowerCase().includes(faqSearch.toLowerCase()) || f.a.toLowerCase().includes(faqSearch.toLowerCase())).map((item, i) => <FaqItem key={i} item={item}/>)}
                                         </div>
                                     </div>
                                 )}
 
-                                {/* TAB 2: TRACK TICKET CARD */}
-                                {tab === 'tracker' && (
-                                    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm border border-slate-200 text-center">
-                                        <div className="flex items-center justify-center gap-1.5 mb-0.5 text-slate-900 font-black uppercase text-xs sm:text-sm tracking-wider">
-                                            <Icon name="activity" size={16} className="text-amber-500"/>
-                                            <span>Track Support Ticket</span>
-                                        </div>
-                                        <p className="text-[10px] sm:text-[10.5px] text-slate-500 font-medium mb-3 truncate max-w-sm mx-auto">
-                                            Enter Ticket ID (e.g. 2908-IW-1234) for live resolution status
-                                        </p>
-
-                                        <div className="flex gap-2 max-w-md mx-auto items-center">
-                                            <input 
-                                                type="text" 
-                                                value={ticketQuery} 
-                                                onChange={e => setTicketQuery(e.target.value)} 
-                                                onKeyDown={e => e.key === 'Enter' && handleTicketLookup()} 
-                                                placeholder="Enter Ticket ID..." 
-                                                className="flex-1 min-w-0 border-2 border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold outline-none focus:border-slate-800 transition-all placeholder:text-slate-400 bg-slate-50/70 text-slate-900"
-                                            />
-                                            <button 
-                                                onClick={handleTicketLookup} 
-                                                className="bg-slate-900 hover:bg-slate-800 text-white px-4 sm:px-5 py-2 rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition-all shrink-0 cursor-pointer"
-                                            >
-                                                Track
-                                            </button>
-                                        </div>
-
-                                        {ticketError && (
-                                            <div className="mt-2.5 flex items-center justify-center gap-1.5 text-rose-600 text-[11px] font-bold bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100 max-w-md mx-auto">
-                                                <Icon name="alert-circle" size={14}/>
-                                                <span>{ticketError}</span>
+                                {/* Support Contact Footer (Compact Single Screen) */}
+                                <div className="mt-4 pt-3.5 border-t border-slate-200/90 text-center fade-up">
+                                    <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-0.5">
+                                        Indus Helpdesk &amp; Operations Center
+                                    </h3>
+                                    <p className="text-[10.5px] font-semibold text-slate-500 max-w-md mx-auto mb-2.5 leading-tight">
+                                        For emergency support, equipment queries, or immediate service engineer dispatch:
+                                    </p>
+                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-xs font-semibold text-slate-700">
+                                        <a href="mailto:customercare@indusfire.com" className="flex items-center gap-2.5 bg-white border border-slate-200 hover:border-slate-900 px-4 py-2 rounded-xl shadow-2xs hover:shadow-xs transition-all w-full sm:w-auto">
+                                            <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0">
+                                                <Icon name="mail" size={12}/>
                                             </div>
-                                        )}
+                                            <div className="text-left">
+                                                <p className="text-[8.5px] text-slate-400 uppercase font-black tracking-wider">Email Inquiry</p>
+                                                <p className="text-slate-800 text-xs font-bold">customercare@indusfire.com</p>
+                                            </div>
+                                        </a>
+                                        <a href="tel:+919313927647" className="flex items-center gap-2.5 bg-white border border-slate-200 hover:border-amber-600 px-4 py-2 rounded-xl shadow-2xs hover:shadow-xs transition-all w-full sm:w-auto">
+                                            <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                                <Icon name="phone" size={12}/>
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-[8.5px] text-slate-400 uppercase font-black tracking-wider">Helpline (24x7)</p>
+                                                <p className="text-slate-800 text-xs font-bold">+91 93139 27647</p>
+                                            </div>
+                                        </a>
                                     </div>
-                                )}
-
-                                {/* TAB 3: SELF-HELP FAQ CARD */}
-                                {tab === 'faq' && (
-                                    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 shadow-sm border border-slate-200 text-left space-y-2">
-                                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                                            <h3 className="text-xs font-black uppercase text-slate-900 flex items-center gap-1.5">
-                                                <Icon name="help-circle" size={14} className="text-amber-500"/>
-                                                <span>Frequently Asked Questions</span>
-                                            </h3>
-                                            <span className="text-[9px] font-bold text-slate-400">Knowledge Base</span>
-                                        </div>
-                                        <input 
-                                            type="text" 
-                                            placeholder="🔍 Search guides..." 
-                                            value={faqSearch} 
-                                            onChange={e => setFaqSearch(e.target.value)} 
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 outline-none"
-                                        />
-                                        <div className="max-h-[28vh] sm:max-h-[32vh] overflow-y-auto space-y-1.5 pr-1">
-                                            {FAQ_DATA.filter(f => f.q.toLowerCase().includes(faqSearch.toLowerCase()) || f.a.toLowerCase().includes(faqSearch.toLowerCase())).map((item, i) => (
-                                                <FaqItem key={i} item={item}/>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                                </div>
+                            </>
                         )}
                     </div>
 
-                    {/* ═══ ULTRA-COMPACT ZERO-SCROLL FOOTER ═══ */}
-                    <div className="pt-2 border-t border-slate-200 text-center shrink-0 max-w-xl mx-auto w-full pb-1">
-                        <h3 className="text-[8.5px] sm:text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">
-                            Indus Helpdesk &amp; Operations Center
-                        </h3>
-                        <div className="flex flex-row items-center justify-center gap-2 text-xs font-semibold text-slate-700">
-                            <a 
-                                href="mailto:customercare@indusfire.com" 
-                                className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-slate-800 px-3 py-1 rounded-xl shadow-2xs hover:shadow-xs transition-all truncate"
-                            >
-                                <div className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center shrink-0">
-                                    <Icon name="mail" size={11}/>
-                                </div>
-                                <div className="text-left truncate">
-                                    <p className="text-[7.5px] text-slate-400 uppercase font-black tracking-wider leading-none">Email</p>
-                                    <p className="text-slate-800 text-[10.5px] font-bold truncate">customercare@indusfire.com</p>
-                                </div>
-                            </a>
-
-                            <a 
-                                href="tel:+919313927647" 
-                                className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-amber-600 px-3 py-1 rounded-xl shadow-2xs hover:shadow-xs transition-all truncate"
-                            >
-                                <div className="w-5 h-5 rounded-md bg-amber-500 text-white flex items-center justify-center shrink-0">
-                                    <Icon name="phone" size={11}/>
-                                </div>
-                                <div className="text-left truncate">
-                                    <p className="text-[7.5px] text-slate-400 uppercase font-black tracking-wider leading-none">24x7 Helpline</p>
-                                    <p className="text-slate-800 text-[10.5px] font-bold truncate">+91 93139 27647</p>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-
-                    {/* ══════════════════════════════════════════════════════════════ */}
-                    {/* MODAL 1: EXECUTIVE WARRANTY DETAILS POPUP (CENTERED MODAL)    */}
-                    {/* (Eliminates vertical pushdown; main screen never scrolls!)    */}
-                    {/* ══════════════════════════════════════════════════════════════ */}
-                    {foundTruck && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-                            <div className="relative w-full max-w-4xl bg-slate-950 rounded-3xl border border-white/10 p-5 sm:p-7 text-white modal-animate max-h-[90vh] overflow-y-auto my-auto shadow-2xl">
-                                
-                                {/* Close Button */}
-                                <button
-                                    type="button"
-                                    onClick={() => { setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null); }}
-                                    className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center text-sm font-black transition-all cursor-pointer"
-                                    title="Close details"
-                                >
-                                    ✕
-                                </button>
-
-                                {/* Top Banner Row */}
-                                <div className="relative flex items-center justify-between border-b border-white/10 pb-4 mb-5 z-10 pr-10">
-                                    <div className="flex items-center gap-2">
-                                        <Icon name="shield-check" className="text-amber-500" size={18} />
-                                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">🛡️ Verified Warranty Status</span>
-                                    </div>
-                                    <div className={`bg-gradient-to-r ${wState.badgeGrad} text-white px-3 py-1 rounded-full flex items-center gap-2 shadow-md shrink-0`}>
-                                        <span className="text-[9px] font-black tracking-widest uppercase">{wState.status}</span>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                                        <span className="text-[9px] font-black tracking-widest uppercase">{dRem > 0 ? `${dRem} Days` : 'EXPIRED'}</span>
-                                    </div>
-                                </div>
-
-                                {/* Columns Grid */}
-                                <div className="relative grid grid-cols-1 md:grid-cols-12 gap-6 items-center z-10">
-                                    {/* Circular Progress Gauge */}
-                                    <div className="md:col-span-4 flex flex-col items-center justify-center text-center">
-                                        <div className="relative w-36 h-36 flex items-center justify-center bg-slate-900/40 rounded-full border border-white/5 shadow-inner">
-                                            <svg className="w-36 h-36 transform -rotate-90 absolute">
-                                                <circle cx="72" cy="72" r="58" className="stroke-slate-800/60" strokeWidth="6" fill="transparent" />
-                                                <circle 
-                                                    cx="72" 
-                                                    cy="72" 
-                                                    r="58" 
-                                                    className={`transition-all duration-[1200ms] ease-out stroke-current ${wState.colorClass}`} 
-                                                    strokeWidth="6" 
-                                                    fill="transparent" 
-                                                    strokeDasharray={2 * Math.PI * 58}
-                                                    strokeDashoffset={(2 * Math.PI * 58) - (animatedPercent / 100) * (2 * Math.PI * 58)}
-                                                    strokeLinecap="round" 
-                                                />
-                                            </svg>
-                                            <div className="flex flex-col items-center justify-center">
-                                                <p className="text-2xl font-extrabold text-white tracking-tight">{dRem > 0 ? `${animatedPercent}%` : '0%'}</p>
-                                                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                    {dRem > 0 ? `${dRem} Days` : 'Expired'}
-                                                </p>
-                                                <p className="text-[7.5px] font-black text-slate-500 uppercase tracking-wider mt-0.5">Remaining</p>
-                                            </div>
-                                        </div>
-                                        <p className={`text-[10.5px] font-black tracking-wider uppercase mt-3 ${wState.colorClass} flex items-center gap-1.5`}>
-                                            <Icon name={wState.icon} size={13}/>
-                                            {wState.status === 'EXPIRED' ? 'Coverage Expired' : 'Active Warranty'}
-                                        </p>
-                                    </div>
-
-                                    {/* Technical Specification Grid */}
-                                    <div className="md:col-span-8 flex flex-col justify-center text-left">
-                                        <div className="grid grid-cols-2 gap-2.5 text-xs">
-                                            {(() => {
-                                                const specs = [
-                                                    { l: 'Customer / Organization', v: cust?.name, i: 'building-2' },
-                                                    { l: 'PO Number', v: foundTruck.poNo, i: 'hash' },
-                                                    { l: 'Tender Type / Model', v: foundTruck.tenderType || 'Fire Tender', i: 'shield' },
-                                                    { l: 'Delivery Date', v: formatDate(foundTruck.deliveryDate), i: 'calendar' },
-                                                    { l: 'Warranty Expiry', v: formatDate(warrantyExp), i: 'clock' },
-                                                    { l: 'Chassis Make', v: foundTruck.chassisMake, i: 'truck' },
-                                                    { l: 'Pump Make & Sr. No.', v: `${foundTruck.pumpMake || 'Standard'} (${foundTruck.pumpSrNo || 'N/A'})`, i: 'activity' }
-                                                ];
-                                                if (foundTruck.uhpPumpMake || foundTruck.uhpPumpSrNo || foundTruck.uhpPumpLpm) {
-                                                    const uhpDesc = [foundTruck.uhpPumpMake, foundTruck.uhpPumpLpm ? `(${foundTruck.uhpPumpLpm})` : '', foundTruck.uhpPumpSrNo ? `Sr: ${foundTruck.uhpPumpSrNo}` : ''].filter(Boolean).join(' ');
-                                                    specs.push({ l: '⚡ UHP Pump (Make / LPM / Sr)', v: uhpDesc, i: 'zap' });
-                                                }
-                                                if (foundTruck.dcpCapacity || foundTruck.dcpHptDueDate) {
-                                                    const dcpDesc = [foundTruck.dcpCapacity ? `${foundTruck.dcpCapacity} Kg Capacity` : 'DCP System', foundTruck.dcpHptDueDate ? `HPT Due: ${formatDate(foundTruck.dcpHptDueDate)}` : ''].filter(Boolean).join(' · ');
-                                                    specs.push({ l: '🧯 DCP System & HPT Due', v: dcpDesc, i: 'shield' });
-                                                }
-                                                specs.push({ l: 'Location / Plant', v: cust?.address || cust?.location || 'Gujarat, India', i: 'map-pin' });
-
-                                                return specs.map((it, idx) => (
-                                                    <div key={idx} className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
-                                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">{it.l}</span>
-                                                        <span className="text-[11px] font-bold text-slate-100 truncate block">{it.v || 'N/A'}</span>
-                                                    </div>
-                                                ));
-                                            })()}
-                                        </div>
-
-                                        {/* Commissioning Soft Copy Banner */}
-                                        {(() => {
-                                            const existingCert = (commCerts || []).find(c => c.truckId === foundTruck.id);
-                                            return (
-                                                <div className="mt-4 p-3 rounded-2xl bg-linear-to-r from-amber-500/20 via-amber-500/10 to-slate-900/40 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-left">
-                                                    <div className="flex items-start gap-2.5">
-                                                        <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-base shrink-0">🎓</div>
-                                                        <div>
-                                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                                <span className="text-[11px] font-black text-amber-300 uppercase tracking-tight">Commissioning Certificate</span>
-                                                                {existingCert ? (
-                                                                    <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500 text-slate-950">✓ Finalized</span>
-                                                                ) : (
-                                                                    <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/10">Pending Site Clearance</span>
-                                                                )}
-                                                            </div>
-                                                            <p className="text-[10px] font-medium text-slate-300 mt-0.5">
-                                                                {existingCert ? `Cert: ${existingCert.certNo || 'IFS/COMM'} · Complete Crew Records` : 'Training sheet soft copy available after site completion.'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    {existingCert && (
-                                                        <div className="flex items-center gap-2 shrink-0">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => printCommissioningCertificatePdf(existingCert, foundTruck, cust)}
-                                                                className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer"
-                                                            >
-                                                                <Icon name="printer" size={12}/> Download PDF
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setCustomerViewSoftCopyCert({ cert: existingCert, truck: foundTruck, customer: cust })}
-                                                                className="bg-white/15 hover:bg-white/25 text-white border border-white/20 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer"
-                                                            >
-                                                                <Icon name="eye" size={12}/> View Sheet
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })()}
-
-                                        {/* Complaint Trigger */}
-                                        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
-                                            <p className="text-[10px] text-slate-400">Need service engineer visit or warranty claim?</p>
-                                            <button 
-                                                onClick={() => setShowComplaintForm(!showComplaintForm)} 
-                                                className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider shadow-md cursor-pointer transition-all"
-                                            >
-                                                <Icon name="message-square-plus" size={13}/>
-                                                <span>Log a Complaint</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Expandable Complaint Form inside Modal */}
-                                {showComplaintForm && (
-                                    <div className="bg-white rounded-2xl p-4 text-slate-900 mt-4 text-left fade-up">
-                                        <h4 className="font-black text-xs uppercase text-slate-900 mb-2">Register Support Ticket for {foundTruck.poNo}</h4>
-                                        <form onSubmit={handleSubmitComplaint} className="space-y-2.5">
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                <div>
-                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-0.5">Category *</label>
-                                                    <select value={compForm.category} onChange={e=>setCompForm({...compForm,category:e.target.value})} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none">
-                                                        <option value="">Select Category</option>
-                                                        {categories.map((c,i)=><option key={i} value={c}>{c}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-0.5">Reported By *</label>
-                                                    <input type="text" value={compForm.reportedBy} onChange={e=>setCompForm({...compForm,reportedBy:e.target.value})} required placeholder="Your full name" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none"/>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                <div>
-                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-0.5">Contact Phone *</label>
-                                                    <input type="tel" value={compForm.contactPhone} onChange={e=>setCompForm({...compForm,contactPhone:e.target.value})} required placeholder="+91..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none"/>
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-0.5">Email Address</label>
-                                                    <input type="email" value={compForm.contactEmail} onChange={e=>setCompForm({...compForm,contactEmail:e.target.value})} placeholder="officer@domain.com" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none"/>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] font-black text-slate-500 uppercase block mb-0.5">Problem Description *</label>
-                                                <textarea value={compForm.description} onChange={e=>setCompForm({...compForm,description:e.target.value})} required placeholder="Describe technical issue in detail..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none min-h-[60px]"/>
-                                            </div>
-                                            <div className="flex justify-end gap-2">
-                                                <button type="button" onClick={()=>setShowComplaintForm(false)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase cursor-pointer">Cancel</button>
-                                                <button type="submit" className="px-4 py-1.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase shadow-sm cursor-pointer">Submit Ticket</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                )}
-
-                                {compSubmitted && (
-                                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-left text-emerald-950 mt-3 fade-up">
-                                        <div className="flex items-center gap-1.5">
-                                            <Icon name="check-circle" size={16} className="text-emerald-600"/>
-                                            <span className="text-xs font-black uppercase">Ticket Logged Successfully: {compSubmitted.complaintId}</span>
-                                        </div>
-                                        <p className="text-[10px] text-emerald-700 mt-1">Our engineering team has been notified and will attend within 24 hours.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ══════════════════════════════════════════════════════════════ */}
-                    {/* MODAL 2: TICKET STATUS MODAL (CENTERED POPUP)                 */}
-                    {/* ══════════════════════════════════════════════════════════════ */}
-                    {foundTicket && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-                            <div className="relative w-full max-w-xl bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 text-slate-900 modal-animate max-h-[90vh] overflow-y-auto my-auto shadow-2xl text-left space-y-3">
-                                <button
-                                    type="button"
-                                    onClick={() => { setFoundTicket(null); setFbSubmitted(false); }}
-                                    className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-black transition-all cursor-pointer"
-                                    title="Close ticket"
-                                >
-                                    ✕
-                                </button>
-
-                                <div className="border-b border-slate-100 pb-2 pr-10">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-black text-slate-900 uppercase">Ticket #{foundTicket.complaintId}</span>
-                                        <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${foundTicket.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                            {foundTicket.status}
-                                        </span>
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">Logged on {formatDate(foundTicket.dateReceived)}</p>
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-2 text-[11px]">
-                                    <div className="bg-slate-50 p-2 rounded-xl"><span className="text-[8px] font-black uppercase text-slate-400 block">Category</span><span className="font-bold">{foundTicket.category}</span></div>
-                                    <div className="bg-slate-50 p-2 rounded-xl"><span className="text-[8px] font-black uppercase text-slate-400 block">Reported By</span><span className="font-bold truncate block">{foundTicket.reportedBy}</span></div>
-                                    <div className="bg-slate-50 p-2 rounded-xl"><span className="text-[8px] font-black uppercase text-slate-400 block">Target Date</span><span className="font-bold text-amber-800">{formatDate(foundTicket.targetDate || foundTicket.closedDate)}</span></div>
-                                </div>
-
-                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block mb-1">Issue Description:</span>
-                                    <p className="font-medium text-slate-700">{foundTicket.description}</p>
-                                </div>
-
-                                {foundTicket.status === 'Resolved' && (
-                                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900">
-                                        <span className="text-[8.5px] font-black uppercase text-emerald-700 block mb-1">✓ Resolution Summary:</span>
-                                        <p className="font-bold">{foundTicket.diagnosis || 'Maintenance completed per OEM technical specifications.'}</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ═══ TRAINER ACCESS PASSWORD MODAL ═══ */}
+                    {/* ????????? TRAINER ACCESS PASSWORD MODAL ????????? */}
                     {showTrainerAuthModal && (
                         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
                             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 modal-animate text-center border border-slate-200 space-y-4 text-slate-800">
                                 <div className="w-12 h-12 bg-amber-50 text-amber-700 rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-2xs">
-                                    🎓
+                                    ????
                                 </div>
                                 <div>
                                     <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">
                                         Trainer Access
                                     </h3>
                                     <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">
-                                        🔐 Enter Trainer Passcode (6655)
+                                        ???? Enter Trainer Access Password
                                     </p>
                                 </div>
 
                                 <form onSubmit={e => {
                                     e.preventDefault();
                                     const expected = getTrainerPortalPassword();
-                                    if (trainerPassInput.trim() === expected || trainerPassInput.trim() === '6655') {
+                                    if (trainerPassInput.trim() === expected) {
                                         setIsTrainerMode(true);
                                         setShowTrainerAuthModal(false);
                                         setTrainerPassInput('');
@@ -5984,17 +6263,8 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         <input
                                             type={showTrainerPass ? "text" : "password"}
                                             value={trainerPassInput}
-                                            onChange={e => { 
-                                                const v = e.target.value;
-                                                setTrainerPassInput(v); 
-                                                setTrainerPassError(false); 
-                                                if (v.trim() === getTrainerPortalPassword() || v.trim() === '6655') {
-                                                    setIsTrainerMode(true);
-                                                    setShowTrainerAuthModal(false);
-                                                    setTrainerPassInput('');
-                                                }
-                                            }}
-                                            placeholder="••••"
+                                            onChange={e => { setTrainerPassInput(e.target.value); setTrainerPassError(false); }}
+                                            placeholder="????????????"
                                             autoFocus
                                             required
                                             className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-slate-900 text-center tracking-widest"
@@ -6027,7 +6297,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             type="submit"
                                             className="flex-1 bg-slate-900 hover:bg-black text-white py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer"
                                         >
-                                            Unlock
+                                            Unlock Training
                                         </button>
                                     </div>
                                 </form>
@@ -6035,7 +6305,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         </div>
                     )}
 
-                    {/* ═══ CUSTOMER TRAINING SHEET SOFT COPY MODAL ═══ */}
+                    {/* ????????? CUSTOMER TRAINING SHEET SOFT COPY MODAL ????????? */}
                     {customerViewSoftCopyCert && (
                         <CustomerTrainingSoftCopyModal
                             cert={customerViewSoftCopyCert.cert}
@@ -6045,7 +6315,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         />
                     )}
 
-                    {/* ═══ MOUNT COMMISSIONING MODAL IN CUSTOMER PORTAL ═══ */}
+                    {/* ????????? MOUNT COMMISSIONING MODAL IN CUSTOMER PORTAL ????????? */}
                     {selectedCommissioningTruck && (
                         <CommissioningModal
                             truck={selectedCommissioningTruck.truck || selectedCommissioningTruck}
@@ -6055,13 +6325,35 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                             onClose={() => setSelectedCommissioningTruck(null)}
                         />
                     )}
+                
+                    {/* Discreet Bottom Lock Buttons */}
+                    <button
+                        type="button"
+                        onClick={() => setPortalMode('login')}
+                        title=""
+                        aria-label="Staff Login"
+                        className="fixed bottom-3 right-3 z-30 w-6 h-6 rounded-full flex items-center justify-center opacity-20 hover:opacity-70 transition-opacity cursor-pointer"
+                    >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setPortalMode('login')}
+                        title=""
+                        aria-label="Staff Login"
+                        className="fixed bottom-3 left-3 z-30 w-6 h-6 rounded-full flex items-center justify-center opacity-20 hover:opacity-70 transition-opacity cursor-pointer"
+                    >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </button>
                 </div>
             );
         };
 
-        // ══════════════════════════════════════════════════════
+        // ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
         // CAPA (CORRECTIVE & PREVENTIVE ACTION) MODULE
-        // ══════════════════════════════════════════════════════
+        // ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+
+        
 
         const DEFAULT_ROOT_CAUSE_CATEGORIES = [
             "Design", "Material", "Manufacturing", "Process", "Maintenance", 
@@ -12984,32 +13276,30 @@ function App() {
             // URL hash & query detection — auto-open portal or track specific ticket if opened via QR or link
             useEffect(() => {
                 const handleUrlParams = () => {
-                    // Check search query parameters (?ticket=... or ?po=... or ?tab=... or ?mode=...)
+                    // Check search query parameters (?ticket=... or ?po=...)
                     try {
                         const searchParams = new URLSearchParams(window.location.search);
                         const sTicket = searchParams.get('ticket') || searchParams.get('complaint') || searchParams.get('id');
                         const sPo = searchParams.get('po');
-                        const sTab = searchParams.get('tab');
                         const sMode = searchParams.get('mode');
+                        const sTab = searchParams.get('tab');
+                        
                         if (sTicket) {
                             setPortalInitialTicket(decodeURIComponent(sTicket).trim());
-                            setAccessMode('customer');
                         }
                         if (sPo) {
                             setPortalInitialPo(decodeURIComponent(sPo).trim());
-                            setAccessMode('customer');
                         }
-                        if (sMode === 'master_admin' || sMode === 'admin') {
-                            setAccessMode('master_admin');
-                        } else if (sMode === 'agm') {
-                            setAccessMode('agm');
-                        }
-                        if (sTab) {
-                            setActiveTab(sTab);
+                        // Any admin parameters or hash must NOT bypass login. Clean the URL to avoid admin persistence.
+                        if (sMode || sTab) {
+                            try {
+                                const cleanUrl = window.location.pathname + (sTicket ? `?ticket=${encodeURIComponent(sTicket)}` : (sPo ? `?po=${encodeURIComponent(sPo)}` : ''));
+                                window.history.replaceState({}, document.title, cleanUrl);
+                            } catch(e) {}
                         }
                     } catch(e) {}
 
-                    // Check hash parameters (#ticket=... or #trucks or #tab=trucks)
+                    // Check hash parameters (#ticket=... or #po=... or pure ticket id)
                     const hash = window.location.hash;
                     if (hash) {
                         try {
@@ -13018,30 +13308,25 @@ function App() {
                                 const match = raw.match(/ticket=([^&]+)/);
                                 if (match && match[1]) {
                                     setPortalInitialTicket(decodeURIComponent(match[1]).trim());
-                                    setAccessMode('customer');
                                 }
                             } else if (raw.includes('po=')) {
                                 const match = raw.match(/po=([^&]+)/);
                                 if (match && match[1]) {
                                     setPortalInitialPo(decodeURIComponent(match[1]).trim());
-                                    setAccessMode('customer');
                                 }
-                            } else if (raw.includes('tab=')) {
-                                const match = raw.match(/tab=([^&]+)/);
-                                if (match && match[1]) {
-                                    setActiveTab(match[1]);
-                                }
-                            } else if (raw === 'trucks' || raw === 'fleet') {
-                                setAccessMode('master_admin');
-                                setActiveTab('trucks');
-                            } else if (raw === 'admin') {
-                                setAccessMode('master_admin');
                             } else if (/^\d{4}-[A-Z]{2}-\d{4}$/i.test(raw)) {
                                 setPortalInitialTicket(raw.trim());
-                                setAccessMode('customer');
+                            }
+                            // Clean hash if it contained admin bypass attempt or stale tabs
+                            if (raw === 'trucks' || raw === 'fleet' || raw === 'admin' || raw.includes('tab=') || raw === 'login') {
+                                try {
+                                    window.history.replaceState({}, document.title, window.location.pathname);
+                                } catch(e) {}
                             }
                         } catch(e) {}
                     }
+                    // Forcefully ensure customer portal mode on initial load / refresh
+                    setAccessMode('customer');
                 };
                 handleUrlParams();
                 window.addEventListener('hashchange', handleUrlParams);
@@ -16781,7 +17066,7 @@ function App() {
                                                             onClick={() => {
                                                                 setSelectedVehicleDetail(null);
                                                                 if (window.location.search.includes('openDetail=1')) {
-                                                                    window.history.replaceState({}, '', window.location.pathname + '?mode=admin&tab=trucks');
+                                                                    window.history.replaceState({}, '', window.location.pathname);
                                                                 }
                                                             }}
                                                             className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-2"
