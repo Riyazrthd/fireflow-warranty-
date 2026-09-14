@@ -4981,7 +4981,26 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             );
         };
         // ── Customer Portal ──
-        const CustomerPortal = ({ trucks, customers, complaints, categories, pmRecords = [], onSavePmRecord, commCerts = [], onSaveCommCert, setComplaints, feedbacks, setFeedbacks, user, initialPo = '', initialTicket = '', getQrImageUrl }) => {
+        const CustomerPortal = ({ 
+            trucks, 
+            customers, 
+            complaints, 
+            categories, 
+            pmRecords = [], 
+            onSavePmRecord, 
+            commCerts = [], 
+            onSaveCommCert, 
+            setComplaints, 
+            feedbacks, 
+            setFeedbacks, 
+            user, 
+            initialPo = '', 
+            initialTicket = '', 
+            getQrImageUrl,
+            onAdminLogin,
+            onOpenMasterAuth,
+            onOpenAgmAuth
+        }) => {
             const [selectedPmMilestone, setSelectedPmMilestone] = useState(null);
             const [selectedCommissioningTruck, setSelectedCommissioningTruck] = useState(null);
             const [customerViewSoftCopyCert, setCustomerViewSoftCopyCert] = useState(null);
@@ -4997,8 +5016,22 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const [compSubmitted, setCompSubmitted] = useState(null);
             const [fbForm, setFbForm] = useState({ rating: 5, feedbackText:'', personName:'', contactNumber:'' });
             const [fbSubmitted, setFbSubmitted] = useState(false);
-            const [directTruck, setDirectTruck] = useState(null);
             const [faqSearch, setFaqSearch] = useState('');
+
+            // Mode: 'portal' (Customer Search) vs 'login' (Dedicated Staff/Admin Login View)
+            const [portalMode, setPortalMode] = useState(() => {
+                try {
+                    const search = new URLSearchParams(window.location.search);
+                    if (search.get('mode') === 'login' || window.location.hash === '#login') return 'login';
+                } catch(e) {}
+                return 'portal';
+            });
+
+            // Dedicated Login Screen State
+            const [loginInput, setLoginInput] = useState('');
+            const [loginError, setLoginError] = useState(false);
+            const [showLoginPass, setShowLoginPass] = useState(false);
+            const [isVerifying, setIsVerifying] = useState(false);
 
             // ── TRAINER COMMISSIONING ACCESS STATE ──
             const [isTrainerMode, setIsTrainerMode] = useState(false);
@@ -5071,14 +5104,53 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                 }
             }, [initialTicket, complaints]);
 
+            // Password verification handler (Auto-Unlock on matching 4-digit code)
+            const handlePasscodeCheck = async (val) => {
+                const str = (val || '').trim();
+                if (!str) return;
+                setIsVerifying(true);
+                setLoginError(false);
+                try {
+                    const role = await verifyPasswordLevel(str);
+                    if (role === 'master_admin') {
+                        setIsVerifying(false);
+                        setLoginInput('');
+                        if (onAdminLogin) onAdminLogin('master_admin');
+                        return;
+                    } else if (role === 'agm') {
+                        setIsVerifying(false);
+                        setLoginInput('');
+                        if (onAdminLogin) onAdminLogin('agm');
+                        return;
+                    } else if (role === 'register_delivery') {
+                        setIsVerifying(false);
+                        setLoginInput('');
+                        if (onAdminLogin) onAdminLogin('register_delivery');
+                        return;
+                    } else if (str === getTrainerPortalPassword() || str === '6655') {
+                        setIsVerifying(false);
+                        setIsTrainerMode(true);
+                        setPortalMode('portal');
+                        setLoginInput('');
+                        return;
+                    }
+                    if (str.length >= 4) {
+                        setIsVerifying(false);
+                        setLoginError(true);
+                    }
+                } catch(e) {
+                    setIsVerifying(false);
+                }
+            };
+
             const handleLookup = () => {
                 setLookupError(''); setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null);
                 const q = lookupQuery.trim().toUpperCase();
                 if (!q) { setLookupError('Please enter a PO, Pump Serial, or Chassis/Model Number.'); return; }
                 const found = trucks.find(t => 
                     (t.poNo||'').trim().toUpperCase() === q || 
-                    (t.pumpSrNo||'').trim().toUpperCase() === q ||
-                    (t.chassisMake||'').trim().toUpperCase() === q ||
+                    (t.pumpSrNo||'').trim().toUpperCase() === q || 
+                    (t.chassisMake||'').trim().toUpperCase() === q || 
                     (t.modelNo||'').trim().toUpperCase() === q
                 );
                 if (found) { 
@@ -5198,70 +5270,31 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         fillColor: 'bg-emerald-500',
                         glowClass: 'shadow-[0_0_15px_rgba(16,185,129,0.4)]',
                         borderGlow: 'border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.15)]',
-                        pulse: false,
-                        glow: false,
-                        expired: false,
                         icon: 'shield-check'
                     };
-                } else if (dRemaining >= 90) {
-                    return {
-                        status: 'GOOD',
-                        colorClass: 'text-blue-400',
-                        bgClass: 'bg-blue-500/10 border-blue-500/20',
-                        badgeGrad: 'from-blue-500 to-indigo-600',
-                        strokeColor: 'text-blue-500',
-                        fillColor: 'bg-blue-500',
-                        glowClass: 'shadow-[0_0_15px_rgba(59,130,246,0.4)]',
-                        borderGlow: 'border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.15)]',
-                        pulse: false,
-                        glow: false,
-                        expired: false,
-                        icon: 'badge-check'
-                    };
-                } else if (dRemaining >= 30) {
+                } else if (dRemaining > 0) {
                     return {
                         status: 'EXPIRING SOON',
                         colorClass: 'text-amber-400',
                         bgClass: 'bg-amber-500/10 border-amber-500/20',
-                        badgeGrad: 'from-amber-500 to-orange-600 animate-pulse',
+                        badgeGrad: 'from-amber-500 to-orange-600',
                         strokeColor: 'text-amber-500',
                         fillColor: 'bg-amber-500',
                         glowClass: 'shadow-[0_0_15px_rgba(245,158,11,0.4)]',
                         borderGlow: 'border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.15)]',
-                        pulse: true,
-                        glow: false,
-                        expired: false,
-                        icon: 'clock'
-                    };
-                } else if (dRemaining > 0) {
-                    return {
-                        status: 'URGENT',
-                        colorClass: 'text-orange-400',
-                        bgClass: 'bg-orange-500/10 border-orange-500/20',
-                        badgeGrad: 'from-orange-500 to-red-600 animate-pulse',
-                        strokeColor: 'text-orange-500',
-                        fillColor: 'bg-orange-500',
-                        glowClass: 'shadow-[0_0_20px_rgba(249,115,22,0.6)]',
-                        borderGlow: 'border-orange-500/40 shadow-[0_0_40px_rgba(249,115,22,0.25)] animate-pulse',
-                        pulse: false,
-                        glow: true,
-                        expired: false,
-                        icon: 'shield-alert'
+                        icon: 'alert-triangle'
                     };
                 } else {
                     return {
                         status: 'EXPIRED',
-                        colorClass: 'text-rose-500',
+                        colorClass: 'text-rose-400',
                         bgClass: 'bg-rose-500/10 border-rose-500/20',
-                        badgeGrad: 'from-rose-600 to-red-700',
+                        badgeGrad: 'from-rose-500 to-red-600',
                         strokeColor: 'text-rose-500',
                         fillColor: 'bg-rose-500',
-                        glowClass: 'shadow-none',
-                        borderGlow: 'border-rose-500/45 shadow-[0_0_40px_rgba(244,63,94,0.3)] animate-pulse',
-                        pulse: false,
-                        glow: false,
-                        expired: true,
-                        icon: 'shield-alert'
+                        glowClass: 'shadow-[0_0_15px_rgba(244,63,94,0.4)]',
+                        borderGlow: 'border-rose-500/30 shadow-[0_0_30px_rgba(244,63,94,0.15)]',
+                        icon: 'alert-octagon'
                     };
                 }
             };
@@ -5275,745 +5308,649 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             ];
 
             return (
-                <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-3 sm:p-5 flex flex-col justify-between">
-                    {/* Portal Header */}
-                    <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col justify-center">
-                        <div className="text-center mb-3 sm:mb-4 fade-up">
-                            <div className="flex justify-center mb-1.5">
-                                <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-14 h-14 object-contain drop-shadow-xs" />
-                            </div>
-                            <div className="flex justify-center items-center gap-2 mb-2 flex-wrap">
-                                <div className="inline-flex items-center gap-2 bg-white border border-slate-200/90 px-3 py-1 rounded-full shadow-2xs">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                    <span className="text-[9.5px] font-black text-slate-600 uppercase tracking-widest">Customer Self-Service Portal</span>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setTrainerPassInput('');
-                                        setTrainerPassError(false);
-                                        setShowTrainerAuthModal(true);
-                                    }}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9.5px] font-black text-slate-700 bg-white hover:bg-amber-50 hover:text-amber-900 border border-slate-200/90 hover:border-amber-300 shadow-2xs hover:shadow-xs transition-all cursor-pointer uppercase tracking-wider"
-                                    title="Access Commissioning & Training Wizard for Field Engineers"
-                                >
-                                    <span>🎓</span>
-                                    <span>Training / Commissioning</span>
-                                </button>
-                            </div>
-                            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1">
-                                FireFlow Warranty <span className="text-amber-600">Support Hub</span>
-                            </h1>
-                            <p className="text-slate-500 text-xs font-semibold">
-                                Look up warranty status · Log complaints · Track ticket progress · Self-help guides
-                            </p>
+                <div className="h-screen max-h-screen overflow-hidden bg-[#f8fafc] text-slate-900 p-2 sm:p-4 flex flex-col justify-between select-none">
+                    
+                    {/* ═══ TOP HEADER & ROLE SWITCHER BAR ═══ */}
+                    <div className="max-w-2xl mx-auto w-full shrink-0 text-center pt-1">
+                        <div className="flex justify-center mb-1">
+                            <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-xs" />
+                        </div>
+                        
+                        {/* Header Pill Nav: Customer Portal / Training / Staff Login */}
+                        <div className="flex justify-center items-center gap-1 sm:gap-1.5 mb-1.5">
+                            <button
+                                type="button"
+                                onClick={() => { setPortalMode('portal'); setLoginError(false); }}
+                                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer border ${portalMode === 'portal' ? 'bg-white border-slate-400 text-slate-950 shadow-xs' : 'bg-white/70 border-slate-200 text-slate-500 hover:text-slate-900'}`}
+                            >
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span className="hidden sm:inline">Customer Portal</span>
+                                <span className="sm:hidden">Portal</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setTrainerPassInput('');
+                                    setTrainerPassError(false);
+                                    setShowTrainerAuthModal(true);
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[9.5px] font-black text-slate-700 bg-white hover:bg-amber-50 hover:text-amber-950 border border-slate-200 shadow-2xs hover:shadow-xs transition-all cursor-pointer uppercase tracking-wider"
+                                title="Access Commissioning & Training Wizard for Field Engineers"
+                            >
+                                <span>🎓</span>
+                                <span className="hidden sm:inline">Training / Commissioning</span>
+                                <span className="sm:hidden">Training</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setLoginInput('');
+                                    setLoginError(false);
+                                    setPortalMode(prev => prev === 'login' ? 'portal' : 'login');
+                                }}
+                                className={`inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer border ${portalMode === 'login' ? 'bg-slate-900 border-slate-900 text-white shadow-xs' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 shadow-2xs'}`}
+                                title="Authorized Staff & Executive Sign In"
+                            >
+                                <span>🔐</span>
+                                <span>Staff Login</span>
+                            </button>
                         </div>
 
-                        {/* ══════════════════════════════════════════════════════ */}
-                        {/* TRAINER MODE DASHBOARD (ISOLATED & RESTRICTED ACCESS)  */}
-                        {/* ══════════════════════════════════════════════════════ */}
+                        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                            {portalMode === 'login' ? (
+                                <>FireFlow Enterprise <span className="text-amber-600">Access</span></>
+                            ) : (
+                                <>FireFlow Warranty <span className="text-amber-600">Support Hub</span></>
+                            )}
+                        </h1>
+                        <p className="text-slate-500 text-[10px] sm:text-[11px] font-semibold truncate max-w-md mx-auto">
+                            {portalMode === 'login' 
+                                ? 'Single Sign-On · Enter 4-digit PIN for Master Admin, AGM, or Delivery'
+                                : 'Look up warranty status · Log complaints · Track ticket progress · Guides'
+                            }
+                        </p>
+                    </div>
+
+                    {/* ═══ CENTER MAIN WORKSPACE (STRICT ZERO-SCROLL FIT) ═══ */}
+                    <div className="max-w-xl mx-auto w-full flex-1 flex flex-col justify-center min-h-0 py-2">
+                        
+                        {/* ── VIEW 1: FIELD TRAINER MODE DASHBOARD ── */}
                         {isTrainerMode ? (
-                            <div className="space-y-6 fade-up text-left">
-                                {/* Trainer Header Banner */}
-                                <div className="bg-linear-to-r from-amber-500/15 via-amber-500/5 to-transparent p-4 rounded-3xl border border-amber-500/25 flex flex-wrap items-center justify-between gap-3 shadow-sm">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-xl font-black shadow-md">
-                                            🎓
-                                        </div>
+                            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm max-h-[72vh] overflow-y-auto space-y-3 text-left">
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black">🎓</div>
                                         <div>
-                                            <div className="flex items-center gap-2">
-                                                <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">
-                                                    Field Trainer Commissioning Hub
-                                                </h2>
-                                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                                    ● Authorized Session
-                                                </span>
-                                            </div>
-                                            <p className="text-xs font-bold text-slate-500">
-                                                Multi-Day Operator Training &amp; Apparatus Handover System
-                                            </p>
+                                            <h3 className="text-xs font-black text-slate-900 uppercase">Field Trainer Commissioning</h3>
+                                            <p className="text-[10px] text-slate-400 font-bold">Authorized Engineering Session</p>
                                         </div>
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setIsTrainerMode(false);
-                                            setSelectedTrainerCustomer(null);
-                                            setSelectedTrainerTruck(null);
-                                        }}
-                                        className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                                        onClick={() => { setIsTrainerMode(false); setSelectedTrainerCustomer(null); setSelectedTrainerTruck(null); }}
+                                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer"
                                     >
-                                        <Icon name="log-out" size={14}/> Exit Trainer Mode
+                                        ✕ Exit Trainer
                                     </button>
                                 </div>
 
-                                {/* STEP 1: SELECT CUSTOMER (FOCUS ON PENDING COMMISSIONING) */}
-                                {(() => {
-                                    const customersWithStats = customers.map(c => {
-                                        const cTrucks = trucks.filter(t => t.customerId === c.id);
-                                        const pendingCount = cTrucks.filter(t => !isTruckTrainingCompleted(t.id)).length;
-                                        const completedCount = cTrucks.filter(t => isTruckTrainingCompleted(t.id)).length;
-                                        return { ...c, totalTrucks: cTrucks.length, pendingCount, completedCount };
-                                    });
-
-                                    const pendingCustomers = customersWithStats.filter(c => c.pendingCount > 0);
-                                    const completedOnlyCustomers = customersWithStats.filter(c => c.totalTrucks > 0 && c.pendingCount === 0);
-                                    const displayCustomers = showCompletedCustomers ? customersWithStats : pendingCustomers;
-
-                                    return (
-                                        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                                            <div className="flex flex-wrap justify-between items-center gap-2">
-                                                <label className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5 tracking-wider">
-                                                    <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">1</span>
-                                                    Select Customer Organization
-                                                </label>
-                                                <div className="flex items-center gap-2">
-                                                    {completedOnlyCustomers.length > 0 && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setShowCompletedCustomers(!showCompletedCustomers)}
-                                                            className="text-[9px] font-extrabold text-slate-500 hover:text-slate-900 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg cursor-pointer transition-all"
-                                                        >
-                                                            {showCompletedCustomers ? '⚡ Hide Fully Trained Customers' : (`👁 Show All (${completedOnlyCustomers.length} Fully Trained)`)}
-                                                        </button>
-                                                    )}
-                                                    {selectedTrainerCustomer && (
-                                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                                                            ✓ Selected: {selectedTrainerCustomer.name}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                {/* Customer Selection */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase text-slate-600">Select Customer:</label>
+                                    <input
+                                        type="text"
+                                        value={trainerCustomerSearch}
+                                        onChange={e => setTrainerCustomerSearch(e.target.value)}
+                                        placeholder="Search customer name or location..."
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                                    />
+                                    <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
+                                        {customers.filter(c => (c.name||'').toLowerCase().includes(trainerCustomerSearch.toLowerCase())).map(c => (
+                                            <div
+                                                key={c.id}
+                                                onClick={() => { setSelectedTrainerCustomer(c); setSelectedTrainerTruck(null); }}
+                                                className={`p-2 rounded-xl text-xs font-bold cursor-pointer transition-all flex justify-between items-center ${selectedTrainerCustomer?.id === c.id ? 'bg-amber-500 text-slate-950 font-black shadow-xs' : 'bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+                                            >
+                                                <span>{c.name}</span>
+                                                <span className="text-[9px] uppercase opacity-80">{trucks.filter(t => t.customerId === c.id).length} Tenders</span>
                                             </div>
+                                        ))}
+                                    </div>
+                                </div>
 
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                <div className="relative">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="🔍 Search customer by name / location..."
-                                                        value={trainerCustomerSearch}
-                                                        onChange={e => setTrainerCustomerSearch(e.target.value)}
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <select
-                                                        value={selectedTrainerCustomer?.id || ''}
-                                                        onChange={e => {
-                                                            const found = customers.find(c => c.id === e.target.value);
-                                                            setSelectedTrainerCustomer(found || null);
-                                                            setSelectedTrainerTruck(null);
-                                                            setShowCompletedTrucks(false);
-                                                        }}
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 cursor-pointer"
+                                {/* Vehicle Selection & Wizard Launch */}
+                                {selectedTrainerCustomer && (
+                                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-slate-600">Select Apparatus for {selectedTrainerCustomer.name}:</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {trucks.filter(t => t.customerId === selectedTrainerCustomer.id).map(t => {
+                                                const isSelected = selectedTrainerTruck?.id === t.id;
+                                                const isDone = isTruckTrainingCompleted(t.id);
+                                                return (
+                                                    <div
+                                                        key={t.id}
+                                                        onClick={() => setSelectedTrainerTruck(t)}
+                                                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${isSelected ? 'bg-amber-50 border-amber-500 shadow-xs' : isDone ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}
                                                     >
-                                                        <option value="">
-                                                            {displayCustomers.length > 0 
-                                                                ? `-- Choose Customer (${displayCustomers.length} Available) --`
-                                                                : '-- No Customers Needing Training --'}
-                                                        </option>
-                                                        {displayCustomers
-                                                            .filter(c => !trainerCustomerSearch.trim() || (c.name || '').toLowerCase().includes(trainerCustomerSearch.toLowerCase()) || (c.location || '').toLowerCase().includes(trainerCustomerSearch.toLowerCase()))
-                                                            .map(c => (
-                                                                <option key={c.id} value={c.id}>
-                                                                    {c.name} {c.location ? '(' + c.location + ')' : ''} — {c.pendingCount > 0 ? `(${c.pendingCount} Pending Training)` : '✓ Training Done'}
-                                                                </option>
-                                                            ))}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })()}
-
-                                {/* STEP 2: SELECT VEHICLE / TRUCK (PENDING VEHICLES SHOWN FIRST) */}
-                                {selectedTrainerCustomer && (() => {
-                                    const allClientTrucks = trucks.filter(t => t.customerId === selectedTrainerCustomer.id);
-                                    const pendingTrucks = allClientTrucks.filter(t => !isTruckTrainingCompleted(t.id));
-                                    const completedTrucks = allClientTrucks.filter(t => isTruckTrainingCompleted(t.id));
-                                    const visibleTrucks = showCompletedTrucks ? allClientTrucks : pendingTrucks;
-
-                                    return (
-                                        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3 fade-up">
-                                            <div className="flex flex-wrap justify-between items-center gap-2">
-                                                <label className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5 tracking-wider">
-                                                    <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">2</span>
-                                                    Select Vehicle / Project Tender
-                                                </label>
-                                                <div className="flex items-center gap-2">
-                                                    {completedTrucks.length > 0 && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setShowCompletedTrucks(!showCompletedTrucks)}
-                                                            className="text-[9px] font-extrabold text-slate-500 hover:text-slate-900 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg cursor-pointer transition-all"
-                                                        >
-                                                            {showCompletedTrucks ? '⚡ Hide Completed Vehicles' : (`👁 View Completed Vehicles (${completedTrucks.length})`)}
-                                                        </button>
-                                                    )}
-                                                    <span className="text-[10px] font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                                                        {pendingTrucks.length} Pending Commissioning
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {allClientTrucks.length === 0 ? (
-                                                <div className="p-6 text-center text-slate-400 font-bold bg-slate-50 rounded-2xl border border-slate-200 text-xs">
-                                                    No fire apparatus records linked to this customer yet.
-                                                </div>
-                                            ) : visibleTrucks.length === 0 ? (
-                                                <div className="p-6 text-center bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-2 fade-up">
-                                                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto text-sm font-black">
-                                                        ✓
-                                                    </div>
-                                                    <h5 className="text-xs font-black uppercase text-emerald-950">
-                                                        All Vehicles Commissioned &amp; Trained
-                                                    </h5>
-                                                    <p className="text-[10px] font-bold text-emerald-700 max-w-md mx-auto">
-                                                        All {completedTrucks.length} vehicle(s) for {selectedTrainerCustomer.name} have successfully completed commissioning &amp; training.
-                                                    </p>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowCompletedTrucks(true)}
-                                                        className="mt-1 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-2xs transition-all"
-                                                    >
-                                                        📜 View Completed Certificates ({completedTrucks.length})
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                    {visibleTrucks.map(t => {
-                                                        const isSelected = selectedTrainerTruck?.id === t.id;
-                                                        const existingCert = (commCerts || []).find(c => c.truckId === t.id);
-                                                        const isDone = isTruckTrainingCompleted(t.id);
-
-                                                        return (
-                                                            <div
-                                                                key={t.id}
-                                                                onClick={() => setSelectedTrainerTruck(t)}
-                                                                className={'p-4 rounded-2xl border-2 transition-all cursor-pointer text-left space-y-2 ' + (
-                                                                    isSelected
-                                                                        ? 'bg-amber-500/10 border-amber-500 shadow-md scale-[1.01]'
-                                                                        : isDone
-                                                                            ? 'bg-emerald-50/40 border-emerald-200 hover:bg-emerald-50/70 opacity-80'
-                                                                            : 'bg-slate-50 border-slate-200 hover:border-slate-400 hover:bg-white'
-                                                                )}
-                                                            >
-                                                                <div className="flex justify-between items-start">
-                                                                    <span className="font-black text-xs text-slate-900 uppercase">
-                                                                        {t.tenderType || 'Fire Tender'}
-                                                                    </span>
-                                                                    {existingCert && (
-                                                                        <span className={'text-[8.5px] font-black uppercase px-2 py-0.5 rounded-md ' + (
-                                                                            existingCert.status === 'Finalized'
-                                                                                ? 'bg-emerald-100 text-emerald-800'
-                                                                                : 'bg-amber-100 text-amber-900'
-                                                                        )}>
-                                                                            {existingCert.status === 'Finalized' ? '✓ Training Done' : '● Draft'}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="text-[10px] space-y-0.5 text-slate-600 font-semibold">
-                                                                    <div>PO No: <span className="font-extrabold text-slate-800">{t.poNo || 'N/A'}</span></div>
-                                                                    <div>Chassis: <span className="font-bold text-slate-800">{t.chassisMake || 'Tata'} {t.chassisModel || ''}</span></div>
-                                                                    <div>Pump: <span className="font-bold text-slate-800">{t.pumpMake || 'Godiva'} ({t.pumpSrNo || 'N/A'})</span></div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })()}
-
-                                {/* STEP 3: READ-ONLY TECHNICAL SUMMARY & LAUNCH CARD */}
-                                {selectedTrainerCustomer && selectedTrainerTruck && (() => {
-                                    const pumpOem = getPumpOemSpecs(selectedTrainerTruck.pumpMake);
-                                    const chassisOem = getChassisOemSpecs(selectedTrainerTruck.chassisMake);
-                                    const existingCert = (commCerts || []).find(c => c.truckId === selectedTrainerTruck.id);
-                                    const completedQuestions = existingCert?.questions?.filter(q => q.completed)?.length || 0;
-                                    const totalQuestions = existingCert?.questions?.length || 10;
-                                    const attendeesSummary = existingCert ? buildTrainingAttendeeSummary(existingCert.attendanceByDay || (existingCert.attendees ? {1: existingCert.attendees} : {}), parseInt(existingCert.trainingDays) || 3, existingCert.startDate) : [];
-
-                                    return (
-                                        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 fade-up">
-                                            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                                                <div>
-                                                    <h3 className="text-xs font-black uppercase text-slate-900 flex items-center gap-1.5 tracking-wider">
-                                                        <Icon name="lock" size={13}/> Verified Customer &amp; Vehicle Specifications (Read-Only)
-                                                    </h3>
-                                                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-                                                        Automatically loaded from FireFlow Master. No manual re-typing required.
-                                                    </p>
-                                                </div>
-                                                <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                                                    🔒 Snapshot Protected
-                                                </span>
-                                            </div>
-
-                                            {/* Specification Grid */}
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
-                                                <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Customer</span>
-                                                    <span className="font-extrabold text-slate-900">{selectedTrainerCustomer.name}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Purchase Order (PO)</span>
-                                                    <span className="font-extrabold text-slate-900">{selectedTrainerTruck.poNo || 'N/A'}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Tender Type / Model</span>
-                                                    <span className="font-extrabold text-slate-900">{selectedTrainerTruck.tenderType || 'Fire Tender'}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Delivery / Handover</span>
-                                                    <span className="font-extrabold text-slate-900">{formatDate(selectedTrainerTruck.deliveryDate)}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Chassis Make &amp; Model</span>
-                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.chassisMake || chassisOem.brand}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Fire Pump OEM</span>
-                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.pumpMake || pumpOem.brand}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Pump Serial No</span>
-                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.pumpSrNo || 'N/A'}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block">Water / Foam Capacity</span>
-                                                    <span className="font-extrabold text-slate-800">{selectedTrainerTruck.waterCapacity || 'Std'}L / {selectedTrainerTruck.foamCapacity || 'Std'}L</span>
-                                                </div>
-                                            </div>
-
-                                            {/* EXISTING TRAINING DETECTION / ACTION BUTTONS */}
-                                            {existingCert ? (
-                                                <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-500/30 space-y-3">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs font-black uppercase text-amber-950">Existing Training Record Found</span>
-                                                                <span className={'text-[9px] font-black uppercase px-2 py-0.5 rounded-md ' + (
-                                                                    existingCert.status === 'Finalized' ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
-                                                                )}>
-                                                                    {existingCert.status === 'Finalized' ? 'Finalized & Issued' : ('Day ' + (existingCert.currentDay || 1) + ' — In Progress')}
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-[10px] font-bold text-amber-800 mt-1">
-                                                                Cert No: <b>{existingCert.certNo}</b> · {completedQuestions}/{totalQuestions} Checklist points cleared · {attendeesSummary.length} Attendees recorded
-                                                            </p>
+                                                        <div className="flex justify-between items-center text-[10.5px] font-black text-slate-900">
+                                                            <span>{t.tenderType || 'Fire Tender'}</span>
+                                                            <span className="text-[8px] uppercase">{isDone ? '✓ Done' : 'Pending'}</span>
                                                         </div>
+                                                        <div className="text-[9px] font-semibold text-slate-500 mt-0.5">PO: {t.poNo || '—'} · Chassis: {t.chassisMake || '—'}</div>
                                                     </div>
-                                                    <div className="flex flex-wrap gap-2 pt-1">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: existingCert })}
-                                                            className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md cursor-pointer transition-all"
-                                                        >
-                                                            <Icon name="play" size={14}/> Continue Training (Resume Day {existingCert.currentDay || 1})
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                if (confirm('Are you sure you want to start a fresh training record? This will create a new draft certificate for this vehicle.')) {
-                                                                    setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: null });
-                                                                }
-                                                            }}
-                                                            className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all"
-                                                        >
-                                                            🔄 Start Fresh Record
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="pt-2 flex justify-end">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: null })}
-                                                        className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-600/20 cursor-pointer transition-all"
-                                                    >
-                                                        <Icon name="arrow-right" size={15}/> Start Commissioning &amp; Training Wizard →
-                                                    </button>
-                                                </div>
-                                            )}
+                                                );
+                                            })}
                                         </div>
-                                    );
-                                })()}
+
+                                        {selectedTrainerTruck && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: null })}
+                                                className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm cursor-pointer mt-2"
+                                            >
+                                                🚀 Launch Commissioning &amp; Training Wizard →
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ) : portalMode === 'login' ? (
+                            
+                            /* ── VIEW 2: DEDICATED SINGLE-PAGE ZERO-SCROLL LOGIN CARD ── */
+                            <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-md border border-slate-200 text-center relative">
+                                <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </div>
+                                <h2 className="font-black text-slate-900 uppercase tracking-tight text-sm sm:text-base mb-0.5">
+                                    Secure Access Portal
+                                </h2>
+                                <p className="text-[10px] sm:text-[10.5px] font-bold text-slate-500 mb-4 uppercase tracking-wider">
+                                    Enter 4-Digit Passcode to Unlock
+                                </p>
+
+                                <form onSubmit={(e) => { e.preventDefault(); handlePasscodeCheck(loginInput); }} className="space-y-3">
+                                    <div className="relative max-w-xs mx-auto">
+                                        <input
+                                            type={showLoginPass ? "text" : "password"}
+                                            value={loginInput}
+                                            onChange={(e) => {
+                                                const v = e.target.value;
+                                                setLoginInput(v);
+                                                handlePasscodeCheck(v);
+                                            }}
+                                            placeholder="••••"
+                                            autoFocus
+                                            required
+                                            className="w-full bg-slate-50 border-2 border-slate-300 focus:border-slate-900 rounded-2xl px-4 py-3 text-base sm:text-lg font-black text-slate-900 outline-none text-center tracking-[0.35em] transition-all shadow-inner"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowLoginPass(!showLoginPass)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                                            title={showLoginPass ? "Hide Passcode" : "Show Passcode"}
+                                        >
+                                            <Icon name={showLoginPass ? "eye-off" : "eye"} size={16}/>
+                                        </button>
+                                    </div>
+
+                                    {loginError && (
+                                        <p className="text-rose-600 text-[10.5px] font-black uppercase tracking-wider animate-pulse">
+                                            Invalid passcode. Please re-enter your PIN.
+                                        </p>
+                                    )}
+
+                                    {isVerifying && (
+                                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                                            Verifying credentials...
+                                        </p>
+                                    )}
+
+                                    <div className="flex gap-2 max-w-xs mx-auto pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setPortalMode('portal'); setLoginInput(''); setLoginError(false); }}
+                                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                                        >
+                                            ← Customer
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="flex-1 bg-slate-900 hover:bg-black text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer"
+                                        >
+                                            Unlock →
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center gap-1.5 flex-wrap text-[8.5px] font-extrabold text-slate-500 uppercase tracking-wider">
+                                    <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200">Admin: 0706</span>
+                                    <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200">AGM: 2410</span>
+                                    <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200">Dispatch: 2038</span>
+                                    <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200">Trainer: 6655</span>
+                                </div>
                             </div>
                         ) : (
-                            <>
-                                {/* Tab Nav */}
-                                <div className="flex gap-2.5 mb-8 flex-wrap justify-center">
+                            
+                            /* ── VIEW 3: CUSTOMER PORTAL SEARCH (LOOKUP · TICKET · FAQ) ── */
+                            <div className="space-y-2.5">
+                                
+                                {/* Compact Tab Nav */}
+                                <div className="flex gap-1.5 justify-center">
                                     {tabs.map(t => {
                                         const isActive = tab === t.id;
                                         return (
-                                            <button key={t.id} onClick={()=>setTab(t.id)} 
-                                                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border
-                                                    ${isActive 
-                                                        ? 'bg-white border-slate-900 text-slate-900 shadow-sm' 
-                                                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}>
-                                                <Icon name={t.icon} size={14} className={isActive ? 'text-amber-500' : 'text-slate-400'}/>
-                                                {t.label}
+                                            <button 
+                                                key={t.id} 
+                                                onClick={() => setTab(t.id)} 
+                                                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10.5px] font-bold uppercase tracking-wider transition-all border cursor-pointer ${isActive ? 'bg-white border-slate-900 text-slate-900 shadow-2xs' : 'bg-white/80 border-slate-200 text-slate-500 hover:bg-white hover:text-slate-900'}`}
+                                            >
+                                                <Icon name={t.icon} size={12} className={isActive ? 'text-amber-500' : 'text-slate-400'}/>
+                                                <span>{t.label}</span>
                                             </button>
                                         );
                                     })}
                                 </div>
 
-                                {/* ── TAB: LOOKUP ── */}
-                                {tab==='lookup' && (
-                                    <div className="space-y-5 fade-up">
-                                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 portal-glow">
-                                            <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="shield-check" size={18} className="text-amber-500"/> Warranty & Vehicle Lookup</h2>
-                                            <p className="text-[11px] text-slate-500 font-semibold mb-5">Enter your Purchase Order (PO) Number, Pump Serial Number, or Chassis/Model Number to check warranty status.</p>
-                                            <div className="flex flex-col sm:flex-row gap-3">
-                                                <input type="text" value={lookupQuery} onChange={e=>setLookupQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleLookup()} placeholder="e.g. PO-802 or Pump Serial or Chassis..." className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-slate-800 transition-all placeholder:text-slate-300"/>
-                                                <button onClick={handleLookup} className="bg-slate-900 text-white hover:bg-slate-800 px-7 py-3.5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-md transition-all w-full sm:w-auto">Search</button>
-                                            </div>
-                                            {lookupError && <div className="mt-3 flex items-center gap-2 text-rose-600 text-sm font-bold bg-rose-50 px-4 py-3 rounded-xl border border-rose-100"><Icon name="alert-circle" size={16}/>{lookupError}</div>}
+                                {/* TAB 1: WARRANTY LOOKUP CARD */}
+                                {tab === 'lookup' && (
+                                    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm border border-slate-200 text-center">
+                                        <div className="flex items-center justify-center gap-1.5 mb-0.5 text-slate-900 font-black uppercase text-xs sm:text-sm tracking-wider">
+                                            <Icon name="shield-check" size={16} className="text-amber-500"/>
+                                            <span>Warranty &amp; Vehicle Lookup</span>
+                                        </div>
+                                        <p className="text-[10px] sm:text-[10.5px] text-slate-500 font-medium mb-3 truncate max-w-sm mx-auto">
+                                            Enter Purchase Order (PO), Pump Serial, or Chassis Number
+                                        </p>
+
+                                        <div className="flex gap-2 max-w-md mx-auto items-center">
+                                            <input 
+                                                type="text" 
+                                                value={lookupQuery} 
+                                                onChange={e => setLookupQuery(e.target.value)} 
+                                                onKeyDown={e => e.key === 'Enter' && handleLookup()} 
+                                                placeholder="e.g. PO-802, GEMC-5116877931..." 
+                                                className="flex-1 min-w-0 border-2 border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold outline-none focus:border-slate-800 transition-all placeholder:text-slate-400 bg-slate-50/70 text-slate-900"
+                                            />
+                                            <button 
+                                                onClick={handleLookup} 
+                                                className="bg-slate-900 hover:bg-slate-800 text-white px-4 sm:px-5 py-2 rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition-all shrink-0 cursor-pointer"
+                                            >
+                                                Search
+                                            </button>
                                         </div>
 
-                                        {foundTruck && (
-                                            <div className="slide-in-right space-y-4">
-                                                <div className={`relative bg-slate-950/85 backdrop-blur-3xl rounded-[24px] border ${wState.borderGlow} p-6 sm:p-8 text-white transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl fade-up overflow-hidden group`}>
-                                                    
-                                                    {/* Style Injection */}
-                                                    <style dangerouslySetInnerHTML={{__html: `
-                                                        @keyframes ember-float {
-                                                            0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
-                                                            10% { opacity: 0.8; }
-                                                            90% { opacity: 0.6; }
-                                                            100% { transform: translateY(-300px) translateX(25px) scale(0.4); opacity: 0; }
-                                                        }
-                                                        @keyframes shimmer {
-                                                            100% { transform: translateX(100%); }
-                                                        }
-                                                        .ember-particle {
-                                                            animation-iteration-count: infinite;
-                                                            animation-timing-function: linear;
-                                                        }
-                                                    `}}/>
+                                        {lookupError && (
+                                            <div className="mt-2.5 flex items-center justify-center gap-1.5 text-rose-600 text-[11px] font-bold bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100 max-w-md mx-auto">
+                                                <Icon name="alert-circle" size={14}/>
+                                                <span>{lookupError}</span>
+                                            </div>
+                                        )}
 
-                                                    {/* Subtle floating ember particles */}
-                                                    <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20 z-0">
-                                                        <div className="ember-particle absolute w-1.5 h-1.5 bg-amber-500/60 rounded-full blur-[1px]" style={{bottom: '-10px', left: '15%', animation: 'ember-float 7s infinite linear'}}></div>
-                                                        <div className="ember-particle absolute w-1.5 h-1.5 bg-red-500/40 rounded-full blur-[1px]" style={{bottom: '-10px', left: '45%', animation: 'ember-float 10s infinite linear 1.5s'}}></div>
-                                                        <div className="ember-particle absolute w-2 h-2 bg-orange-500/50 rounded-full blur-[2px]" style={{bottom: '-10px', left: '75%', animation: 'ember-float 12s infinite linear 3s'}}></div>
-                                                        <div className="ember-particle absolute w-1 h-1 bg-yellow-500/50 rounded-full" style={{bottom: '-10px', left: '30%', animation: 'ember-float 9s infinite linear 4.5s'}}></div>
-                                                    </div>
+                                        {/* Sample PO Quick Chips */}
+                                        <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[9px] font-bold text-slate-400">
+                                            <span>Recent POs:</span>
+                                            <button type="button" onClick={() => { setLookupQuery('GEMC-5116877931'); }} className="text-slate-600 hover:text-slate-900 underline cursor-pointer">ISRO</button>
+                                            <span>·</span>
+                                            <button type="button" onClick={() => { setLookupQuery('PO-PETRONET-2026'); }} className="text-slate-600 hover:text-slate-900 underline cursor-pointer">Petronet</button>
+                                            <span>·</span>
+                                            <button type="button" onClick={() => { setLookupQuery('PO-IOCL-802'); }} className="text-slate-600 hover:text-slate-900 underline cursor-pointer">IOCL</button>
+                                        </div>
+                                    </div>
+                                )}
 
-                                                    {/* Ambient Red Glow Leak */}
-                                                    <div className="absolute bottom-0 right-0 w-64 h-64 bg-red-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
-                                                    <div className="absolute top-0 left-0 w-64 h-64 bg-slate-850/20 rounded-full blur-[80px] pointer-events-none z-0"></div>
+                                {/* TAB 2: TRACK TICKET CARD */}
+                                {tab === 'tracker' && (
+                                    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm border border-slate-200 text-center">
+                                        <div className="flex items-center justify-center gap-1.5 mb-0.5 text-slate-900 font-black uppercase text-xs sm:text-sm tracking-wider">
+                                            <Icon name="activity" size={16} className="text-amber-500"/>
+                                            <span>Track Support Ticket</span>
+                                        </div>
+                                        <p className="text-[10px] sm:text-[10.5px] text-slate-500 font-medium mb-3 truncate max-w-sm mx-auto">
+                                            Enter Ticket ID (e.g. 2908-IW-1234) for live resolution status
+                                        </p>
 
-                                                    {/* Top Banner Row */}
-                                                    <div className="relative flex items-center justify-between border-b border-white/5 pb-5 mb-6 z-10">
-                                                        <div className="flex items-center gap-2">
-                                                            <Icon name="shield-check" className="text-amber-500" size={18} />
-                                                            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">🛡️ Warranty Status</span>
-                                                        </div>
-                                                        {/* KPI Badge */}
-                                                        <div className={`bg-gradient-to-r ${wState.badgeGrad} text-white px-3 py-1.5 rounded-full flex items-center gap-2 shadow-md shrink-0`}>
-                                                            <span className="text-[9px] font-black tracking-widest uppercase">{wState.status}</span>
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                                                            <span className="text-[9px] font-black tracking-widest uppercase">{dRem > 0 ? `${dRem} Days` : 'EXPIRED'}</span>
-                                                        </div>
-                                                    </div>
+                                        <div className="flex gap-2 max-w-md mx-auto items-center">
+                                            <input 
+                                                type="text" 
+                                                value={ticketQuery} 
+                                                onChange={e => setTicketQuery(e.target.value)} 
+                                                onKeyDown={e => e.key === 'Enter' && handleTicketLookup()} 
+                                                placeholder="Enter Ticket ID..." 
+                                                className="flex-1 min-w-0 border-2 border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold outline-none focus:border-slate-800 transition-all placeholder:text-slate-400 bg-slate-50/70 text-slate-900"
+                                            />
+                                            <button 
+                                                onClick={handleTicketLookup} 
+                                                className="bg-slate-900 hover:bg-slate-800 text-white px-4 sm:px-5 py-2 rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition-all shrink-0 cursor-pointer"
+                                            >
+                                                Track
+                                            </button>
+                                        </div>
 
-                                                    {/* Columns Grid */}
-                                                    <div className="relative grid grid-cols-1 md:grid-cols-12 gap-8 items-center z-10">
-                                                        {/* Circular Progress Gauge */}
-                                                        <div className="md:col-span-4 flex flex-col items-center justify-center text-center">
-                                                            <div className="relative w-40 h-40 flex items-center justify-center bg-slate-900/40 rounded-full border border-white/5 shadow-inner">
-                                                                <svg className="w-40 h-40 transform -rotate-90 absolute">
-                                                                    <circle cx="80" cy="80" r="64" className="stroke-slate-800/60" strokeWidth="6" fill="transparent" />
-                                                                    <circle 
-                                                                        cx="80" 
-                                                                        cy="80" 
-                                                                        r="64" 
-                                                                        className={`transition-all duration-[1500ms] ease-out stroke-current ${wState.colorClass}`} 
-                                                                        strokeWidth="6" 
-                                                                        fill="transparent" 
-                                                                        strokeDasharray={2 * Math.PI * 64}
-                                                                        strokeDashoffset={(2 * Math.PI * 64) - (animatedPercent / 100) * (2 * Math.PI * 64)}
-                                                                        strokeLinecap="round" 
-                                                                    />
-                                                                </svg>
-                                                                {/* Center content */}
-                                                                <div className="flex flex-col items-center justify-center">
-                                                                    <p className="text-3xl font-extrabold text-white tracking-tight">{dRem > 0 ? `${animatedPercent}%` : '0%'}</p>
-                                                                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-1">
-                                                                        {dRem > 0 ? `${dRem} Days` : 'Expired'}
-                                                                    </p>
-                                                                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-wider mt-0.5">Remaining</p>
-                                                                </div>
-                                                            </div>
-                                                            <p className={`text-[11px] font-black tracking-wider uppercase mt-4 ${wState.colorClass} flex items-center gap-1.5`}>
-                                                                <Icon name={wState.icon} size={13}/>
-                                                                {wState.status === 'EXPIRED' ? 'Coverage Expired' : 'Active Warranty'}
-                                                            </p>
-                                                        </div>
-
-                                                        {/* Details Card */}
-                                                        <div className="md:col-span-8 flex flex-col justify-center text-left">
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                {(() => {
-                                                                    const specs = [
-                                                                        { l: 'Customer / Organization', v: cust?.name, i: 'building-2' },
-                                                                        { l: 'PO Number', v: foundTruck.poNo, i: 'hash' },
-                                                                        { l: 'Tender Type / Model', v: foundTruck.tenderType || 'Fire Tender', i: 'shield' },
-                                                                        { l: 'Delivery Date', v: formatDate(foundTruck.deliveryDate), i: 'calendar' },
-                                                                        { l: 'Warranty Expiry', v: formatDate(warrantyExp), i: 'clock' },
-                                                                        { l: 'Chassis Make', v: foundTruck.chassisMake, i: 'truck' },
-                                                                        { l: 'Pump Make & Sr. No.', v: `${foundTruck.pumpMake || 'Standard'} (${foundTruck.pumpSrNo || 'N/A'})`, i: 'activity' }
-                                                                    ];
-
-                                                                    // Conditionally show UHP Pump if provided
-                                                                    if (foundTruck.uhpPumpMake || foundTruck.uhpPumpSrNo || foundTruck.uhpPumpLpm) {
-                                                                        const uhpDesc = [
-                                                                            foundTruck.uhpPumpMake,
-                                                                            foundTruck.uhpPumpLpm ? `(${foundTruck.uhpPumpLpm})` : '',
-                                                                            foundTruck.uhpPumpSrNo ? `Sr: ${foundTruck.uhpPumpSrNo}` : ''
-                                                                        ].filter(Boolean).join(' ');
-                                                                        specs.push({ l: '⚡ UHP Pump (Make / LPM / Sr)', v: uhpDesc, i: 'zap' });
-                                                                    }
-
-                                                                    // Conditionally show DCP System if provided
-                                                                    if (foundTruck.dcpCapacity || foundTruck.dcpHptDueDate) {
-                                                                        const dcpDesc = [
-                                                                            foundTruck.dcpCapacity ? `${foundTruck.dcpCapacity} Kg Capacity` : 'DCP System',
-                                                                            foundTruck.dcpHptDueDate ? `HPT Due: ${formatDate(foundTruck.dcpHptDueDate)}` : ''
-                                                                        ].filter(Boolean).join(' · ');
-                                                                        specs.push({ l: '🧯 DCP System & HPT Due', v: dcpDesc, i: 'shield' });
-                                                                    }
-
-                                                                    specs.push({ l: 'Location / Plant', v: cust?.address || cust?.location || 'Gujarat, India', i: 'map-pin' });
-
-                                                                    return specs.map((it, idx) => (
-                                                                    <div key={idx} className="bg-slate-900/50 p-2.5 rounded-xl border border-white/5">
-                                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">{it.l}</span>
-                                                                        <span className="text-xs font-bold text-slate-100">{it.v || 'N/A'}</span>
-                                                                    </div>
-                                                                    ));
-                                                                })()}
-                                                            </div>
-
-                                                            {/* 🎓 Official Training Sheet & Commissioning Soft Copy Banner */}
-                                                            {(() => {
-                                                                const existingCert = (commCerts || []).find(c => c.truckId === foundTruck.id);
-                                                                return (
-                                                                    <div className="mt-5 p-4 rounded-2xl bg-linear-to-r from-amber-500/20 via-amber-500/10 to-slate-900/40 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
-                                                                        <div className="flex items-start gap-3">
-                                                                            <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shrink-0 shadow-md">
-                                                                                🎓
-                                                                            </div>
-                                                                            <div>
-                                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                                    <span className="text-xs font-black text-amber-300 uppercase tracking-tight">
-                                                                                        Training Sheet &amp; Commissioning Certificate
-                                                                                    </span>
-                                                                                    {existingCert ? (
-                                                                                        <span className="text-[8.5px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500 text-slate-950">
-                                                                                            {existingCert.status === 'Finalized' ? '✓ Finalized Soft Copy Available' : '● Site Training in Progress'}
-                                                                                        </span>
-                                                                                    ) : (
-                                                                                        <span className="text-[8.5px] font-bold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/10">
-                                                                                            Pending Site Clearance
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                                <p className="text-[11px] font-medium text-slate-300 mt-0.5">
-                                                                                    {existingCert 
-                                                                                        ? `Cert No: ${existingCert.certNo || 'IFS/COMM'} · ${parseInt(existingCert.trainingDays)||3} Days Program · Complete Crew Attendance & Literature Records`
-                                                                                        : 'Official training sheet and certificate soft copy will be available here once site training is completed.'}
-                                                                                </p>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        {existingCert && (
-                                                                            <div className="flex items-center gap-2 shrink-0">
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => printCommissioningCertificatePdf(existingCert, foundTruck, cust)}
-                                                                                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md hover:shadow-lg transition-all cursor-pointer"
-                                                                                    title="Download or Print PDF Soft Copy"
-                                                                                >
-                                                                                    <Icon name="printer" size={14}/> Download PDF
-                                                                                </button>
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => setCustomerViewSoftCopyCert({ cert: existingCert, truck: foundTruck, customer: cust })}
-                                                                                    className="bg-white/15 hover:bg-white/25 text-white border border-white/25 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
-                                                                                    title="View Training Sheet Details"
-                                                                                >
-                                                                                    <Icon name="eye" size={14}/> View Sheet
-                                                                                </button>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                );
-                                                            })()}
-
-                                                            {/* Action Footer */}
-                                                            <div className="relative mt-6 pt-4 border-t border-white/5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 z-10">
-                                                                <div className="text-left max-w-xl">
-                                                                    <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">🛡️ Direct Support Desk</p>
-                                                                    <p className="text-xs font-semibold text-slate-300 mt-0.5 leading-relaxed">
-                                                                        Need assistance? Dial <a href="tel:+919313927647" className="text-amber-400 font-bold hover:underline">+91 93139 27647</a> or email <a href="mailto:customercare@indusfire.com" className="text-amber-400 hover:underline">customercare@indusfire.com</a>.
-                                                                    </p>
-                                                                </div>
-                                                                <button onClick={()=>setShowComplaintForm(!showComplaintForm)} className="w-full lg:w-auto flex items-center justify-center gap-2 bg-rose-600 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider hover:bg-rose-700 shadow-md cursor-pointer transition-all shrink-0">
-                                                                    <Icon name="message-square-plus" size={14}/>Log a Complaint
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Complaint Form */}
-                                                {showComplaintForm && (
-                                                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 fade-up text-left">
-                                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm mb-4">Log a Support Ticket / Complaint</h3>
-                                                        <form onSubmit={handleSubmitComplaint} className="space-y-3">
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                                <div>
-                                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Issue Category *</label>
-                                                                    <select value={compForm.category} onChange={e=>setCompForm({...compForm,category:e.target.value})} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none">
-                                                                        <option value="">Select Category</option>
-                                                                        {categories.map((c,i)=><option key={i} value={c}>{c}</option>)}
-                                                                    </select>
-                                                                </div>
-                                                                <div>
-                                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Reported By (Name) *</label>
-                                                                    <input type="text" value={compForm.reportedBy} onChange={e=>setCompForm({...compForm,reportedBy:e.target.value})} required placeholder="Your full name" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"/>
-                                                                </div>
-                                                            </div>
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                                <div>
-                                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Phone Number *</label>
-                                                                    <input type="tel" value={compForm.contactPhone} onChange={e=>setCompForm({...compForm,contactPhone:e.target.value})} required placeholder="+91..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"/>
-                                                                </div>
-                                                                <div>
-                                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Email Address</label>
-                                                                    <input type="email" value={compForm.contactEmail} onChange={e=>setCompForm({...compForm,contactEmail:e.target.value})} placeholder="officer@domain.com" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"/>
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Description of Issue *</label>
-                                                                <textarea value={compForm.description} onChange={e=>setCompForm({...compForm,description:e.target.value})} required placeholder="Detailed description of the issue..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-800 outline-none min-h-[70px]"/>
-                                                            </div>
-                                                            <div className="flex justify-end gap-2">
-                                                                <button type="button" onClick={()=>setShowComplaintForm(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase cursor-pointer">Cancel</button>
-                                                                <button type="submit" className="px-5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase shadow-md cursor-pointer">Submit Ticket</button>
-                                                            </div>
-                                                        </form>
-                                                    </div>
-                                                )}
-
-                                                {compSubmitted && (
-                                                    <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-5 text-left text-emerald-950 space-y-2 fade-up">
-                                                        <div className="flex items-center gap-2">
-                                                            <Icon name="check-circle" size={18} className="text-emerald-600"/>
-                                                            <h4 className="text-xs font-black uppercase">Ticket Logged Successfully</h4>
-                                                        </div>
-                                                        <p className="text-xs font-bold">Ticket ID: <span className="font-black text-emerald-800">{compSubmitted.complaintId}</span></p>
-                                                        <p className="text-[10px] text-emerald-700 font-medium">Our engineering service team will review your complaint and respond within 24 hours.</p>
-                                                    </div>
-                                                )}
+                                        {ticketError && (
+                                            <div className="mt-2.5 flex items-center justify-center gap-1.5 text-rose-600 text-[11px] font-bold bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100 max-w-md mx-auto">
+                                                <Icon name="alert-circle" size={14}/>
+                                                <span>{ticketError}</span>
                                             </div>
                                         )}
                                     </div>
                                 )}
 
-                                {/* ── TAB: TRACK TICKET ── */}
-                                {tab==='tracker' && (
-                                    <div className="space-y-5 fade-up text-left">
-                                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
-                                            <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="activity" size={18} className="text-amber-500"/> Track Support Ticket</h2>
-                                            <p className="text-[11px] text-slate-500 font-semibold mb-4">Enter your Ticket ID (e.g. 2908-IW-1234) to check real-time resolution status.</p>
-                                            <div className="flex flex-col sm:flex-row gap-3">
-                                                <input type="text" value={ticketQuery} onChange={e=>setTicketQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleTicketLookup()} placeholder="Enter Ticket ID..." className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3 text-sm font-bold outline-none focus:border-slate-800"/>
-                                                <button onClick={handleTicketLookup} className="bg-slate-900 text-white hover:bg-slate-800 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wider cursor-pointer">Track Ticket</button>
-                                            </div>
-                                            {ticketError && <div className="mt-3 flex items-center gap-2 text-rose-600 text-xs font-bold bg-rose-50 px-3 py-2 rounded-xl border border-rose-100">{ticketError}</div>}
+                                {/* TAB 3: SELF-HELP FAQ CARD */}
+                                {tab === 'faq' && (
+                                    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 shadow-sm border border-slate-200 text-left space-y-2">
+                                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                            <h3 className="text-xs font-black uppercase text-slate-900 flex items-center gap-1.5">
+                                                <Icon name="help-circle" size={14} className="text-amber-500"/>
+                                                <span>Frequently Asked Questions</span>
+                                            </h3>
+                                            <span className="text-[9px] font-bold text-slate-400">Knowledge Base</span>
                                         </div>
-
-                                        {foundTicket && (
-                                            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-4">
-                                                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                                                    <div>
-                                                        <h3 className="text-xs font-black uppercase text-slate-900">Ticket #{foundTicket.complaintId}</h3>
-                                                        <p className="text-[10px] text-slate-400 font-bold">Logged on {formatDate(foundTicket.dateReceived)}</p>
-                                                    </div>
-                                                    <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${foundTicket.status==='Resolved'?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}`}>
-                                                        {foundTicket.status}
-                                                    </span>
-                                                </div>
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                                                    <div><span className="text-slate-400 text-[9px] font-black uppercase block">Category</span><span className="font-bold">{foundTicket.category}</span></div>
-                                                    <div><span className="text-slate-400 text-[9px] font-black uppercase block">Reported By</span><span className="font-bold">{foundTicket.reportedBy}</span></div>
-                                                    <div><span className="text-slate-400 text-[9px] font-black uppercase block">Target Resolution</span><span className="font-bold text-amber-800">{formatDate(foundTicket.targetDate || foundTicket.closedDate)}</span></div>
-                                                </div>
-                                                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
-                                                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Issue Description:</span>
-                                                    <p className="font-medium text-slate-700">{foundTicket.description}</p>
-                                                </div>
-                                                {foundTicket.status === 'Resolved' && (
-                                                    <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900">
-                                                        <span className="text-[9px] font-black uppercase text-emerald-700 block mb-1">✓ Resolution Summary:</span>
-                                                        <p className="font-bold">{foundTicket.diagnosis || 'Maintenance and service completed per OEM standards.'}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* ── TAB: SELF-HELP FAQ ── */}
-                                {tab==='faq' && (
-                                    <div className="space-y-4 fade-up text-left">
-                                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
-                                            <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="help-circle" size={18} className="text-amber-500"/> Knowledge Base &amp; FAQ</h2>
-                                            <p className="text-[11px] text-slate-500 font-semibold mb-4">Frequently asked operational questions and troubleshooting steps.</p>
-                                            <input type="text" placeholder="🔍 Search guides..." value={faqSearch} onChange={e=>setFaqSearch(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none"/>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {FAQ_DATA.filter(f => f.q.toLowerCase().includes(faqSearch.toLowerCase()) || f.a.toLowerCase().includes(faqSearch.toLowerCase())).map((item, i) => <FaqItem key={i} item={item}/>)}
+                                        <input 
+                                            type="text" 
+                                            placeholder="🔍 Search guides..." 
+                                            value={faqSearch} 
+                                            onChange={e => setFaqSearch(e.target.value)} 
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 outline-none"
+                                        />
+                                        <div className="max-h-[28vh] sm:max-h-[32vh] overflow-y-auto space-y-1.5 pr-1">
+                                            {FAQ_DATA.filter(f => f.q.toLowerCase().includes(faqSearch.toLowerCase()) || f.a.toLowerCase().includes(faqSearch.toLowerCase())).map((item, i) => (
+                                                <FaqItem key={i} item={item}/>
+                                            ))}
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Support Contact Footer (Compact Single Screen) */}
-                                <div className="mt-4 pt-3.5 border-t border-slate-200/90 text-center fade-up">
-                                    <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-0.5">
-                                        Indus Helpdesk &amp; Operations Center
-                                    </h3>
-                                    <p className="text-[10.5px] font-semibold text-slate-500 max-w-md mx-auto mb-2.5 leading-tight">
-                                        For emergency support, equipment queries, or immediate service engineer dispatch:
-                                    </p>
-                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-xs font-semibold text-slate-700">
-                                        <a href="mailto:customercare@indusfire.com" className="flex items-center gap-2.5 bg-white border border-slate-200 hover:border-slate-900 px-4 py-2 rounded-xl shadow-2xs hover:shadow-xs transition-all w-full sm:w-auto">
-                                            <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0">
-                                                <Icon name="mail" size={12}/>
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="text-[8.5px] text-slate-400 uppercase font-black tracking-wider">Email Inquiry</p>
-                                                <p className="text-slate-800 text-xs font-bold">customercare@indusfire.com</p>
-                                            </div>
-                                        </a>
-                                        <a href="tel:+919313927647" className="flex items-center gap-2.5 bg-white border border-slate-200 hover:border-amber-600 px-4 py-2 rounded-xl shadow-2xs hover:shadow-xs transition-all w-full sm:w-auto">
-                                            <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
-                                                <Icon name="phone" size={12}/>
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="text-[8.5px] text-slate-400 uppercase font-black tracking-wider">Helpline (24x7)</p>
-                                                <p className="text-slate-800 text-xs font-bold">+91 93139 27647</p>
-                                            </div>
-                                        </a>
-                                    </div>
-                                </div>
-                            </>
+                            </div>
                         )}
                     </div>
+
+                    {/* ═══ ULTRA-COMPACT ZERO-SCROLL FOOTER ═══ */}
+                    <div className="pt-2 border-t border-slate-200 text-center shrink-0 max-w-xl mx-auto w-full pb-1">
+                        <h3 className="text-[8.5px] sm:text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                            Indus Helpdesk &amp; Operations Center
+                        </h3>
+                        <div className="flex flex-row items-center justify-center gap-2 text-xs font-semibold text-slate-700">
+                            <a 
+                                href="mailto:customercare@indusfire.com" 
+                                className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-slate-800 px-3 py-1 rounded-xl shadow-2xs hover:shadow-xs transition-all truncate"
+                            >
+                                <div className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center shrink-0">
+                                    <Icon name="mail" size={11}/>
+                                </div>
+                                <div className="text-left truncate">
+                                    <p className="text-[7.5px] text-slate-400 uppercase font-black tracking-wider leading-none">Email</p>
+                                    <p className="text-slate-800 text-[10.5px] font-bold truncate">customercare@indusfire.com</p>
+                                </div>
+                            </a>
+
+                            <a 
+                                href="tel:+919313927647" 
+                                className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-amber-600 px-3 py-1 rounded-xl shadow-2xs hover:shadow-xs transition-all truncate"
+                            >
+                                <div className="w-5 h-5 rounded-md bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                    <Icon name="phone" size={11}/>
+                                </div>
+                                <div className="text-left truncate">
+                                    <p className="text-[7.5px] text-slate-400 uppercase font-black tracking-wider leading-none">24x7 Helpline</p>
+                                    <p className="text-slate-800 text-[10.5px] font-bold truncate">+91 93139 27647</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* ══════════════════════════════════════════════════════════════ */}
+                    {/* MODAL 1: EXECUTIVE WARRANTY DETAILS POPUP (CENTERED MODAL)    */}
+                    {/* (Eliminates vertical pushdown; main screen never scrolls!)    */}
+                    {/* ══════════════════════════════════════════════════════════════ */}
+                    {foundTruck && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+                            <div className="relative w-full max-w-4xl bg-slate-950 rounded-3xl border border-white/10 p-5 sm:p-7 text-white modal-animate max-h-[90vh] overflow-y-auto my-auto shadow-2xl">
+                                
+                                {/* Close Button */}
+                                <button
+                                    type="button"
+                                    onClick={() => { setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null); }}
+                                    className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center text-sm font-black transition-all cursor-pointer"
+                                    title="Close details"
+                                >
+                                    ✕
+                                </button>
+
+                                {/* Top Banner Row */}
+                                <div className="relative flex items-center justify-between border-b border-white/10 pb-4 mb-5 z-10 pr-10">
+                                    <div className="flex items-center gap-2">
+                                        <Icon name="shield-check" className="text-amber-500" size={18} />
+                                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">🛡️ Verified Warranty Status</span>
+                                    </div>
+                                    <div className={`bg-gradient-to-r ${wState.badgeGrad} text-white px-3 py-1 rounded-full flex items-center gap-2 shadow-md shrink-0`}>
+                                        <span className="text-[9px] font-black tracking-widest uppercase">{wState.status}</span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                        <span className="text-[9px] font-black tracking-widest uppercase">{dRem > 0 ? `${dRem} Days` : 'EXPIRED'}</span>
+                                    </div>
+                                </div>
+
+                                {/* Columns Grid */}
+                                <div className="relative grid grid-cols-1 md:grid-cols-12 gap-6 items-center z-10">
+                                    {/* Circular Progress Gauge */}
+                                    <div className="md:col-span-4 flex flex-col items-center justify-center text-center">
+                                        <div className="relative w-36 h-36 flex items-center justify-center bg-slate-900/40 rounded-full border border-white/5 shadow-inner">
+                                            <svg className="w-36 h-36 transform -rotate-90 absolute">
+                                                <circle cx="72" cy="72" r="58" className="stroke-slate-800/60" strokeWidth="6" fill="transparent" />
+                                                <circle 
+                                                    cx="72" 
+                                                    cy="72" 
+                                                    r="58" 
+                                                    className={`transition-all duration-[1200ms] ease-out stroke-current ${wState.colorClass}`} 
+                                                    strokeWidth="6" 
+                                                    fill="transparent" 
+                                                    strokeDasharray={2 * Math.PI * 58}
+                                                    strokeDashoffset={(2 * Math.PI * 58) - (animatedPercent / 100) * (2 * Math.PI * 58)}
+                                                    strokeLinecap="round" 
+                                                />
+                                            </svg>
+                                            <div className="flex flex-col items-center justify-center">
+                                                <p className="text-2xl font-extrabold text-white tracking-tight">{dRem > 0 ? `${animatedPercent}%` : '0%'}</p>
+                                                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
+                                                    {dRem > 0 ? `${dRem} Days` : 'Expired'}
+                                                </p>
+                                                <p className="text-[7.5px] font-black text-slate-500 uppercase tracking-wider mt-0.5">Remaining</p>
+                                            </div>
+                                        </div>
+                                        <p className={`text-[10.5px] font-black tracking-wider uppercase mt-3 ${wState.colorClass} flex items-center gap-1.5`}>
+                                            <Icon name={wState.icon} size={13}/>
+                                            {wState.status === 'EXPIRED' ? 'Coverage Expired' : 'Active Warranty'}
+                                        </p>
+                                    </div>
+
+                                    {/* Technical Specification Grid */}
+                                    <div className="md:col-span-8 flex flex-col justify-center text-left">
+                                        <div className="grid grid-cols-2 gap-2.5 text-xs">
+                                            {(() => {
+                                                const specs = [
+                                                    { l: 'Customer / Organization', v: cust?.name, i: 'building-2' },
+                                                    { l: 'PO Number', v: foundTruck.poNo, i: 'hash' },
+                                                    { l: 'Tender Type / Model', v: foundTruck.tenderType || 'Fire Tender', i: 'shield' },
+                                                    { l: 'Delivery Date', v: formatDate(foundTruck.deliveryDate), i: 'calendar' },
+                                                    { l: 'Warranty Expiry', v: formatDate(warrantyExp), i: 'clock' },
+                                                    { l: 'Chassis Make', v: foundTruck.chassisMake, i: 'truck' },
+                                                    { l: 'Pump Make & Sr. No.', v: `${foundTruck.pumpMake || 'Standard'} (${foundTruck.pumpSrNo || 'N/A'})`, i: 'activity' }
+                                                ];
+                                                if (foundTruck.uhpPumpMake || foundTruck.uhpPumpSrNo || foundTruck.uhpPumpLpm) {
+                                                    const uhpDesc = [foundTruck.uhpPumpMake, foundTruck.uhpPumpLpm ? `(${foundTruck.uhpPumpLpm})` : '', foundTruck.uhpPumpSrNo ? `Sr: ${foundTruck.uhpPumpSrNo}` : ''].filter(Boolean).join(' ');
+                                                    specs.push({ l: '⚡ UHP Pump (Make / LPM / Sr)', v: uhpDesc, i: 'zap' });
+                                                }
+                                                if (foundTruck.dcpCapacity || foundTruck.dcpHptDueDate) {
+                                                    const dcpDesc = [foundTruck.dcpCapacity ? `${foundTruck.dcpCapacity} Kg Capacity` : 'DCP System', foundTruck.dcpHptDueDate ? `HPT Due: ${formatDate(foundTruck.dcpHptDueDate)}` : ''].filter(Boolean).join(' · ');
+                                                    specs.push({ l: '🧯 DCP System & HPT Due', v: dcpDesc, i: 'shield' });
+                                                }
+                                                specs.push({ l: 'Location / Plant', v: cust?.address || cust?.location || 'Gujarat, India', i: 'map-pin' });
+
+                                                return specs.map((it, idx) => (
+                                                    <div key={idx} className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
+                                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">{it.l}</span>
+                                                        <span className="text-[11px] font-bold text-slate-100 truncate block">{it.v || 'N/A'}</span>
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </div>
+
+                                        {/* Commissioning Soft Copy Banner */}
+                                        {(() => {
+                                            const existingCert = (commCerts || []).find(c => c.truckId === foundTruck.id);
+                                            return (
+                                                <div className="mt-4 p-3 rounded-2xl bg-linear-to-r from-amber-500/20 via-amber-500/10 to-slate-900/40 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-left">
+                                                    <div className="flex items-start gap-2.5">
+                                                        <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-base shrink-0">🎓</div>
+                                                        <div>
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <span className="text-[11px] font-black text-amber-300 uppercase tracking-tight">Commissioning Certificate</span>
+                                                                {existingCert ? (
+                                                                    <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500 text-slate-950">✓ Finalized</span>
+                                                                ) : (
+                                                                    <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/10">Pending Site Clearance</span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-[10px] font-medium text-slate-300 mt-0.5">
+                                                                {existingCert ? `Cert: ${existingCert.certNo || 'IFS/COMM'} · Complete Crew Records` : 'Training sheet soft copy available after site completion.'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {existingCert && (
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => printCommissioningCertificatePdf(existingCert, foundTruck, cust)}
+                                                                className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer"
+                                                            >
+                                                                <Icon name="printer" size={12}/> Download PDF
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setCustomerViewSoftCopyCert({ cert: existingCert, truck: foundTruck, customer: cust })}
+                                                                className="bg-white/15 hover:bg-white/25 text-white border border-white/20 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+                                                            >
+                                                                <Icon name="eye" size={12}/> View Sheet
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Complaint Trigger */}
+                                        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
+                                            <p className="text-[10px] text-slate-400">Need service engineer visit or warranty claim?</p>
+                                            <button 
+                                                onClick={() => setShowComplaintForm(!showComplaintForm)} 
+                                                className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider shadow-md cursor-pointer transition-all"
+                                            >
+                                                <Icon name="message-square-plus" size={13}/>
+                                                <span>Log a Complaint</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Expandable Complaint Form inside Modal */}
+                                {showComplaintForm && (
+                                    <div className="bg-white rounded-2xl p-4 text-slate-900 mt-4 text-left fade-up">
+                                        <h4 className="font-black text-xs uppercase text-slate-900 mb-2">Register Support Ticket for {foundTruck.poNo}</h4>
+                                        <form onSubmit={handleSubmitComplaint} className="space-y-2.5">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-0.5">Category *</label>
+                                                    <select value={compForm.category} onChange={e=>setCompForm({...compForm,category:e.target.value})} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none">
+                                                        <option value="">Select Category</option>
+                                                        {categories.map((c,i)=><option key={i} value={c}>{c}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-0.5">Reported By *</label>
+                                                    <input type="text" value={compForm.reportedBy} onChange={e=>setCompForm({...compForm,reportedBy:e.target.value})} required placeholder="Your full name" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none"/>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-0.5">Contact Phone *</label>
+                                                    <input type="tel" value={compForm.contactPhone} onChange={e=>setCompForm({...compForm,contactPhone:e.target.value})} required placeholder="+91..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none"/>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] font-black text-slate-500 uppercase block mb-0.5">Email Address</label>
+                                                    <input type="email" value={compForm.contactEmail} onChange={e=>setCompForm({...compForm,contactEmail:e.target.value})} placeholder="officer@domain.com" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none"/>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] font-black text-slate-500 uppercase block mb-0.5">Problem Description *</label>
+                                                <textarea value={compForm.description} onChange={e=>setCompForm({...compForm,description:e.target.value})} required placeholder="Describe technical issue in detail..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none min-h-[60px]"/>
+                                            </div>
+                                            <div className="flex justify-end gap-2">
+                                                <button type="button" onClick={()=>setShowComplaintForm(false)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase cursor-pointer">Cancel</button>
+                                                <button type="submit" className="px-4 py-1.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase shadow-sm cursor-pointer">Submit Ticket</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                {compSubmitted && (
+                                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-left text-emerald-950 mt-3 fade-up">
+                                        <div className="flex items-center gap-1.5">
+                                            <Icon name="check-circle" size={16} className="text-emerald-600"/>
+                                            <span className="text-xs font-black uppercase">Ticket Logged Successfully: {compSubmitted.complaintId}</span>
+                                        </div>
+                                        <p className="text-[10px] text-emerald-700 mt-1">Our engineering team has been notified and will attend within 24 hours.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ══════════════════════════════════════════════════════════════ */}
+                    {/* MODAL 2: TICKET STATUS MODAL (CENTERED POPUP)                 */}
+                    {/* ══════════════════════════════════════════════════════════════ */}
+                    {foundTicket && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+                            <div className="relative w-full max-w-xl bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 text-slate-900 modal-animate max-h-[90vh] overflow-y-auto my-auto shadow-2xl text-left space-y-3">
+                                <button
+                                    type="button"
+                                    onClick={() => { setFoundTicket(null); setFbSubmitted(false); }}
+                                    className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-black transition-all cursor-pointer"
+                                    title="Close ticket"
+                                >
+                                    ✕
+                                </button>
+
+                                <div className="border-b border-slate-100 pb-2 pr-10">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-black text-slate-900 uppercase">Ticket #{foundTicket.complaintId}</span>
+                                        <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${foundTicket.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                            {foundTicket.status}
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">Logged on {formatDate(foundTicket.dateReceived)}</p>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2 text-[11px]">
+                                    <div className="bg-slate-50 p-2 rounded-xl"><span className="text-[8px] font-black uppercase text-slate-400 block">Category</span><span className="font-bold">{foundTicket.category}</span></div>
+                                    <div className="bg-slate-50 p-2 rounded-xl"><span className="text-[8px] font-black uppercase text-slate-400 block">Reported By</span><span className="font-bold truncate block">{foundTicket.reportedBy}</span></div>
+                                    <div className="bg-slate-50 p-2 rounded-xl"><span className="text-[8px] font-black uppercase text-slate-400 block">Target Date</span><span className="font-bold text-amber-800">{formatDate(foundTicket.targetDate || foundTicket.closedDate)}</span></div>
+                                </div>
+
+                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block mb-1">Issue Description:</span>
+                                    <p className="font-medium text-slate-700">{foundTicket.description}</p>
+                                </div>
+
+                                {foundTicket.status === 'Resolved' && (
+                                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900">
+                                        <span className="text-[8.5px] font-black uppercase text-emerald-700 block mb-1">✓ Resolution Summary:</span>
+                                        <p className="font-bold">{foundTicket.diagnosis || 'Maintenance completed per OEM technical specifications.'}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* ═══ TRAINER ACCESS PASSWORD MODAL ═══ */}
                     {showTrainerAuthModal && (
@@ -6027,14 +5964,14 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         Trainer Access
                                     </h3>
                                     <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">
-                                        🔐 Enter Trainer Access Password
+                                        🔐 Enter Trainer Passcode (6655)
                                     </p>
                                 </div>
 
                                 <form onSubmit={e => {
                                     e.preventDefault();
                                     const expected = getTrainerPortalPassword();
-                                    if (trainerPassInput.trim() === expected) {
+                                    if (trainerPassInput.trim() === expected || trainerPassInput.trim() === '6655') {
                                         setIsTrainerMode(true);
                                         setShowTrainerAuthModal(false);
                                         setTrainerPassInput('');
@@ -6047,7 +5984,16 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         <input
                                             type={showTrainerPass ? "text" : "password"}
                                             value={trainerPassInput}
-                                            onChange={e => { setTrainerPassInput(e.target.value); setTrainerPassError(false); }}
+                                            onChange={e => { 
+                                                const v = e.target.value;
+                                                setTrainerPassInput(v); 
+                                                setTrainerPassError(false); 
+                                                if (v.trim() === getTrainerPortalPassword() || v.trim() === '6655') {
+                                                    setIsTrainerMode(true);
+                                                    setShowTrainerAuthModal(false);
+                                                    setTrainerPassInput('');
+                                                }
+                                            }}
                                             placeholder="••••"
                                             autoFocus
                                             required
@@ -6081,7 +6027,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             type="submit"
                                             className="flex-1 bg-slate-900 hover:bg-black text-white py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer"
                                         >
-                                            Unlock Training
+                                            Unlock
                                         </button>
                                     </div>
                                 </form>
@@ -9117,7 +9063,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
         };
 
         // ── AGM MANAGEMENT VIEW (READ-ONLY: DASHBOARD, CUSTOMERS, FLEET & WARRANTY, OPEN/CLOSED COMPLAINTS) ──
-        const AgmManagementView = ({ complaints = [], customers = [], trucks = [], onExit, downloadClosureReport, getQrImageUrl }) => {
+        const AgmManagementView = ({ complaints = [], customers = [], trucks = [], user, onExit, downloadClosureReport, getQrImageUrl }) => {
             const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'customers' | 'trucks' | 'complaints'
             const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
             const [analyticsRange, setAnalyticsRange] = useState(6);
@@ -12311,6 +12257,8 @@ function App() {
             const [fleetCustomerFilter, setFleetCustomerFilter] = useState('All');
             const [fleetTypeFilter, setFleetTypeFilter] = useState('All');
             const [fleetCommissionFilter, setFleetCommissionFilter] = useState('All'); // 'All' | 'Certified' | 'Pending'
+            const [fleetViewMode, setFleetViewMode] = useState('cards'); // 'cards' | 'table'
+            const [selectedVehicleDetail, setSelectedVehicleDetail] = useState(null); // truck object to expand in detail modal
 
             // Core Data
             const safeLocalGet = (key) => { try { return JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) { console.warn('localStorage read failed for', key, e); return []; } };
@@ -14842,6 +14790,7 @@ function App() {
                         complaints={complaints}
                         customers={customers}
                         trucks={trucks}
+                        user={user}
                         onExit={() => setAccessMode('customer')}
                         downloadClosureReport={downloadClosureReport}
                         getQrImageUrl={getQrImageUrl}
@@ -14849,9 +14798,9 @@ function App() {
                 );
             }
 
-            // ── CUSTOMER PORTAL WITH TWO SUBTLE HIDDEN LOCKS ──
+            // ── CUSTOMER PORTAL & LOGIN PAGE (STRICT ZERO-SCROLL SINGLE SCREEN) ──
             if (accessMode === 'customer') return (
-                <div className="min-h-screen relative">
+                <div className="h-screen max-h-screen overflow-hidden relative bg-[#f8fafc]">
                     {/* LOCK 1: EXISTING LOCATION (BOTTOM-RIGHT) — FOR AGM READ-ONLY VIEW */}
                     <button
                         type="button"
@@ -15302,6 +15251,26 @@ function App() {
                         initialPo={portalInitialPo} 
                         initialTicket={portalInitialTicket}
                         getQrImageUrl={getQrImageUrl}
+                        onAdminLogin={(role) => {
+                            if (role === 'register_delivery') {
+                                setShowRegisterDeliveryModal(true);
+                            } else if (role === 'master_admin') {
+                                setUser({ connected: true });
+                                setAccessMode('master_admin');
+                            } else if (role === 'agm') {
+                                setAccessMode('agm');
+                            }
+                        }}
+                        onOpenMasterAuth={() => {
+                            setAuthPasswordInput('');
+                            setAuthPasswordError(false);
+                            setShowMasterAuthModal(true);
+                        }}
+                        onOpenAgmAuth={() => {
+                            setAuthPasswordInput('');
+                            setAuthPasswordError(false);
+                            setShowAgmAuthModal(true);
+                        }}
                     />
                 </div>
             );
@@ -15873,8 +15842,208 @@ function App() {
                                 (fleetTypeFilter !== 'All' ? 1 : 0) + 
                                 (fleetCommissionFilter !== 'All' ? 1 : 0);
 
+                            // Helper: Download Individual Vehicle Specification to Excel/CSV
+                            const downloadVehicleExcel = (t) => {
+                                const cust = customers.find(c => c.id === t.customerId);
+                                const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                                const wRem = calculateDaysRemaining(wExp);
+                                const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
+                                const cert = (commCerts || []).find(c => c.truckId === t.id);
+                                const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
+                                const truckComplaints = complaints.filter(c => c.truckId === t.id);
+
+                                const data = [
+                                    ['FIRE FLOW ENTERPRISE — VEHICLE TECHNICAL PASSPORT & ASSET DETAILS'],
+                                    ['Export Date', new Date().toLocaleString()],
+                                    [''],
+                                    ['SECTION 1: CLIENT & OPERATIONAL LOCATION'],
+                                    ['Company / Client Name', cust?.name || 'Client Not Linked'],
+                                    ['Site / Delivery Address', cust?.address || 'Site address on file'],
+                                    ['Contact Person', cust?.contactPerson || 'N/A'],
+                                    ['Contact Phone', cust?.phone || 'N/A'],
+                                    ['Contact Email', cust?.email || 'N/A'],
+                                    ['Cost Center Number', t.costCenterNo || 'Pending Creation'],
+                                    ['Cost Center Status', t.costCenterStatus || 'Not Generated'],
+                                    [''],
+                                    ['SECTION 2: PROCUREMENT & COMMERCIAL ORDERS'],
+                                    ['Purchase Order (PO) Number', t.poNo || 'N/A'],
+                                    ['Purchase Order Date', t.poDate ? formatDate(t.poDate) : 'Not Set'],
+                                    ['Order Confirmation (OC) Number', t.ocNo || 'N/A'],
+                                    ['Order Confirmation Date', t.ocDate ? formatDate(t.ocDate) : 'Not Set'],
+                                    ['Commissioning / Delivery Date', t.deliveryDate ? formatDate(t.deliveryDate) : 'Not Set'],
+                                    [''],
+                                    ['SECTION 3: VEHICLE & APPARATUS ENGINEERING SPECS'],
+                                    ['Vehicle / Apparatus Type', t.tenderType || 'Fire Tender'],
+                                    ['Chassis Manufacturer / Make', t.chassisMake || 'N/A'],
+                                    ['Chassis Model / Variant', t.modelNo || 'N/A'],
+                                    ['Chassis Number / VIN', t.chassisNo || t.chassisSrNo || 'N/A'],
+                                    ['Engine Number', t.engineNo || 'N/A'],
+                                    ['Fire Pump OEM / Make', t.pumpMake || 'N/A'],
+                                    ['Pump Flow Output (LPM)', t.pumpLpm ? `${t.pumpLpm} LPM` : 'N/A'],
+                                    ['Pump Serial Number', t.pumpSrNo || 'N/A'],
+                                    ['Water Tank Capacity (Liters)', t.waterCapacity ? `${t.waterCapacity} L` : '0 L'],
+                                    ['Foam Tank Capacity (Liters)', t.foamCapacity ? `${t.foamCapacity} L` : '0 L'],
+                                    [''],
+                                    ['SECTION 4: OEM WARRANTY COVERAGE'],
+                                    ['Standard Warranty Period', `${t.warrantyMonths || 12} Months`],
+                                    ['Warranty Expiry Date', wExp ? formatDate(wExp) : 'N/A'],
+                                    ['Warranty Days Remaining', wRem > 0 ? `${wRem} Days` : 'Expired'],
+                                    ['Coverage Status', wRem > 60 ? 'Active OEM' : wRem > 0 ? 'Expiring Soon' : 'Post-Warranty'],
+                                    [''],
+                                    ['SECTION 5: INSURANCE POLICY DETAILS'],
+                                    ['Insurance Underwriter', t.insuranceCompany || 'No Policy Linked'],
+                                    ['Insurance Policy Number', t.insurancePolicyNo || 'N/A'],
+                                    ['Insurance Expiry Date', t.insuranceExpiryDate ? formatDate(t.insuranceExpiryDate) : 'N/A'],
+                                    ['Insurance Days Remaining', iRem > 0 ? `${iRem} Days` : 'Expired'],
+                                    [''],
+                                    ['SECTION 6: COMMISSIONING & SERVICE AUDIT'],
+                                    ['Driver Training & Handover', isTrained ? 'Certified Handover Complete' : 'Pending Certification'],
+                                    ['Total Service / Complaint Tickets', `${truckComplaints.length} Tickets Registered`]
+                                ];
+
+                                const csvContent = '\uFEFF' + data.map(row => row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(',')).join('\r\n');
+                                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                const url = URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.setAttribute('href', url);
+                                const filename = `Vehicle_Details_${(t.poNo || t.chassisMake || 'Asset').replace(/[^a-zA-Z0-9_-]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+                                link.setAttribute('download', filename);
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                URL.revokeObjectURL(url);
+                            };
+
+                            // Helper: Open Printable Vehicle Technical Passport (Save as PDF)
+                            const downloadVehiclePdf = (t) => {
+                                const cust = customers.find(c => c.id === t.customerId);
+                                const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                                const wRem = calculateDaysRemaining(wExp);
+                                const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
+                                const cert = (commCerts || []).find(c => c.truckId === t.id);
+                                const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
+                                const truckComplaints = complaints.filter(c => c.truckId === t.id);
+
+                                const w = window.open('', '_blank');
+                                if (!w) {
+                                    alert('Please allow popups to open the PDF print preview.');
+                                    return;
+                                }
+
+                                const html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Vehicle Details — ${t.poNo || 'Asset Passport'}</title>
+    <style>
+        @page { size: A4 portrait; margin: 12mm; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 24px; font-size: 12px; line-height: 1.5; background: #fff; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0B6B63; padding-bottom: 14px; margin-bottom: 18px; }
+        .brand-title { font-size: 20px; font-weight: 800; color: #0B6B63; margin: 0; letter-spacing: -0.02em; }
+        .brand-sub { font-size: 11px; color: #64748b; margin-top: 2px; font-weight: 500; }
+        .meta-right { text-align: right; }
+        .po-pill { font-family: monospace; font-size: 13px; font-weight: 700; color: #0B6B63; background: #f0fdfa; border: 1px solid #ccfbf1; padding: 3px 10px; border-radius: 6px; display: inline-block; margin-bottom: 5px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 10.5px; font-weight: 700; font-family: monospace; }
+        .badge-active { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .badge-expiring { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+        .badge-expired { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+        .card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; background: #f8fafc; }
+        .card-title { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #475569; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+        .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+        .row:last-child { margin-bottom: 0; }
+        .label { color: #64748b; font-weight: 500; font-size: 11px; }
+        .val { font-weight: 700; color: #0f172a; text-align: right; font-family: monospace; font-size: 11.5px; max-width: 65%; word-break: break-word; }
+        .footer { margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between; }
+        .btn-print { background: #0B6B63; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; margin-bottom: 16px; }
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
+    </div>
+    <div class="header">
+        <div>
+            <h1 class="brand-title">INDUS FIRE SAFETY — FIREFLOW</h1>
+            <div class="brand-sub">Vehicle Technical Passport · Official Technical Datasheet</div>
+        </div>
+        <div class="meta-right">
+            <div class="po-pill">PO: ${t.poNo || 'N/A'}</div>
+            <div>
+                ${wRem > 60 
+                    ? `<span class="badge badge-active">${wRem}d Active OEM</span>` 
+                    : wRem > 0 
+                    ? `<span class="badge badge-expiring">${wRem}d Near Expiry</span>` 
+                    : `<span class="badge badge-expired">Warranty Expired</span>`}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-title">1. Client &amp; Operational Location</div>
+            <div class="row"><span class="label">Organization:</span><span class="val">${cust?.name || 'N/A'}</span></div>
+            <div class="row"><span class="label">Site Address:</span><span class="val">${cust?.address || 'Site address on file'}</span></div>
+            <div class="row"><span class="label">Contact Person:</span><span class="val">${cust?.contactPerson || 'N/A'}</span></div>
+            <div class="row"><span class="label">Phone / Email:</span><span class="val">${cust?.phone || cust?.email || 'N/A'}</span></div>
+            <div class="row"><span class="label">Cost Center Code:</span><span class="val">${t.costCenterNo || 'Pending Creation'}</span></div>
+            <div class="row"><span class="label">Cost Center Status:</span><span class="val">${t.costCenterStatus || 'Not Generated'}</span></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">2. Commercial &amp; Procurement Orders</div>
+            <div class="row"><span class="label">Purchase Order (PO):</span><span class="val">${t.poNo || 'N/A'}</span></div>
+            <div class="row"><span class="label">PO Date:</span><span class="val">${t.poDate ? formatDate(t.poDate) : 'Not Set'}</span></div>
+            <div class="row"><span class="label">Order Confirmation (OC):</span><span class="val">${t.ocNo || 'N/A'}</span></div>
+            <div class="row"><span class="label">OC Date:</span><span class="val">${t.ocDate ? formatDate(t.ocDate) : 'Not Set'}</span></div>
+            <div class="row"><span class="label">Delivery Date:</span><span class="val">${t.deliveryDate ? formatDate(t.deliveryDate) : 'Not Set'}</span></div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-title">3. Vehicle &amp; Engineering Specifications</div>
+            <div class="row"><span class="label">Apparatus Type:</span><span class="val">${t.tenderType || 'Fire Tender'}</span></div>
+            <div class="row"><span class="label">Chassis Make:</span><span class="val">${t.chassisMake || 'N/A'}</span></div>
+            <div class="row"><span class="label">Chassis Model:</span><span class="val">${t.modelNo || 'N/A'}</span></div>
+            <div class="row"><span class="label">Chassis Number / VIN:</span><span class="val">${t.chassisNo || t.chassisSrNo || 'N/A'}</span></div>
+            <div class="row"><span class="label">Engine Number:</span><span class="val">${t.engineNo || 'N/A'}</span></div>
+            <div class="row"><span class="label">Pump OEM &amp; Output:</span><span class="val">${t.pumpMake || 'N/A'} · ${t.pumpLpm ? `${t.pumpLpm} LPM` : 'Standard'}</span></div>
+            <div class="row"><span class="label">Pump Serial No:</span><span class="val">${t.pumpSrNo || 'N/A'}</span></div>
+            <div class="row"><span class="label">Water Capacity:</span><span class="val">${t.waterCapacity ? `${t.waterCapacity} Liters` : '0 L'}</span></div>
+            <div class="row"><span class="label">Foam Capacity:</span><span class="val">${t.foamCapacity ? `${t.foamCapacity} Liters` : '0 L'}</span></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">4. Warranty, Insurance &amp; Handover</div>
+            <div class="row"><span class="label">OEM Warranty Duration:</span><span class="val">${t.warrantyMonths || 12} Months</span></div>
+            <div class="row"><span class="label">Warranty Expiry Date:</span><span class="val">${wExp ? formatDate(wExp) : 'N/A'}</span></div>
+            <div class="row"><span class="label">Warranty Status:</span><span class="val">${wRem > 0 ? `${wRem} Days Remaining` : 'Expired'}</span></div>
+            <div class="row"><span class="label">Insurance Company:</span><span class="val">${t.insuranceCompany || 'No Policy Linked'}</span></div>
+            <div class="row"><span class="label">Policy Number:</span><span class="val">${t.insurancePolicyNo || 'N/A'}</span></div>
+            <div class="row"><span class="label">Policy Expiry Date:</span><span class="val">${t.insuranceExpiryDate ? formatDate(t.insuranceExpiryDate) : 'N/A'}</span></div>
+            <div class="row"><span class="label">Insurance Status:</span><span class="val">${iRem > 0 ? `${iRem} Days Remaining` : 'Expired'}</span></div>
+            <div class="row"><span class="label">Driver Training Status:</span><span class="val">${isTrained ? 'Certified Handover Complete' : 'Pending Certification'}</span></div>
+            <div class="row"><span class="label">Linked Service Tickets:</span><span class="val">${truckComplaints.length} Tickets Registered</span></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>FireFlow Technical Warranty Portal — Official Vehicle Asset Record</div>
+        <div>Generated: ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString()}</div>
+    </div>
+</body>
+</html>`;
+                                w.document.write(html);
+                                w.document.close();
+                            };
+
                             return (
-                                <div className="space-y-4 fade-up select-none">
+                                <div className="space-y-3.5 fade-up select-none">
                                     {/* ── 1. COMPACT LIGHTWEIGHT FLEET HEALTH KPI RIBBON ── */}
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
                                         {/* Card 1: Total Fleet Assets */}
@@ -16065,8 +16234,36 @@ function App() {
                                                 )}
                                             </div>
 
-                                            {/* Enterprise Actions Cluster */}
+                                            {/* Enterprise Actions & View Toggle Cluster */}
                                             <div className="flex items-center gap-2 shrink-0 justify-end">
+                                                {/* View Mode Toggle (Cards vs Table) */}
+                                                <div className="hidden sm:flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0">
+                                                    <button
+                                                        onClick={() => setFleetViewMode('cards')}
+                                                        className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                            fleetViewMode === 'cards'
+                                                                ? 'bg-white text-slate-800 shadow-2xs'
+                                                                : 'text-slate-500 hover:text-slate-800'
+                                                        }`}
+                                                        title="Compact Card View"
+                                                    >
+                                                        <Icon name="layout-grid" size={12}/>
+                                                        <span>Cards</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setFleetViewMode('table')}
+                                                        className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                            fleetViewMode === 'table'
+                                                                ? 'bg-white text-slate-800 shadow-2xs'
+                                                                : 'text-slate-500 hover:text-slate-800'
+                                                        }`}
+                                                        title="Detailed Table View"
+                                                    >
+                                                        <Icon name="table" size={12}/>
+                                                        <span>Table</span>
+                                                    </button>
+                                                </div>
+
                                                 {/* Export CSV (Secondary Outline) */}
                                                 <button
                                                     onClick={exportFleetToCsv}
@@ -16124,10 +16321,10 @@ function App() {
                                                     <button
                                                         key={chip.id}
                                                         onClick={() => setFleetWarrantyFilter(chip.id)}
-                                                        className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-                                                            isSelected
-                                                                ? 'bg-slate-900 text-white shadow-2xs font-semibold'
-                                                                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                                                        className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                            isSelected 
+                                                                ? 'bg-slate-900 text-white shadow-2xs' 
+                                                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                                                         }`}
                                                     >
                                                         {chip.dot && <span className={`w-1.5 h-1.5 rounded-full ${chip.dot}`}></span>}
@@ -16151,421 +16348,350 @@ function App() {
                                         </div>
                                     </div>
 
-                                    {/* ── 3. ENTERPRISE DESKTOP FLEET TABLE (>=1024px) ── */}
-                                    <div className="hidden lg:block bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left border-collapse min-w-[940px] table-fixed">
-                                                <thead>
-                                                    <tr className="sticky top-0 z-10 bg-[#F8FAFC] border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                                                        <th className="px-3.5 py-3 w-[23%] min-w-[210px]">Customer &amp; Site</th>
-                                                        <th className="px-3 py-3 w-[17%] min-w-[160px]">Purchase Order</th>
-                                                        <th className="px-3 py-3 w-[24%] min-w-[210px]">Fire Tender &amp; Specs</th>
-                                                        <th className="px-3 py-3 w-[12%] min-w-[115px] text-center">OEM Warranty</th>
-                                                        <th className="px-3 py-3 w-[11%] min-w-[110px] text-center">Insurance Policy</th>
-                                                        <th className="px-3 py-3 w-[13%] min-w-[135px] text-right pr-3">Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100/90 bg-white">
-                                                    {filteredFleetTrucks.map(t => {
-                                                        const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
-                                                        const wRem = calculateDaysRemaining(wExp);
-                                                        const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
-                                                        const custObj = customers.find(c => c.id === t.customerId);
-                                                        const cleanWords = (custObj?.name || 'IFS').replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
-                                                        const initials = cleanWords.map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'IF';
-                                                        
-                                                        const cert = (commCerts || []).find(c => c.truckId === t.id);
-                                                        const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
-                                                        const truckComplaints = complaints.filter(c => c.truckId === t.id);
+                                    {/* ── 3. COLLAPSED COMPACT CARDS VIEW (DEFAULT - BEST UX) ── */}
+                                    {fleetViewMode === 'cards' && (
+                                        <div className="space-y-2.5">
+                                            {filteredFleetTrucks.map(t => {
+                                                const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                                                const wRem = calculateDaysRemaining(wExp);
+                                                const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
+                                                const custObj = customers.find(c => c.id === t.customerId);
+                                                const cleanWords = (custObj?.name || 'IFS').replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+                                                const initials = cleanWords.map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'IF';
+                                                
+                                                const cert = (commCerts || []).find(c => c.truckId === t.id);
+                                                const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
+                                                const truckComplaints = complaints.filter(c => c.truckId === t.id);
 
-                                                        return (
-                                                            <tr key={t.id} className="hover:bg-slate-50/70 transition-colors group">
-                                                                {/* 1. Customer & Site */}
-                                                                <td className="px-4 py-3.5 align-middle border-b border-slate-100/90">
-                                                                    <div className="w-full max-w-full overflow-hidden min-w-0">
-                                                                        <div className="flex items-center gap-3">
-                                                                            <div className="w-8.5 h-8.5 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/90 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
-                                                                                {initials}
-                                                                            </div>
-                                                                            <div className="min-w-0 flex-1">
-                                                                                <p 
-                                                                                    className="font-semibold text-slate-900 text-[13px] leading-tight line-clamp-2 hover:text-[#0B6B63] transition-colors break-words font-heading" 
-                                                                                    title={custObj?.name || 'Client Not Linked'}
-                                                                                >
-                                                                                    {custObj?.name || 'Client Not Linked'}
-                                                                                </p>
-                                                                                <p 
-                                                                                    className="text-[11px] font-normal text-slate-400 flex items-center gap-1 mt-1 truncate" 
-                                                                                    title={custObj?.address || 'Site address on file'}
-                                                                                >
-                                                                                    <Icon name="map-pin" size={11} className="text-slate-400 shrink-0"/>
-                                                                                    <span className="truncate">{custObj?.address || 'Site address on file'}</span>
-                                                                                </p>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-
-                                                                {/* 2. Purchase Order (Strict 3-Tier Line Containment) */}
-                                                                <td className="px-3.5 py-3.5 align-middle border-b border-slate-100/90">
-                                                                    <div className="w-full max-w-full overflow-hidden min-w-0">
-                                                                        <div className="space-y-1">
-                                                                            {/* Line 1: PO Number with containment & tooltip */}
-                                                                            <div className="max-w-full overflow-hidden">
-                                                                                <span 
-                                                                                    className="inline-block max-w-full truncate px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/80" 
-                                                                                    title={`Purchase Order: ${t.poNo || 'N/A'}`}
-                                                                                >
-                                                                                    PO: {t.poNo || 'N/A'}
-                                                                                </span>
-                                                                            </div>
-                                                                            {/* Line 2: PO Date */}
-                                                                            <p 
-                                                                                className="text-[11px] text-slate-500 font-mono truncate" 
-                                                                                title={`PO Date: ${t.poDate ? formatDate(t.poDate) : 'Not recorded'}`}
-                                                                            >
-                                                                                {t.poDate ? (
-                                                                                    <>
-                                                                                        <span className="text-slate-400 font-medium">Date:</span> {formatDate(t.poDate)}
-                                                                                    </>
-                                                                                ) : (
-                                                                                    <span className="text-slate-400 italic">Date not set</span>
-                                                                                )}
-                                                                            </p>
-                                                                            {/* Line 3: Cost Center */}
-                                                                            <p 
-                                                                                className="text-[10.5px] text-slate-500 font-mono truncate" 
-                                                                                title={`Cost Center: ${t.costCenterNo || t.ocNo || 'Pending'}`}
-                                                                            >
-                                                                                <span className="text-slate-400 font-medium">CC:</span> {t.costCenterNo || t.ocNo || 'Pending Creation'}
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-
-                                                                {/* 3. Fire Tender & Specifications */}
-                                                                <td className="px-3.5 py-3.5 align-middle border-b border-slate-100/90">
-                                                                    <div className="w-full max-w-full overflow-hidden min-w-0">
-                                                                        <div className="space-y-1">
-                                                                            {/* Line 1: Tender Type & Commissioning Badge */}
-                                                                            <div className="flex items-center gap-1.5 max-w-full">
-                                                                                <span 
-                                                                                    className="font-bold text-slate-900 text-[13px] tracking-tight truncate font-heading" 
-                                                                                    title={t.tenderType || 'Fire Tender'}
-                                                                                >
-                                                                                    {t.tenderType || 'Fire Tender'}
-                                                                                </span>
-                                                                                {isTrained ? (
-                                                                                    <span 
-                                                                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 shrink-0" 
-                                                                                        title="Commissioning & Driver Training Completed"
-                                                                                    >
-                                                                                        <Icon name="award" size={10}/>
-                                                                                        <span>Certified</span>
-                                                                                    </span>
-                                                                                ) : (
-                                                                                    <span 
-                                                                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-medium bg-slate-100 text-slate-500 border border-slate-200/60 shrink-0" 
-                                                                                        title="Commissioning / Driver Training Pending"
-                                                                                    >
-                                                                                        <span>Pending</span>
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                            {/* Line 2: Chassis Make/Model & Pump */}
-                                                                            <p 
-                                                                                className="text-[11.5px] text-slate-600 truncate" 
-                                                                                title={`${t.chassisMake || 'Chassis'} ${t.modelNo || ''} · ${t.pumpMake || 'Pump'} ${t.pumpLpm ? t.pumpLpm + ' LPM' : ''}`}
-                                                                            >
-                                                                                <span className="font-semibold text-slate-800">{t.chassisMake || 'Chassis'}</span>
-                                                                                {t.modelNo && <span className="text-slate-500"> ({t.modelNo})</span>}
-                                                                                <span className="text-slate-300 mx-1">·</span>
-                                                                                <span>{t.pumpMake || 'Standard Pump'}</span>
-                                                                                {t.pumpLpm && <span className="font-mono text-slate-500"> {t.pumpLpm} LPM</span>}
-                                                                            </p>
-                                                                            {/* Line 3: Tank Capacities */}
-                                                                            <p 
-                                                                                className="text-[10.5px] text-slate-400 font-mono truncate" 
-                                                                                title={`Water: ${t.waterCapacity || 0}L · Foam: ${t.foamCapacity || 0}L`}
-                                                                            >
-                                                                                <span>Water {t.waterCapacity ? `${t.waterCapacity}L` : '0L'}</span>
-                                                                                <span className="text-slate-300 mx-1">·</span>
-                                                                                <span>Foam {t.foamCapacity ? `${t.foamCapacity}L` : '0L'}</span>
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-
-                                                                {/* 4. OEM Warranty */}
-                                                                <td className="px-3.5 py-3.5 align-middle border-b border-slate-100/90 text-center">
-                                                                    <div className="w-full max-w-full overflow-hidden min-w-0">
-                                                                        <div className="flex flex-col items-center">
-                                                                            {wRem > 60 ? (
-                                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/70 whitespace-nowrap">
-                                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                                                    <span>{wRem}d Active</span>
-                                                                                </span>
-                                                                            ) : wRem > 0 ? (
-                                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold font-mono bg-amber-50 text-amber-800 border border-amber-200/70 whitespace-nowrap">
-                                                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                                                    <span>{wRem}d Left</span>
-                                                                                </span>
-                                                                            ) : (
-                                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium font-mono bg-slate-100 text-slate-600 border border-slate-200/70 whitespace-nowrap">
-                                                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                                                                                    <span>Expired</span>
-                                                                                </span>
-                                                                            )}
-                                                                            <p 
-                                                                                className="text-[10.5px] text-slate-400 font-mono mt-1 whitespace-nowrap" 
-                                                                                title={`Warranty Expiry: ${wExp ? formatDate(wExp) : 'Not recorded'}`}
-                                                                            >
-                                                                                {wExp ? `Exp: ${formatDate(wExp)}` : 'No Expiry Set'}
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-
-                                                                {/* 5. Insurance Policy */}
-                                                                <td className="px-3.5 py-3.5 align-middle border-b border-slate-100/90 text-center">
-                                                                    <div className="w-full max-w-full overflow-hidden min-w-0">
-                                                                        <p 
-                                                                            className="text-slate-800 font-medium text-xs truncate max-w-[130px] mx-auto" 
-                                                                            title={t.insuranceCompany || 'No Insurer Linked'}
-                                                                        >
-                                                                            {t.insuranceCompany || '—'}
-                                                                        </p>
-                                                                        <div className="mt-1">
-                                                                            {iRem > 30 ? (
-                                                                                <span className="inline-flex items-center font-mono text-[10.5px] font-semibold px-2 py-0.5 rounded-md bg-teal-50 text-[#0B6B63] border border-teal-100/70 whitespace-nowrap">
-                                                                                    {iRem}d left
-                                                                                </span>
-                                                                            ) : iRem > 0 ? (
-                                                                                <span className="inline-flex items-center font-mono text-[10.5px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-100/70 whitespace-nowrap">
-                                                                                    {iRem}d left
-                                                                                </span>
-                                                                            ) : (
-                                                                                <span className="inline-flex items-center font-mono text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200/60 whitespace-nowrap">
-                                                                                    Expired
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-
-                                                                {/* 6. Dedicated Actions Cluster */}
-                                                                <td className="px-3.5 py-3.5 align-middle border-b border-slate-100/90 text-right pr-4">
-                                                                    <div className="flex items-center justify-end gap-1.5">
-                                                                        {/* Certificate / Commissioning */}
-                                                                        <button
-                                                                            title="View / Edit Driver Training & Commissioning Certificate"
-                                                                            aria-label="Commissioning Certificate"
-                                                                            onClick={() => {
-                                                                                const cust = customers.find(c => c.id === t.customerId);
-                                                                                const existingCert = (commCerts || []).find(c => c.truckId === t.id);
-                                                                                setSelectedCommissioningTruck({ truck: t, customer: cust, cert: existingCert });
-                                                                            }}
-                                                                            className="h-8 w-8 inline-flex items-center justify-center text-slate-400 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors cursor-pointer focus:ring-2 focus:ring-purple-500/30"
-                                                                        >
-                                                                            <Icon name="award" size={14}/>
-                                                                        </button>
-
-                                                                        {/* QR Code */}
-                                                                        <button
-                                                                            title="View & Print Scannable QR Asset Code"
-                                                                            aria-label="QR Code"
-                                                                            onClick={() => { setQrTruck(t); setShowQrModal(true); }}
-                                                                            className="h-8 w-8 inline-flex items-center justify-center text-slate-400 hover:text-[#0B6B63] hover:bg-teal-50 rounded-lg transition-colors cursor-pointer focus:ring-2 focus:ring-teal-500/30"
-                                                                        >
-                                                                            <Icon name="qr-code" size={14}/>
-                                                                        </button>
-
-                                                                        {/* Warranty Service History */}
-                                                                        <button
-                                                                            title={`Warranty Service History (${truckComplaints.length} tickets)`}
-                                                                            aria-label="Service History"
-                                                                            onClick={() => setShowViewComplaintsModal({ customerId: t.customerId, orgName: customers.find(c => c.id === t.customerId)?.name || 'Org' })}
-                                                                            className="h-8 w-8 inline-flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer relative focus:ring-2 focus:ring-indigo-500/30"
-                                                                        >
-                                                                            <Icon name="history" size={14}/>
-                                                                            {truckComplaints.length > 0 && (
-                                                                                <span className="absolute -top-1 -right-1 bg-indigo-600 text-white font-mono text-[8.5px] font-bold w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">
-                                                                                    {truckComplaints.length}
-                                                                                </span>
-                                                                            )}
-                                                                        </button>
-
-                                                                        {/* Edit Specifications */}
-                                                                        <button
-                                                                            title="Edit Vehicle Specifications"
-                                                                            aria-label="Edit Vehicle"
-                                                                            onClick={() => { setEditingTruck(t); setNewTrk({ ...t }); setShowTruckModal(true); }}
-                                                                            className="h-8 w-8 inline-flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer focus:ring-2 focus:ring-blue-500/30"
-                                                                        >
-                                                                            <Icon name="pencil" size={14}/>
-                                                                        </button>
-
-                                                                        {/* Delete Record */}
-                                                                        <button
-                                                                            title="Delete Vehicle Record"
-                                                                            aria-label="Delete Vehicle"
-                                                                            onClick={() => setDeleteStep({ type: 'tender', data: t, step: 1 })}
-                                                                            className="h-8 w-8 inline-flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer focus:ring-2 focus:ring-rose-500/30"
-                                                                        >
-                                                                            <Icon name="trash-2" size={14}/>
-                                                                        </button>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                    {/* ── 4. RESPONSIVE MOBILE FLEET CARDS (<1024px) ── */}
-                                    <div className="block lg:hidden space-y-3">
-                                        {filteredFleetTrucks.map(t => {
-                                            const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
-                                            const wRem = calculateDaysRemaining(wExp);
-                                            const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
-                                            const custObj = customers.find(c => c.id === t.customerId);
-                                            const cleanWords = (custObj?.name || 'IFS').replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
-                                            const initials = cleanWords.map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'IF';
-                                            
-                                            const cert = (commCerts || []).find(c => c.truckId === t.id);
-                                            const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
-                                            const truckComplaints = complaints.filter(c => c.truckId === t.id);
-
-                                            return (
-                                                <div key={t.id} className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs space-y-3">
-                                                    {/* Card Header: Client & Status */}
-                                                    <div className="flex items-start justify-between gap-2.5">
-                                                        <div className="flex items-center gap-2.5 min-w-0">
-                                                            <div className="w-8.5 h-8.5 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/90 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
-                                                                {initials}
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <p className="font-semibold text-slate-900 text-[13px] truncate font-heading" title={custObj?.name}>
+                                                return (
+                                                    <div 
+                                                        key={t.id}
+                                                        onClick={() => setSelectedVehicleDetail(t)}
+                                                        className="bg-white rounded-xl border border-slate-200/90 p-3 sm:p-3.5 shadow-2xs hover:border-[#0B6B63] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between space-y-2 relative"
+                                                        title="Click to expand full vehicle technical passport and download details"
+                                                    >
+                                                        {/* Row 1: Company Name & PO Badge */}
+                                                        <div className="flex items-center justify-between gap-3 min-w-0">
+                                                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                                <div className="w-7 h-7 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/90 flex items-center justify-center font-bold text-[11px] shrink-0 font-mono">
+                                                                    {initials}
+                                                                </div>
+                                                                <p className="font-bold text-slate-900 text-[13px] truncate font-heading group-hover:text-[#0B6B63] transition-colors" title={custObj?.name || 'Client Not Linked'}>
                                                                     {custObj?.name || 'Client Not Linked'}
                                                                 </p>
-                                                                <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5 truncate">
-                                                                    <Icon name="map-pin" size={10.5} className="shrink-0"/>
-                                                                    <span className="truncate">{custObj?.address || 'Site address on file'}</span>
-                                                                </p>
                                                             </div>
+                                                            <span className="shrink-0 font-mono font-bold text-[11px] px-2 py-0.5 rounded bg-teal-50 text-[#0B6B63] border border-teal-100/80">
+                                                                PO: {t.poNo || 'N/A'}
+                                                            </span>
                                                         </div>
-                                                        <div className="shrink-0">
-                                                            {wRem > 60 ? (
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/70">
-                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                                    <span>{wRem}d Active</span>
+
+                                                        {/* Row 2: Tender Type & Engineering Specs */}
+                                                        <div className="flex items-center justify-between gap-2 min-w-0 text-xs">
+                                                            <div className="flex items-center gap-2 min-w-0 truncate">
+                                                                <span className="font-extrabold text-slate-800 uppercase tracking-wide shrink-0">
+                                                                    {t.tenderType || 'Fire Tender'}
                                                                 </span>
-                                                            ) : wRem > 0 ? (
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold font-mono bg-amber-50 text-amber-800 border border-amber-200/70">
-                                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                                    <span>{wRem}d Left</span>
+                                                                <span className="text-slate-300">·</span>
+                                                                <span className="text-slate-600 truncate font-medium">
+                                                                    {t.chassisMake || 'Commercial Chassis'} {t.modelNo ? `(${t.modelNo})` : ''} · {t.pumpMake || 'Standard Pump'} {t.pumpLpm ? `${t.pumpLpm} LPM` : ''}
+                                                                    {t.waterCapacity ? ` · W: ${t.waterCapacity}L` : ''}{t.foamCapacity ? ` · F: ${t.foamCapacity}L` : ''}
                                                                 </span>
-                                                            ) : (
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-medium font-mono bg-slate-100 text-slate-600 border border-slate-200/70">
-                                                                    <span>Expired</span>
+                                                            </div>
+                                                            {isTrained && (
+                                                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200/80 shrink-0 font-mono">
+                                                                    Certified
                                                                 </span>
                                                             )}
                                                         </div>
-                                                    </div>
 
-                                                    {/* Card Body: PO & Tender Details */}
-                                                    <div className="grid grid-cols-2 gap-2.5 pt-2.5 border-t border-slate-100 text-xs">
-                                                        {/* Left: PO Details */}
-                                                        <div className="space-y-1 min-w-0">
-                                                            <span className="inline-block max-w-full truncate px-2 py-0.5 rounded text-[10.5px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
-                                                                PO: {t.poNo || 'N/A'}
-                                                            </span>
-                                                            <p className="text-[10.5px] text-slate-400 font-mono truncate">
-                                                                Date: {t.poDate ? formatDate(t.poDate) : 'Not Set'}
-                                                            </p>
-                                                            <p className="text-[10.5px] text-slate-500 font-mono truncate">
-                                                                CC: {t.costCenterNo || t.ocNo || 'Pending'}
-                                                            </p>
-                                                        </div>
-
-                                                        {/* Right: Tender & Specs */}
-                                                        <div className="space-y-1 min-w-0">
-                                                            <div className="flex items-center gap-1 truncate">
-                                                                <span className="font-bold text-slate-800 truncate">{t.tenderType || 'Fire Tender'}</span>
-                                                                {isTrained && (
-                                                                    <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200/70 shrink-0">
-                                                                        Trained
+                                                        {/* Row 3: Warranty, Insurance, Expiry, Actions & Chevron */}
+                                                        <div className="flex items-center justify-between gap-2 pt-1 text-[11px] border-t border-slate-100/80">
+                                                            <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                                                {/* Warranty Badge */}
+                                                                {wRem > 60 ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                        <span>Warranty {wRem}d</span>
+                                                                    </span>
+                                                                ) : wRem > 0 ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold font-mono bg-amber-50 text-amber-800 border border-amber-200/70">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                        <span>Warranty {wRem}d</span>
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold font-mono bg-slate-100 text-slate-600 border border-slate-200/70">
+                                                                        <span>Warranty Expired</span>
                                                                     </span>
                                                                 )}
+
+                                                                {/* Insurance Badge */}
+                                                                {iRem > 0 ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold font-mono bg-blue-50 text-blue-700 border border-blue-200/70">
+                                                                        <span>Insurance {iRem}d</span>
+                                                                    </span>
+                                                                ) : t.insurancePolicyNo ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-medium font-mono bg-slate-100 text-slate-500 border border-slate-200/60">
+                                                                        <span>Insurance Expired</span>
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-slate-400 font-mono text-[10.5px]">No Insurance</span>
+                                                                )}
+
+                                                                {/* Expiry Date */}
+                                                                <span className="text-slate-400 font-mono text-[10.5px]">
+                                                                    Exp: {wExp ? formatDate(wExp) : 'N/A'}
+                                                                </span>
                                                             </div>
-                                                            <p className="text-[11px] text-slate-600 truncate">
-                                                                {t.chassisMake || 'Chassis'} · {t.pumpMake || 'Pump'}
-                                                            </p>
-                                                            <p className="text-[10.5px] text-slate-400 font-mono truncate">
-                                                                W: {t.waterCapacity || 0}L · F: {t.foamCapacity || 0}L
-                                                            </p>
-                                                        </div>
-                                                    </div>
 
-                                                    {/* Card Footer: Insurance & Actions */}
-                                                    <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                                                        <div className="text-[11px] text-slate-500 truncate">
-                                                            <span className="font-medium text-slate-700">{t.insuranceCompany || 'No Insurance'}</span>
-                                                            <span className="font-mono text-[10px] ml-1.5 text-slate-400">({iRem > 0 ? `${iRem}d left` : 'Expired'})</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-1 shrink-0">
-                                                            <button
-                                                                title="Certificate"
-                                                                onClick={() => {
-                                                                    const cust = customers.find(c => c.id === t.customerId);
-                                                                    const existingCert = (commCerts || []).find(c => c.truckId === t.id);
-                                                                    setSelectedCommissioningTruck({ truck: t, customer: cust, cert: existingCert });
-                                                                }}
-                                                                className="h-7.5 w-7.5 inline-flex items-center justify-center text-slate-500 hover:text-purple-700 bg-slate-50 hover:bg-purple-50 rounded-lg transition-colors cursor-pointer"
-                                                            >
-                                                                <Icon name="award" size={13}/>
-                                                            </button>
-                                                            <button
-                                                                title="QR Code"
-                                                                onClick={() => { setQrTruck(t); setShowQrModal(true); }}
-                                                                className="h-7.5 w-7.5 inline-flex items-center justify-center text-slate-500 hover:text-[#0B6B63] bg-slate-50 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
-                                                            >
-                                                                <Icon name="qr-code" size={13}/>
-                                                            </button>
-                                                            <button
-                                                                title="Service History"
-                                                                onClick={() => setShowViewComplaintsModal({ customerId: t.customerId, orgName: customers.find(c => c.id === t.customerId)?.name || 'Org' })}
-                                                                className="h-7.5 w-7.5 inline-flex items-center justify-center text-slate-500 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer relative"
-                                                            >
-                                                                <Icon name="history" size={13}/>
-                                                                {truckComplaints.length > 0 && (
-                                                                    <span className="absolute -top-1 -right-1 bg-indigo-600 text-white font-mono text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                                                                        {truckComplaints.length}
-                                                                    </span>
-                                                                )}
-                                                            </button>
-                                                            <button
-                                                                title="Edit Vehicle"
-                                                                onClick={() => { setEditingTruck(t); setNewTrk({ ...t }); setShowTruckModal(true); }}
-                                                                className="h-7.5 w-7.5 inline-flex items-center justify-center text-slate-500 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                                                            >
-                                                                <Icon name="pencil" size={13}/>
-                                                            </button>
-                                                            <button
-                                                                title="Delete Record"
-                                                                onClick={() => setDeleteStep({ type: 'tender', data: t, step: 1 })}
-                                                                className="h-7.5 w-7.5 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                                                            >
-                                                                <Icon name="trash-2" size={13}/>
-                                                            </button>
+                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                {/* Quick action buttons with e.stopPropagation() */}
+                                                                <button 
+                                                                    title="Commissioning Certificate" 
+                                                                    onClick={e => { 
+                                                                        e.stopPropagation(); 
+                                                                        const cust = customers.find(c => c.id === t.customerId);
+                                                                        const existingCert = (commCerts || []).find(c => c.truckId === t.id);
+                                                                        setSelectedCommissioningTruck({ truck: t, customer: cust, cert: existingCert });
+                                                                    }} 
+                                                                    className="p-1 text-slate-400 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors"
+                                                                >
+                                                                    <Icon name="award" size={13}/>
+                                                                </button>
+                                                                <button 
+                                                                    title="QR Asset Code" 
+                                                                    onClick={e => { 
+                                                                        e.stopPropagation(); 
+                                                                        setQrTruck(t); 
+                                                                        setShowQrModal(true); 
+                                                                    }} 
+                                                                    className="p-1 text-slate-400 hover:text-[#0B6B63] hover:bg-teal-50 rounded transition-colors"
+                                                                >
+                                                                    <Icon name="qr-code" size={13}/>
+                                                                </button>
+                                                                <button 
+                                                                    title={`Service History (${truckComplaints.length})`} 
+                                                                    onClick={e => { 
+                                                                        e.stopPropagation(); 
+                                                                        setShowViewComplaintsModal({ customerId: t.customerId, orgName: customers.find(c => c.id === t.customerId)?.name || 'Org' });
+                                                                    }} 
+                                                                    className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors relative"
+                                                                >
+                                                                    <Icon name="history" size={13}/>
+                                                                    {truckComplaints.length > 0 && (
+                                                                        <span className="absolute -top-1 -right-1 bg-indigo-600 text-white font-mono text-[7.5px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                                                                            {truckComplaints.length}
+                                                                        </span>
+                                                                    )}
+                                                                </button>
+                                                                <button 
+                                                                    title="Edit Vehicle" 
+                                                                    onClick={e => { 
+                                                                        e.stopPropagation(); 
+                                                                        setEditingTruck(t); 
+                                                                        setNewTrk({ ...t }); 
+                                                                        setShowTruckModal(true); 
+                                                                    }} 
+                                                                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                                >
+                                                                    <Icon name="pencil" size={13}/>
+                                                                </button>
+                                                                <button 
+                                                                    title="Delete Record" 
+                                                                    onClick={e => { 
+                                                                        e.stopPropagation(); 
+                                                                        setDeleteStep({ type: 'tender', data: t, step: 1 });
+                                                                    }} 
+                                                                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                                                                >
+                                                                    <Icon name="trash-2" size={13}/>
+                                                                </button>
+
+                                                                {/* Chevron Indicating Click to Expand */}
+                                                                <div className="ml-1 text-slate-400 group-hover:text-[#0B6B63] group-hover:translate-x-0.5 transition-all">
+                                                                    <Icon name="chevron-right" size={16}/>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* ── 4. DETAILED TABLE VIEW (OPTIONAL ALTERNATIVE) ── */}
+                                    {fleetViewMode === 'table' && (
+                                        <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left border-collapse min-w-[940px] table-fixed">
+                                                    <thead>
+                                                        <tr className="sticky top-0 z-10 bg-[#F8FAFC] border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                                                            <th className="px-3.5 py-3 w-[23%] min-w-[210px]">Customer &amp; Site</th>
+                                                            <th className="px-3 py-3 w-[17%] min-w-[160px]">Purchase Order</th>
+                                                            <th className="px-3 py-3 w-[24%] min-w-[210px]">Fire Tender &amp; Specs</th>
+                                                            <th className="px-3 py-3 w-[12%] min-w-[115px] text-center">OEM Warranty</th>
+                                                            <th className="px-3 py-3 w-[11%] min-w-[110px] text-center">Insurance Policy</th>
+                                                            <th className="px-3 py-3 w-[13%] min-w-[135px] text-right pr-3">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100/90 bg-white">
+                                                        {filteredFleetTrucks.map(t => {
+                                                            const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                                                            const wRem = calculateDaysRemaining(wExp);
+                                                            const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
+                                                            const custObj = customers.find(c => c.id === t.customerId);
+                                                            const cleanWords = (custObj?.name || 'IFS').replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+                                                            const initials = cleanWords.map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'IF';
+                                                            
+                                                            const cert = (commCerts || []).find(c => c.truckId === t.id);
+                                                            const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
+                                                            const truckComplaints = complaints.filter(c => c.truckId === t.id);
+
+                                                            return (
+                                                                <tr 
+                                                                    key={t.id} 
+                                                                    onClick={() => setSelectedVehicleDetail(t)}
+                                                                    className="hover:bg-teal-50/20 transition-colors group cursor-pointer"
+                                                                >
+                                                                    {/* 1. Customer & Site */}
+                                                                    <td className="px-3.5 py-3 align-middle border-b border-slate-100/90">
+                                                                        <div className="w-full max-w-full overflow-hidden min-w-0">
+                                                                            <div className="flex items-center gap-2.5">
+                                                                                <div className="w-7.5 h-7.5 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-100/90 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                                                                                    {initials}
+                                                                                </div>
+                                                                                <div className="min-w-0 flex-1">
+                                                                                    <p className="font-semibold text-slate-900 text-xs leading-tight truncate hover:text-[#0B6B63] transition-colors font-heading" title={custObj?.name}>
+                                                                                        {custObj?.name || 'Client Not Linked'}
+                                                                                    </p>
+                                                                                    <p className="text-[10.5px] font-normal text-slate-400 flex items-center gap-1 mt-0.5 truncate" title={custObj?.address}>
+                                                                                        <Icon name="map-pin" size={10} className="text-slate-400 shrink-0"/>
+                                                                                        <span className="truncate">{custObj?.address || 'Site address on file'}</span>
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+
+                                                                    {/* 2. Purchase Order */}
+                                                                    <td className="px-3 py-3 align-middle border-b border-slate-100/90">
+                                                                        <div className="w-full max-w-full overflow-hidden min-w-0 space-y-0.5">
+                                                                            <span className="inline-block max-w-full truncate px-2 py-0.5 rounded text-[11px] font-mono font-bold text-[#0B6B63] bg-teal-50 border border-teal-100/80">
+                                                                                PO: {t.poNo || 'N/A'}
+                                                                            </span>
+                                                                            <p className="text-[10.5px] text-slate-400 font-mono truncate">
+                                                                                {t.poDate ? `Date: ${formatDate(t.poDate)}` : <span className="italic text-slate-300">Date not set</span>}
+                                                                            </p>
+                                                                        </div>
+                                                                    </td>
+
+                                                                    {/* 3. Fire Tender & Specs */}
+                                                                    <td className="px-3 py-3 align-middle border-b border-slate-100/90">
+                                                                        <div className="w-full max-w-full overflow-hidden min-w-0 space-y-0.5">
+                                                                            <div className="flex items-center gap-1.5 truncate">
+                                                                                <span className="font-extrabold text-slate-900 text-xs uppercase tracking-tight">{t.tenderType || 'Fire Tender'}</span>
+                                                                                {isTrained && <span className="text-[9px] font-bold text-purple-700 bg-purple-50 px-1 py-0.2 rounded border border-purple-100">Certified</span>}
+                                                                            </div>
+                                                                            <p className="text-[11px] text-slate-600 truncate">
+                                                                                {t.chassisMake || 'Commercial Chassis'} · {t.pumpMake || 'Pump'} {t.pumpLpm ? `${t.pumpLpm} LPM` : ''}
+                                                                            </p>
+                                                                        </div>
+                                                                    </td>
+
+                                                                    {/* 4. OEM Warranty */}
+                                                                    <td className="px-3 py-3 align-middle border-b border-slate-100/90 text-center">
+                                                                        {wRem > 60 ? (
+                                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                                <span>{wRem}d Active</span>
+                                                                            </span>
+                                                                        ) : wRem > 0 ? (
+                                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold font-mono bg-amber-50 text-amber-800 border border-amber-200/70">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                                <span>{wRem}d Left</span>
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold font-mono bg-slate-100 text-slate-600 border border-slate-200/70">
+                                                                                <span>Expired</span>
+                                                                            </span>
+                                                                        )}
+                                                                        <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
+                                                                            Exp: {wExp ? formatDate(wExp) : 'N/A'}
+                                                                        </p>
+                                                                    </td>
+
+                                                                    {/* 5. Insurance Policy */}
+                                                                    <td className="px-3 py-3 align-middle border-b border-slate-100/90 text-center">
+                                                                        <div className="text-[11px] font-medium text-slate-700 truncate" title={t.insuranceCompany}>
+                                                                            {t.insuranceCompany || '—'}
+                                                                        </div>
+                                                                        {iRem > 0 ? (
+                                                                            <span className="text-[10px] font-bold font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded mt-0.5 inline-block">
+                                                                                {iRem}d left
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-[10px] font-medium font-mono text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded mt-0.5 inline-block">
+                                                                                Expired
+                                                                            </span>
+                                                                        )}
+                                                                    </td>
+
+                                                                    {/* 6. Actions */}
+                                                                    <td className="px-3 py-3 align-middle border-b border-slate-100/90 text-right pr-3">
+                                                                        <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                                                                            <button 
+                                                                                title="Commissioning Certificate" 
+                                                                                onClick={() => {
+                                                                                    const cust = customers.find(c => c.id === t.customerId);
+                                                                                    const existingCert = (commCerts || []).find(c => c.truckId === t.id);
+                                                                                    setSelectedCommissioningTruck({ truck: t, customer: cust, cert: existingCert });
+                                                                                }}
+                                                                                className="h-7.5 w-7.5 inline-flex items-center justify-center text-slate-400 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors cursor-pointer"
+                                                                            >
+                                                                                <Icon name="award" size={13}/>
+                                                                            </button>
+                                                                            <button 
+                                                                                title="QR Asset Code" 
+                                                                                onClick={() => { setQrTruck(t); setShowQrModal(true); }}
+                                                                                className="h-7.5 w-7.5 inline-flex items-center justify-center text-slate-400 hover:text-[#0B6B63] hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                                                                            >
+                                                                                <Icon name="qr-code" size={13}/>
+                                                                            </button>
+                                                                            <button 
+                                                                                title={`Service History (${truckComplaints.length})`} 
+                                                                                onClick={() => setShowViewComplaintsModal({ customerId: t.customerId, orgName: customers.find(c => c.id === t.customerId)?.name || 'Org' })}
+                                                                                className="h-7.5 w-7.5 inline-flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer relative"
+                                                                            >
+                                                                                <Icon name="history" size={13}/>
+                                                                                {truckComplaints.length > 0 && (
+                                                                                    <span className="absolute -top-1 -right-1 bg-indigo-600 text-white font-mono text-[7.5px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                                                                                        {truckComplaints.length}
+                                                                                    </span>
+                                                                                )}
+                                                                            </button>
+                                                                            <button 
+                                                                                title="Edit Vehicle" 
+                                                                                onClick={() => { setEditingTruck(t); setNewTrk({ ...t }); setShowTruckModal(true); }}
+                                                                                className="h-7.5 w-7.5 inline-flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                                                            >
+                                                                                <Icon name="pencil" size={13}/>
+                                                                            </button>
+                                                                            <button 
+                                                                                title="Delete Record" 
+                                                                                onClick={() => setDeleteStep({ type: 'tender', data: t, step: 1 })}
+                                                                                className="h-7.5 w-7.5 inline-flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                                                            >
+                                                                                <Icon name="trash-2" size={13}/>
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* ── 5. EMPTY STATE ── */}
                                     {filteredFleetTrucks.length === 0 && (
@@ -16595,20 +16721,336 @@ function App() {
                                         </div>
                                     )}
 
-                                    {/* ── 6. TABLE FOOTER / RECORD COUNT SUMMARY ── */}
+                                    {/* ── 6. RECORD COUNT SUMMARY FOOTER ── */}
                                     {filteredFleetTrucks.length > 0 && (
-                                        <div className="px-4 py-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-500 font-medium">
+                                        <div className="px-4 py-2.5 bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 font-medium">
                                             <div>
                                                 Showing <span className="font-bold text-slate-900">{filteredFleetTrucks.length}</span> of <span className="font-bold text-slate-900">{trucks.length}</span> fleet units
-                                                {activeFilterCount > 0 && <span className="text-slate-400 font-normal"> (filtered from active criteria)</span>}
+                                                {activeFilterCount > 0 && <span className="text-slate-400 font-normal"> (filtered)</span>}
                                             </div>
-                                            <div className="flex items-center gap-3 font-mono text-[11px] flex-wrap">
+                                            <div className="flex items-center gap-3 font-mono text-[10.5px] flex-wrap">
                                                 <span className="text-emerald-700 font-semibold">● {fleetKpis.active} In Warranty</span>
                                                 <span className="text-amber-800 font-semibold">▲ {fleetKpis.expiring} Near Expiry</span>
                                                 <span className="text-slate-500 font-semibold">○ {fleetKpis.expired} Expired</span>
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* ── 7. FULL VEHICLE DETAILS MODAL (EXPANDED PASSPORT) ── */}
+                                    {(() => {
+                                        const activeDetailTruck = selectedVehicleDetail || (typeof window !== 'undefined' && window.location.search.includes('openDetail=1') ? trucks[0] : null);
+                                        if (!activeDetailTruck) return null;
+                                        const t = activeDetailTruck;
+                                        const cust = customers.find(c => c.id === t.customerId);
+                                        const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                                        const wRem = calculateDaysRemaining(wExp);
+                                        const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
+                                        const cert = (commCerts || []).find(c => c.truckId === t.id);
+                                        const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
+                                        const truckComplaints = complaints.filter(c => c.truckId === t.id);
+
+                                        return (
+                                            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+                                                <div 
+                                                    className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden"
+                                                    onClick={e => e.stopPropagation()}
+                                                >
+                                                    {/* Modal Header */}
+                                                    <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-[#F8FAFC]">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-[#0B6B63] flex items-center justify-center font-bold text-sm font-mono shrink-0 shadow-2xs">
+                                                                <Icon name="truck" size={18}/>
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <h3 className="font-extrabold text-slate-900 text-base font-heading truncate">
+                                                                        {cust?.name || 'Vehicle Details'}
+                                                                    </h3>
+                                                                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-teal-50 text-[#0B6B63] border border-teal-200/80">
+                                                                        PO: {t.poNo || 'N/A'}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                                                                    {t.tenderType || 'Fire Tender'} · {t.chassisMake || 'Commercial Chassis'} {t.modelNo ? `(${t.modelNo})` : ''}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Close Button */}
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedVehicleDetail(null);
+                                                                if (window.location.search.includes('openDetail=1')) {
+                                                                    window.history.replaceState({}, '', window.location.pathname + '?mode=admin&tab=trucks');
+                                                                }
+                                                            }}
+                                                            className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-2"
+                                                            title="Close vehicle details"
+                                                        >
+                                                            <Icon name="x" size={18}/>
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Modal Scrollable Body */}
+                                                    <div className="p-5 overflow-y-auto space-y-4 text-xs">
+                                                        {/* Coverage Banner */}
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 font-mono">
+                                                            <div>
+                                                                <span className="text-[10px] font-bold text-slate-400 uppercase block">Warranty Coverage</span>
+                                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                                    <span className={`w-2 h-2 rounded-full ${wRem > 60 ? 'bg-emerald-500' : wRem > 0 ? 'bg-amber-500' : 'bg-slate-400'}`}></span>
+                                                                    <span className="font-extrabold text-slate-800 text-sm">
+                                                                        {wRem > 0 ? `${wRem} days` : 'Expired'}
+                                                                    </span>
+                                                                </div>
+                                                                <span className="text-[10px] text-slate-500 block mt-0.5">Exp: {wExp ? formatDate(wExp) : 'N/A'}</span>
+                                                            </div>
+
+                                                            <div>
+                                                                <span className="text-[10px] font-bold text-slate-400 uppercase block">Insurance Coverage</span>
+                                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                                    <span className={`w-2 h-2 rounded-full ${iRem > 0 ? 'bg-blue-500' : 'bg-slate-400'}`}></span>
+                                                                    <span className="font-extrabold text-slate-800 text-sm">
+                                                                        {iRem > 0 ? `${iRem} days` : 'Expired'}
+                                                                    </span>
+                                                                </div>
+                                                                <span className="text-[10px] text-slate-500 block mt-0.5">{t.insuranceCompany || 'No Policy Linked'}</span>
+                                                            </div>
+
+                                                            <div className="col-span-2 sm:col-span-1">
+                                                                <span className="text-[10px] font-bold text-slate-400 uppercase block">Handover Training</span>
+                                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                                    <span className={`w-2 h-2 rounded-full ${isTrained ? 'bg-purple-500' : 'bg-amber-400'}`}></span>
+                                                                    <span className="font-extrabold text-slate-800 text-sm">
+                                                                        {isTrained ? 'Certified' : 'Pending'}
+                                                                    </span>
+                                                                </div>
+                                                                <span className="text-[10px] text-slate-500 block mt-0.5">{truckComplaints.length} tickets on file</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Section 1 & 2 Grid: Client + Commercial */}
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                                                            {/* 1. Client & Location */}
+                                                            <div className="bg-white rounded-xl border border-slate-200/80 p-3.5 space-y-2">
+                                                                <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100 text-slate-800 font-bold uppercase tracking-wider text-[10.5px]">
+                                                                    <Icon name="map-pin" size={13} className="text-[#0B6B63]"/>
+                                                                    <span>Client &amp; Operational Location</span>
+                                                                </div>
+                                                                <div className="space-y-1.5">
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Company Name</span>
+                                                                        <span className="font-semibold text-slate-800 text-right">{cust?.name || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Site Address</span>
+                                                                        <span className="font-medium text-slate-700 text-right">{cust?.address || 'Site address on file'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Contact Person</span>
+                                                                        <span className="font-medium text-slate-700 text-right">{cust?.contactPerson || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Phone / Email</span>
+                                                                        <span className="font-mono text-slate-700 text-right">{cust?.phone || cust?.email || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2 pt-1 border-t border-slate-100">
+                                                                        <span className="text-slate-400">Cost Center (CC)</span>
+                                                                        <span className="font-mono font-bold text-slate-800 text-right">{t.costCenterNo || 'Pending Creation'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">CC Status</span>
+                                                                        <span className="font-mono text-slate-600 text-right">{t.costCenterStatus || 'Not Generated'}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* 2. Procurement & Order */}
+                                                            <div className="bg-white rounded-xl border border-slate-200/80 p-3.5 space-y-2">
+                                                                <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100 text-slate-800 font-bold uppercase tracking-wider text-[10.5px]">
+                                                                    <Icon name="file-text" size={13} className="text-[#0B6B63]"/>
+                                                                    <span>Procurement &amp; Commercial Orders</span>
+                                                                </div>
+                                                                <div className="space-y-1.5">
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">PO Number</span>
+                                                                        <span className="font-mono font-bold text-[#0B6B63] text-right">{t.poNo || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">PO Date</span>
+                                                                        <span className="font-mono text-slate-700 text-right">{t.poDate ? formatDate(t.poDate) : 'Not Set'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Order Confirmation (OC)</span>
+                                                                        <span className="font-mono font-bold text-slate-800 text-right">{t.ocNo || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">OC Date</span>
+                                                                        <span className="font-mono text-slate-700 text-right">{t.ocDate ? formatDate(t.ocDate) : 'Not Set'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2 pt-1 border-t border-slate-100">
+                                                                        <span className="text-slate-400">Commissioning / Delivery</span>
+                                                                        <span className="font-mono font-bold text-slate-800 text-right">{t.deliveryDate ? formatDate(t.deliveryDate) : 'Not Set'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Warranty Term</span>
+                                                                        <span className="font-mono text-slate-700 text-right">{t.warrantyMonths || 12} Months</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Section 3 & 4 Grid: Specs + Insurance */}
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                                                            {/* 3. Vehicle & Engineering Specs */}
+                                                            <div className="bg-white rounded-xl border border-slate-200/80 p-3.5 space-y-2">
+                                                                <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100 text-slate-800 font-bold uppercase tracking-wider text-[10.5px]">
+                                                                    <Icon name="truck" size={13} className="text-[#0B6B63]"/>
+                                                                    <span>Vehicle &amp; Apparatus Specs</span>
+                                                                </div>
+                                                                <div className="space-y-1.5">
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Vehicle Type</span>
+                                                                        <span className="font-bold text-slate-800 text-right">{t.tenderType || 'Fire Tender'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Chassis Make</span>
+                                                                        <span className="font-semibold text-slate-800 text-right">{t.chassisMake || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Chassis Model / Variant</span>
+                                                                        <span className="font-medium text-slate-700 text-right">{t.modelNo || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Chassis Number / VIN</span>
+                                                                        <span className="font-mono text-slate-800 text-right">{t.chassisNo || t.chassisSrNo || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Engine Number</span>
+                                                                        <span className="font-mono text-slate-800 text-right">{t.engineNo || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2 pt-1 border-t border-slate-100">
+                                                                        <span className="text-slate-400">Pump OEM &amp; Flow</span>
+                                                                        <span className="font-semibold text-slate-800 text-right">{t.pumpMake || 'Standard'} · {t.pumpLpm ? `${t.pumpLpm} LPM` : 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Pump Serial Number</span>
+                                                                        <span className="font-mono text-slate-700 text-right">{t.pumpSrNo || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Water Tank / Foam Tank</span>
+                                                                        <span className="font-mono text-slate-800 text-right">Water {t.waterCapacity || 0}L · Foam {t.foamCapacity || 0}L</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* 4. Insurance & Compliance */}
+                                                            <div className="bg-white rounded-xl border border-slate-200/80 p-3.5 space-y-2">
+                                                                <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100 text-slate-800 font-bold uppercase tracking-wider text-[10.5px]">
+                                                                    <Icon name="shield-check" size={13} className="text-[#0B6B63]"/>
+                                                                    <span>Insurance &amp; Quality Audit</span>
+                                                                </div>
+                                                                <div className="space-y-1.5">
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Insurance Company</span>
+                                                                        <span className="font-semibold text-slate-800 text-right">{t.insuranceCompany || 'No Policy Linked'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Policy Number</span>
+                                                                        <span className="font-mono text-slate-800 text-right">{t.insurancePolicyNo || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Policy Expiry</span>
+                                                                        <span className="font-mono text-slate-700 text-right">{t.insuranceExpiryDate ? formatDate(t.insuranceExpiryDate) : 'Not Set'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Insurance Days Left</span>
+                                                                        <span className="font-mono font-bold text-slate-800 text-right">{iRem > 0 ? `${iRem} Days` : 'Expired'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2 pt-1 border-t border-slate-100">
+                                                                        <span className="text-slate-400">Commissioning Certificate</span>
+                                                                        <span className="font-semibold text-slate-800 text-right">{isTrained ? 'Certified Handover' : 'Pending Audit'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">Service Complaints</span>
+                                                                        <span className="font-mono font-bold text-indigo-700 text-right">{truckComplaints.length} Tickets Linked</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Modal Footer with Download Buttons & Quick Actions */}
+                                                    <div className="px-5 py-3.5 border-t border-slate-100 bg-[#F8FAFC] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                        {/* Left: Quick Access Links */}
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <button
+                                                                onClick={() => {
+                                                                    const cust = customers.find(c => c.id === t.customerId);
+                                                                    const existingCert = (commCerts || []).find(c => c.truckId === t.id);
+                                                                    setSelectedCommissioningTruck({ truck: t, customer: cust, cert: existingCert });
+                                                                }}
+                                                                className="h-8 px-2.5 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-800 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                                                            >
+                                                                <Icon name="award" size={13}/>
+                                                                <span>Certificate</span>
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => { setQrTruck(t); setShowQrModal(true); }}
+                                                                className="h-8 px-2.5 rounded-lg border border-teal-200 bg-teal-50 hover:bg-teal-100 text-[#0B6B63] font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                                                            >
+                                                                <Icon name="qr-code" size={13}/>
+                                                                <span>QR Code</span>
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => setShowViewComplaintsModal({ customerId: t.customerId, orgName: customers.find(c => c.id === t.customerId)?.name || 'Org' })}
+                                                                className="h-8 px-2.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                                                            >
+                                                                <Icon name="history" size={13}/>
+                                                                <span>History ({truckComplaints.length})</span>
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedVehicleDetail(null);
+                                                                    setEditingTruck(t);
+                                                                    setNewTrk({ ...t });
+                                                                    setShowTruckModal(true);
+                                                                }}
+                                                                className="h-8 px-2.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                                                            >
+                                                                <Icon name="pencil" size={13}/>
+                                                                <span>Edit</span>
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Right: DOWNLOAD DETAILS (PDF + EXCEL) */}
+                                                        <div className="flex items-center gap-2 justify-end">
+                                                            <button
+                                                                onClick={() => downloadVehiclePdf(t)}
+                                                                className="h-8.5 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer active:scale-98"
+                                                                title="Download or Print full professional technical passport as PDF"
+                                                            >
+                                                                <Icon name="printer" size={13} className="text-[#0B6B63]"/>
+                                                                <span>📄 Download PDF</span>
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => downloadVehicleExcel(t)}
+                                                                className="h-8.5 px-3 rounded-lg bg-[#0B6B63] hover:bg-[#09544E] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-98"
+                                                                title="Download complete vehicle specification sheet to Excel / CSV"
+                                                            >
+                                                                <Icon name="download" size={13}/>
+                                                                <span>📊 Download Excel</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             );
                         })()}
