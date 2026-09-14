@@ -5860,19 +5860,6 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             </div>
                                             {lookupError && <div className="mt-3 flex items-center gap-2 text-rose-600 text-sm font-bold bg-rose-50 px-4 py-3 rounded-xl border border-rose-100"><Icon name="alert-circle" size={16}/>{lookupError}</div>}
                                             
-                                            {/* Quick Sample PO Chips */}
-                                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap text-xs font-bold text-slate-500">
-                                                <span className="text-[10px] uppercase font-black text-slate-400">Sample POs:</span>
-                                                <button type="button" onClick={() => setLookupQuery('GEMC-5116877931')} className="bg-slate-50 hover:bg-amber-50 hover:text-amber-950 px-2.5 py-1 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-700 transition-all cursor-pointer">
-                                                    ISRO (GEMC-5116877931)
-                                                </button>
-                                                <button type="button" onClick={() => setLookupQuery('PO-PETRONET-2026')} className="bg-slate-50 hover:bg-amber-50 hover:text-amber-950 px-2.5 py-1 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-700 transition-all cursor-pointer">
-                                                    Petronet (PO-PETRONET-2026)
-                                                </button>
-                                                <button type="button" onClick={() => setLookupQuery('PO-IOCL-802')} className="bg-slate-50 hover:bg-amber-50 hover:text-amber-950 px-2.5 py-1 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-700 transition-all cursor-pointer">
-                                                    IOCL (PO-IOCL-802)
-                                                </button>
-                                            </div>
                                         </div>
 
                                         {foundTruck && (
