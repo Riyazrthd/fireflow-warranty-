@@ -130,7 +130,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const code = err.code || '';
             return code === '42703' || msg.includes('column') || msg.includes('does not exist') || msg.includes('schema cache') || msg.includes('not found');
         };
-        const mapCustomer = r => ({ id: r.id, name: r.name, address: r.address, contactPerson: r.contact_person, phone: r.phone, email: r.email, poDate: r.po_date || null, timestamp: r.created_at });
+        const mapCustomer = r => ({ id: r.id, name: r.name, address: r.address, contactPerson: r.contact_person, phone: r.phone, email: r.email, poNo: r.po_no || r.poNo || '', poDate: r.po_date || null, timestamp: r.created_at });
         const mapTruck = r => ({
             id: r.id,
             customerId: r.customer_id,
@@ -988,10 +988,34 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
 
         // ══════════════════════════════════════════════════════
-        // MODERN CHANGEABLE CATEGORY DISTRIBUTION & HOTSPOTS
+        // INTELLIGENCE AI SUBSYSTEM RADAR & ISSUE HOTSPOTS
         // ══════════════════════════════════════════════════════
         const ComplaintCategoryChart = ({ complaints = [], range = 6 }) => {
             const [catViewType, setCatViewType] = useState('ranking'); // 'ranking' | 'donut' | 'pareto'
+            const [hoveredCategory, setHoveredCategory] = useState(null);
+            const [isExporting, setIsExporting] = useState(false);
+            const [showExportMenu, setShowExportMenu] = useState(false);
+            const exportMenuRef = useRef(null);
+
+            useEffect(() => {
+                const handleOutside = (e) => {
+                    if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+                        setShowExportMenu(false);
+                    }
+                };
+                document.addEventListener('mousedown', handleOutside);
+                return () => document.removeEventListener('mousedown', handleOutside);
+            }, []);
+
+            // Helper to format uppercase categories into clean executive title-casing
+            const formatCategoryLabel = (name) => {
+                if (!name) return '';
+                if (name.length <= 3) return name.toUpperCase(); // OEM, etc.
+                return name
+                    .split(/[\/\s_-]+/)
+                    .map(w => (w.length <= 3 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))
+                    .join(' / ');
+            };
 
             const { data, totalCount, topCategory } = useMemo(() => {
                 const now = new Date();
@@ -1010,107 +1034,404 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                 const total = sorted.reduce((acc, c) => acc + c.value, 0);
 
                 let runningSum = 0;
-                const paretoData = sorted.map(item => {
+                const paretoData = sorted.map((item, idx) => {
                     runningSum += item.value;
+                    const sharePercent = total > 0 ? Math.round((item.value / total) * 100) : 0;
                     return {
                         ...item,
+                        rank: idx + 1,
                         cumPercent: total > 0 ? Math.round((runningSum / total) * 100) : 0,
-                        sharePercent: total > 0 ? Math.round((item.value / total) * 100) : 0
+                        sharePercent
                     };
                 });
 
                 return {
                     data: paretoData,
                     totalCount: total,
-                    topCategory: sorted[0] || null
+                    topCategory: paretoData[0] || null
                 };
             }, [complaints, range]);
 
-            const DONUT_COLORS = ['#f59e0b', '#6366f1', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316', '#64748b'];
+            const DONUT_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f97316', '#64748b'];
+
+            const maxValue = data.length > 0 ? Math.max(...data.map(d => d.value)) : 1;
+
+            // ── Download Data (CSV with Excel-compatible BOM) ────────
+            const handleExportDataCsv = () => {
+                setShowExportMenu(false);
+                if (data.length === 0) return;
+                const headers = ['Rank', 'Subsystem Category', 'Incident Count', 'Failure Share (%)', 'Cumulative Share (%)', 'Risk Severity Level'];
+                const rows = data.map(d => {
+                    const riskLevel = d.sharePercent >= 20 ? 'CRITICAL HOTSPOT' : d.sharePercent >= 10 ? 'ELEVATED RISK' : 'NORMAL RANGE';
+                    return [
+                        d.rank,
+                        `"${formatCategoryLabel(d.name).replace(/"/g, '""')}"`,
+                        d.value,
+                        `"${d.sharePercent}%"`,
+                        `"${d.cumPercent}%"`,
+                        `"${riskLevel}"`
+                    ];
+                });
+                const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `FireFlow_Issue_Hotspots_Data_${new Date().toISOString().slice(0, 10)}.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+            };
+
+            // ── Download Graph (High-Resolution Image Snapshot) ──
+            const handleExportGraphImage = async () => {
+                setShowExportMenu(false);
+                if (data.length === 0) return;
+                setIsExporting(true);
+
+                // Wait 60ms for export menu to unmount before capturing
+                await new Promise(r => setTimeout(r, 60));
+
+                const downloadCanvas = (canvas, filename) => {
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    setIsExporting(false);
+                };
+
+                const directCanvasRender = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const width = 1100;
+                        const height = 680;
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        // Canvas Base
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, width, height);
+
+                        // Top Gradient Stripe
+                        const grad = ctx.createLinearGradient(0, 0, width, 0);
+                        grad.addColorStop(0, '#6366f1');
+                        grad.addColorStop(0.5, '#a855f7');
+                        grad.addColorStop(1, '#06b6d4');
+                        ctx.fillStyle = grad;
+                        ctx.fillRect(0, 0, width, 6);
+
+                        // Card Header
+                        ctx.fillStyle = '#0f172a';
+                        ctx.font = 'bold 22px Inter, sans-serif';
+                        ctx.fillText('FireFlow AI Subsystem Radar · Issue Hotspots', 40, 52);
+
+                        ctx.fillStyle = '#64748b';
+                        ctx.font = '500 12px Inter, sans-serif';
+                        ctx.fillText(`TELEMETRY PERIOD: LAST ${range} MONTHS · EXPORTED: ${new Date().toLocaleDateString()}`, 40, 76);
+
+                        // AI Insight Strip
+                        ctx.fillStyle = '#f8fafc';
+                        ctx.fillRect(40, 96, width - 80, 44);
+                        ctx.strokeStyle = '#e2e8f0';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(40, 96, width - 80, 44);
+
+                        ctx.fillStyle = '#4f46e5';
+                        ctx.font = 'bold 13px Inter, sans-serif';
+                        ctx.fillText('✨ Hotspot Insight:', 55, 123);
+
+                        ctx.fillStyle = '#1e293b';
+                        ctx.font = '500 13px Inter, sans-serif';
+                        const insightText = topCategory 
+                            ? `Primary driver: ${formatCategoryLabel(topCategory.name)} accounts for ${topCategory.sharePercent}% of defects (${topCategory.value} of ${totalCount} incidents)`
+                            : 'All subsystems operating within baseline variance';
+                        ctx.fillText(insightText, 190, 123);
+
+                        ctx.fillStyle = '#64748b';
+                        ctx.font = 'bold 12px Inter, sans-serif';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`Total Incidents: ${totalCount}`, width - 55, 123);
+                        ctx.textAlign = 'left';
+
+                        // Subsystem Breakdown Rows
+                        const startY = 175;
+                        const rowGap = 42;
+                        const maxDisplay = Math.min(data.length, 9);
+                        const maxVal = Math.max(...data.map(d => d.value), 1);
+
+                        for (let i = 0; i < maxDisplay; i++) {
+                            const item = data[i];
+                            const y = startY + i * rowGap;
+
+                            // Rank Badge
+                            ctx.fillStyle = i === 0 ? '#fef3c7' : '#f1f5f9';
+                            ctx.fillRect(40, y - 18, 28, 22);
+                            ctx.fillStyle = i === 0 ? '#b45309' : '#64748b';
+                            ctx.font = 'bold 12px monospace';
+                            ctx.fillText(`${item.rank}`, 50, y - 2);
+
+                            // Category Name
+                            ctx.fillStyle = i === 0 ? '#0f172a' : '#334155';
+                            ctx.font = i === 0 ? 'bold 13px Inter, sans-serif' : '500 13px Inter, sans-serif';
+                            ctx.fillText(formatCategoryLabel(item.name), 80, y - 2);
+
+                            // Bar Container
+                            const barStartX = 340;
+                            const barMaxWidth = width - barStartX - 190;
+                            ctx.fillStyle = '#f1f5f9';
+                            ctx.fillRect(barStartX, y - 14, barMaxWidth, 14);
+
+                            // Filled Gradient Bar
+                            const barWidth = Math.max(8, Math.round((item.value / maxVal) * barMaxWidth));
+                            const barGrad = ctx.createLinearGradient(barStartX, 0, barStartX + barWidth, 0);
+                            if (i === 0) {
+                                barGrad.addColorStop(0, '#f59e0b');
+                                barGrad.addColorStop(1, '#ef4444');
+                            } else if (i < 3) {
+                                barGrad.addColorStop(0, '#6366f1');
+                                barGrad.addColorStop(1, '#818cf8');
+                            } else {
+                                barGrad.addColorStop(0, '#cbd5e1');
+                                barGrad.addColorStop(1, '#94a3b8');
+                            }
+                            ctx.fillStyle = barGrad;
+                            ctx.fillRect(barStartX, y - 14, barWidth, 14);
+
+                            // Metrics Text
+                            ctx.fillStyle = '#64748b';
+                            ctx.font = '500 12px monospace';
+                            ctx.fillText(`${item.sharePercent}%`, barStartX + barMaxWidth + 16, y - 2);
+
+                            ctx.fillStyle = i === 0 ? '#b91c1c' : '#1e293b';
+                            ctx.font = 'bold 13px monospace';
+                            ctx.fillText(`${item.value} issues`, barStartX + barMaxWidth + 65, y - 2);
+                        }
+
+                        // Footer Note
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.font = '500 11px Inter, sans-serif';
+                        ctx.fillText('FireFlow Technical Warranty & Quality Management · ISO 9001:2015 Subsystem Telemetry', 40, height - 20);
+
+                        downloadCanvas(canvas, `FireFlow_Issue_Hotspots_Graph_${new Date().toISOString().slice(0, 10)}.png`);
+                    } catch (e) {
+                        console.error('Canvas export error:', e);
+                        setIsExporting(false);
+                    }
+                };
+
+                const cardEl = document.getElementById('issue-hotspots-card-container');
+                if (window.html2canvas && cardEl) {
+                    try {
+                        const canvas = await window.html2canvas(cardEl, {
+                            scale: 2,
+                            backgroundColor: '#ffffff',
+                            useCORS: true,
+                            logging: false,
+                            ignoreElements: (element) => {
+                                return element.classList?.contains('export-dropdown');
+                            }
+                        });
+                        downloadCanvas(canvas, `FireFlow_Issue_Hotspots_${catViewType}_${new Date().toISOString().slice(0, 10)}.png`);
+                    } catch (err) {
+                        console.warn('html2canvas capture warning, falling back to canvas:', err);
+                        directCanvasRender();
+                    }
+                } else {
+                    directCanvasRender();
+                }
+            };
 
             return (
-                <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-2xs flex flex-col h-[295px] transition-all">
-                    {/* Clean 1-Line Header */}
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center font-black shrink-0">
-                                <Icon name="pie-chart" size={16}/>
+                <div id="issue-hotspots-card-container" className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col h-[310px] select-none relative transition-all">
+                    {/* Ambient Subtle Accent Top Line */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500/80 via-purple-500/80 to-cyan-400/80 rounded-t-2xl"></div>
+
+                    {/* Clean Uncongested Header */}
+                    <div className="flex items-center justify-between gap-3 mb-2.5">
+                        <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="w-7 h-7 rounded-lg bg-indigo-50/80 text-indigo-600 border border-indigo-100/70 flex items-center justify-center shrink-0">
+                                <Icon name="sparkles" size={13} className="text-indigo-600"/>
                             </div>
-                            <div className="truncate">
-                                <h3 className="font-black text-slate-900 text-xs sm:text-sm uppercase tracking-tight truncate">
-                                    Issue Hotspots
-                                </h3>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                                    Category Ranking
+                            <div>
+                                <div className="flex items-center gap-1.5">
+                                    <h3 className="font-semibold text-slate-800 text-[13px] tracking-tight font-heading">
+                                        Issue Hotspots
+                                    </h3>
+                                    <span className="text-[8.5px] font-mono px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-500 font-medium">
+                                        Radar
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-normal">
+                                    Subsystem failure telemetry
                                 </p>
                             </div>
                         </div>
 
-                        {/* Chart View Switcher */}
-                        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200/80 shrink-0">
-                            {[
-                                { id: 'ranking', label: 'Hotspots' },
-                                { id: 'donut', label: 'Donut' },
-                                { id: 'pareto', label: 'Pareto' }
-                            ].map(btn => (
+                        {/* Controls: Segmented View + Export */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Minimalist View Switcher */}
+                            <div className="flex items-center bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/60">
+                                {[
+                                    { id: 'ranking', label: 'Radar' },
+                                    { id: 'donut', label: 'Clusters' },
+                                    { id: 'pareto', label: 'Pareto' }
+                                ].map(btn => (
+                                    <button
+                                        key={btn.id}
+                                        type="button"
+                                        onClick={() => setCatViewType(btn.id)}
+                                        className={`px-2 py-0.5 rounded-md text-[9.5px] font-medium transition-all cursor-pointer ${
+                                            catViewType === btn.id
+                                                ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                                                : 'text-slate-500 hover:text-slate-800'
+                                        }`}
+                                    >
+                                        {btn.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Export Dropdown */}
+                            <div className="relative" ref={exportMenuRef}>
                                 <button
-                                    key={btn.id}
                                     type="button"
-                                    onClick={() => setCatViewType(btn.id)}
-                                    className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                                        catViewType === btn.id
-                                            ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/60'
-                                            : 'text-slate-500 hover:text-slate-800'
-                                    }`}
+                                    onClick={() => setShowExportMenu(!showExportMenu)}
+                                    disabled={isExporting || data.length === 0}
+                                    className="h-6 px-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-600 hover:text-slate-900 text-[9.5px] font-medium flex items-center gap-1 transition-all cursor-pointer shadow-2xs disabled:opacity-40"
+                                    title="Export Data & Chart"
                                 >
-                                    {btn.label}
+                                    {isExporting ? (
+                                        <span className="w-2.5 h-2.5 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin"></span>
+                                    ) : (
+                                        <Icon name="download" size={10.5} className="text-slate-500"/>
+                                    )}
+                                    <span>Export</span>
+                                    <Icon name="chevron-down" size={8.5} className="text-slate-400"/>
                                 </button>
-                            ))}
+
+                                {showExportMenu && (
+                                    <div className="export-dropdown absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-slate-200/90 p-1 z-40 animate-fade-in text-left">
+                                        <button
+                                            type="button"
+                                            onClick={handleExportDataCsv}
+                                            className="w-full px-2 py-1.5 rounded-lg hover:bg-slate-50 text-slate-700 text-[11px] font-medium flex items-center gap-2 transition-colors cursor-pointer text-left"
+                                        >
+                                            <Icon name="table" size={12} className="text-emerald-600 shrink-0"/>
+                                            <div>
+                                                <div className="font-semibold text-slate-800 leading-tight">Data (.CSV)</div>
+                                                <div className="text-[9px] text-slate-400 font-normal">Rankings &amp; counts</div>
+                                            </div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleExportGraphImage}
+                                            className="w-full px-2 py-1.5 rounded-lg hover:bg-slate-50 text-slate-700 text-[11px] font-medium flex items-center gap-2 transition-colors cursor-pointer text-left"
+                                        >
+                                            <Icon name="image" size={12} className="text-indigo-600 shrink-0"/>
+                                            <div>
+                                                <div className="font-semibold text-slate-800 leading-tight">Graph (.PNG)</div>
+                                                <div className="text-[9px] text-slate-400 font-normal">Chart snapshot</div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Compact Metrics Row */}
-                    <div className="flex items-center justify-between text-[9px] font-extrabold uppercase pb-1.5 mb-1 border-b border-slate-100">
-                        <span className="text-amber-800 flex items-center gap-1 truncate">
-                            {topCategory ? `Top: ${topCategory.name} (${topCategory.value})` : 'No Hotspots Recorded'}
-                        </span>
-                        <span className="text-slate-400 font-bold shrink-0">
-                            {totalCount} Total Incidents
+                    {/* Lightweight Telemetry Indicator */}
+                    <div className="flex items-center justify-between text-[10.5px] py-1 px-2.5 mb-2.5 bg-slate-50/70 rounded-lg border border-slate-100 text-slate-500 font-sans">
+                        <div className="flex items-center gap-1.5 truncate">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
+                            <span className="truncate">
+                                {topCategory ? (
+                                    <>
+                                        Primary hotspot: <strong className="font-semibold text-slate-800">{formatCategoryLabel(topCategory.name)}</strong> ({topCategory.sharePercent}%)
+                                    </>
+                                ) : (
+                                    'No recurring defects detected'
+                                )}
+                            </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-mono shrink-0 ml-2">
+                            {totalCount} total
                         </span>
                     </div>
 
                     {/* Chart Canvas */}
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 relative">
                         {data.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-widest gap-2">
-                                <Icon name="database" size={20}/>
-                                <span>No Incidents in Period</span>
+                            <div className="h-full flex flex-col items-center justify-center opacity-30 text-[10px] font-semibold uppercase tracking-wider gap-1.5">
+                                <Icon name="cpu" size={20} className="text-indigo-500"/>
+                                <span>No Defect Telemetry in Period</span>
                             </div>
                         ) : (
                             <>
-                                {/* VIEW 1: HORIZONTAL GRADIENT RANKING (DEFAULT) */}
+                                {/* VIEW 1: AI RADAR / RANKING - CLEAN HIGH-DENSITY HORIZONTAL LIST */}
                                 {catViewType === 'ranking' && (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <ComposedChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 30, bottom: 0 }}>
-                                            <defs>
-                                                <linearGradient id="catRankGrad" x1="0" y1="0" x2="1" y2="0">
-                                                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.3}/>
-                                                    <stop offset="70%" stopColor="#f59e0b" stopOpacity={0.85}/>
-                                                    <stop offset="100%" stopColor="#d97706" stopOpacity={1.0}/>
-                                                </linearGradient>
-                                            </defs>
-                                            <XAxis type="number" hide/>
-                                            <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={100} tick={{ fontSize: 8.5, fontWeight: 800, fill: '#475569', textTransform: 'uppercase' }}/>
-                                            <Tooltip cursor={{ fill: '#fffbeb', radius: 6 }} content={<AnalyticsTooltip/>}/>
-                                            <Bar name="Count" dataKey="value" fill="url(#catRankGrad)" radius={[0, 6, 6, 0]} barSize={12}/>
-                                        </ComposedChart>
-                                    </ResponsiveContainer>
+                                    <div className="h-full overflow-y-auto pr-1 space-y-1 scrollbar-thin">
+                                        {data.map((item, idx) => {
+                                            const pct = maxValue > 0 ? Math.round((item.value / maxValue) * 100) : 0;
+                                            const isTop1 = idx === 0;
+                                            const isHovered = hoveredCategory === item.name;
+                                            const label = formatCategoryLabel(item.name);
+
+                                            return (
+                                                <div 
+                                                    key={item.name}
+                                                    onMouseEnter={() => setHoveredCategory(item.name)}
+                                                    onMouseLeave={() => setHoveredCategory(null)}
+                                                    className={`flex items-center gap-2.5 py-1 px-2 rounded-lg transition-colors ${
+                                                        isHovered ? 'bg-slate-50' : 'hover:bg-slate-50/60'
+                                                    }`}
+                                                >
+                                                    {/* Subtle Rank Number */}
+                                                    <span className={`w-3.5 text-center text-[10px] font-mono shrink-0 ${
+                                                        isTop1 ? 'font-bold text-amber-600' : 'text-slate-400'
+                                                    }`}>
+                                                        {item.rank}
+                                                    </span>
+
+                                                    {/* Clean Category Label */}
+                                                    <span className={`w-28 sm:w-32 truncate text-[11px] shrink-0 ${
+                                                        isTop1 ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'
+                                                    }`} title={item.name}>
+                                                        {label}
+                                                    </span>
+
+                                                    {/* Slim Inline Progress Bar */}
+                                                    <div className="flex-1 min-w-0 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                                        <div 
+                                                            className={`h-full rounded-full transition-all duration-300 ${
+                                                                isTop1 
+                                                                    ? 'bg-gradient-to-r from-amber-500 to-rose-500' 
+                                                                    : idx < 3 
+                                                                        ? 'bg-indigo-500' 
+                                                                        : 'bg-slate-300'
+                                                            }`}
+                                                            style={{ width: `${Math.max(4, pct)}%` }}
+                                                        />
+                                                    </div>
+
+                                                    {/* Clean Count & Share Metrics */}
+                                                    <div className="flex items-center gap-2 shrink-0 font-mono text-[10.5px]">
+                                                        <span className={`font-semibold ${isTop1 ? 'text-amber-700' : 'text-slate-700'}`}>
+                                                            {item.value}
+                                                        </span>
+                                                        <span className="text-slate-400 w-7 text-right">
+                                                            {item.sharePercent}%
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 )}
 
-                                {/* VIEW 2: INTERACTIVE DONUT SHARE */}
+                                {/* VIEW 2: INTERACTIVE CLUSTER DONUT */}
                                 {catViewType === 'donut' && (
-                                    <div className="w-full h-full flex items-center justify-between gap-2">
-                                        <div className="w-1/2 h-full">
+                                    <div className="w-full h-full flex items-center justify-between gap-3">
+                                        <div className="w-1/2 h-full relative flex items-center justify-center">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart>
                                                     <Tooltip content={<AnalyticsTooltip/>}/>
@@ -1130,15 +1451,20 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     </Pie>
                                                 </PieChart>
                                             </ResponsiveContainer>
+                                            {/* Center Metric in Donut Hole */}
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                                <span className="text-sm font-bold text-slate-800 font-mono leading-none">{totalCount}</span>
+                                                <span className="text-[7.5px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">Total</span>
+                                            </div>
                                         </div>
-                                        <div className="w-1/2 max-h-44 overflow-y-auto space-y-1 pr-1 text-[9.5px]">
+                                        <div className="w-1/2 max-h-48 overflow-y-auto space-y-1 pr-1 text-[9.5px] scrollbar-thin">
                                             {data.map((item, idx) => (
-                                                <div key={item.name} className="flex items-center justify-between p-1 bg-slate-50 rounded-lg border border-slate-100">
+                                                <div key={item.name} className="flex items-center justify-between py-1 px-1.5 hover:bg-slate-50 rounded-md transition-colors">
                                                     <div className="flex items-center gap-1.5 truncate">
-                                                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: DONUT_COLORS[idx % DONUT_COLORS.length] }}></span>
-                                                        <span className="font-bold text-slate-800 uppercase truncate text-[9px]">{item.name}</span>
+                                                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: DONUT_COLORS[idx % DONUT_COLORS.length] }}></span>
+                                                        <span className="font-medium text-slate-700 truncate text-[10px]">{formatCategoryLabel(item.name)}</span>
                                                     </div>
-                                                    <span className="font-black text-slate-900 shrink-0 ml-1">{item.value}</span>
+                                                    <span className="font-mono text-slate-500 shrink-0 ml-1 font-medium">{item.value} ({item.sharePercent}%)</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1148,14 +1474,14 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 {/* VIEW 3: PARETO 80/20 ANALYSIS */}
                                 {catViewType === 'pareto' && (
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <ComposedChart data={data} margin={{ top: 5, right: 20, left: -28, bottom: 0 }}>
+                                        <ComposedChart data={data} margin={{ top: 5, right: 15, left: -28, bottom: 0 }}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 7, fontWeight: 800, fill: '#64748b' }} interval={0} angle={-15} dy={4}/>
-                                            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 8.5, fontWeight: 800, fill: '#94a3b8' }}/>
-                                            <YAxis yAxisId="right" orientation="right" domain={[0, 100]} unit="%" axisLine={false} tickLine={false} tick={{ fontSize: 8.5, fontWeight: 800, fill: '#d97706' }}/>
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 7.5, fontWeight: 500, fill: '#64748b' }} interval={0} angle={-15} dy={4} tickFormatter={formatCategoryLabel}/>
+                                            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 8.5, fontWeight: 500, fill: '#94a3b8' }}/>
+                                            <YAxis yAxisId="right" orientation="right" domain={[0, 100]} unit="%" axisLine={false} tickLine={false} tick={{ fontSize: 8.5, fontWeight: 600, fill: '#6366f1' }}/>
                                             <Tooltip content={<AnalyticsTooltip/>}/>
-                                            <Bar yAxisId="left" name="Incident Count" dataKey="value" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={12}/>
-                                            <Line yAxisId="right" name="Cumulative %" type="monotone" dataKey="cumPercent" stroke="#d97706" strokeWidth={2} dot={{ r: 3, fill: '#d97706' }}/>
+                                            <Bar yAxisId="left" name="Incident Count" dataKey="value" fill="#6366f1" radius={[3, 3, 0, 0]} barSize={10}/>
+                                            <Line yAxisId="right" name="Cumulative %" type="monotone" dataKey="cumPercent" stroke="#ec4899" strokeWidth={1.5} dot={{ r: 2.5, fill: '#ec4899' }}/>
                                         </ComposedChart>
                                     </ResponsiveContainer>
                                 )}
@@ -2221,14 +2547,157 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                 category: 'Locker & Tools',
                 question: 'Equipment Locker Inventory Verification & Tool Mounting Security',
                 details: 'Delivery hoses Type-B, diffuser branch pipes, SCBA brackets, suction wrenches, and roll-up shutter locks.'
-            },
-            {
-                id: 'Q_10',
-                category: 'Maintenance & Safety',
-                question: 'Preventive Maintenance (PM) Schedule, Lubrication & Emergency Drain Valves',
-                details: '1M/3M/6M/12M lube cycle, Godiva/Firefly oil grades, Tata/Ashok Leyland chassis grease, manifold winter drains.'
             }
         ];
+
+        // ══════════════════════════════════════════════════════
+        // CONFIGURABLE TRAINING QUESTIONS MASTER STORE & SUPABASE SYNC
+        // ══════════════════════════════════════════════════════
+        const TRAINING_QUESTIONS_SETUP_SQL = `-- 🚒 Standalone Setup SQL for Supabase SQL Editor:
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE IF NOT EXISTS public.training_questions (
+    id TEXT PRIMARY KEY DEFAULT ('Q_' || UPPER(SUBSTRING(gen_random_uuid()::TEXT, 1, 6))),
+    category TEXT NOT NULL,
+    question TEXT NOT NULL,
+    details TEXT,
+    display_order INTEGER DEFAULT 0,
+    active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
+);
+
+ALTER TABLE public.training_questions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public all on training_questions" ON public.training_questions;
+CREATE POLICY "Allow public all on training_questions" ON public.training_questions FOR ALL USING (true) WITH CHECK (true);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND tablename = 'training_questions'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.training_questions;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+INSERT INTO public.training_questions (id, category, question, details, display_order, active)
+VALUES
+    ('Q_1', 'Chassis & Driveline', 'Chassis Pre-Drive Orientation & Pneumatic Air Brake Buildup Test', 'Pre-drive checks, air brake pressure charging time, ABS indicator, and steering clearance.', 1, true),
+    ('Q_2', 'PTO & Transmission', 'Pneumatic PTO Engagement & Safety Interlock Verification', 'Neutral interlock, parking brake interlock, PTO engagement indicator lamp, and emergency override.', 2, true),
+    ('Q_3', 'Fire Pump Operations', 'Centrifugal Fire Pump Stationary Pumping & RPM Governor Acceleration', 'Rated speed discharge test, engine speed governor response, pressure gauge calibration.', 3, true),
+    ('Q_4', 'Priming & Suction', 'Suction Lift & Deep Water Priming Test (Vacuum Pull Time)', 'Vacuum build-up within 25-30s from open reservoir/hydrant, primer automatic disengagement.', 4, true),
+    ('Q_5', 'High & Low Pressure', 'Twin-Pressure (LP / HP) Changeover & Thermal Relief Valve (TRV)', 'High-pressure hosereel rewind, fog gun nozzle test, TRV temperature discharge at 48°C.', 5, true),
+    ('Q_6', 'Foam Proportioning', 'Around-The-Pump (ATP) Foam Induction & Ratio Selector (3% / 6%)', 'AFFF/AR-AFFF foam tank selector, proportioning ratio verification, and post-operation clean water flush.', 6, true),
+    ('Q_7', 'Monitor Turret', 'Roof / Bumper Fire Monitor 360° Rotation & Fog-to-Jet Stream Control', 'Elevation travel, horizontal swivel rotation, spray pattern nozzle, and travel transport locking pins.', 7, true),
+    ('Q_8', 'Emergency Warning', 'Multi-Pattern LED Lightbar, PA System & Electronic Siren Tone Tests', 'Wail, yelp, hi-lo tones, microphone clarity, scene lighting mast, and master battery isolator.', 8, true),
+    ('Q_9', 'Locker & Tools', 'Equipment Locker Inventory Verification & Tool Mounting Security', 'Delivery hoses Type-B, diffuser branch pipes, SCBA brackets, suction wrenches, and roll-up shutter locks.', 9, true)
+ON CONFLICT (id) DO NOTHING;`;
+
+        const loadTrainingQuestionsMaster = () => {
+            try {
+                const saved = localStorage.getItem('ff_training_questions_master');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed.filter(q => !q.question.toLowerCase().includes('preventive maintenance'));
+                    }
+                }
+            } catch(e) {}
+            return DEFAULT_COMMISSIONING_QUESTIONS;
+        };
+
+        const saveTrainingQuestionsMaster = (list) => {
+            try {
+                if (Array.isArray(list)) {
+                    localStorage.setItem('ff_training_questions_master', JSON.stringify(list));
+                    return true;
+                }
+            } catch(e) {}
+            return false;
+        };
+
+        const syncTrainingQuestionsWithSupabase = async () => {
+            const sb = window.SupabaseClient;
+            if (!sb) return { available: false, count: 0, reason: 'No Supabase Client' };
+            try {
+                const { data, error } = await sb.from('training_questions')
+                    .select('*')
+                    .order('display_order', { ascending: true });
+                if (error) {
+                    return { available: false, error: error.message, code: error.code };
+                }
+                if (Array.isArray(data)) {
+                    if (data.length === 0) {
+                        // Remote table exists but is empty - seed initial questions
+                        const local = loadTrainingQuestionsMaster();
+                        const toInsert = local.map((q, idx) => ({
+                            id: q.id || ('Q_' + (idx + 1)),
+                            category: q.category || 'General',
+                            question: q.question,
+                            details: q.details || '',
+                            display_order: idx + 1,
+                            active: q.active !== false
+                        }));
+                        const { error: seedErr } = await sb.from('training_questions').insert(toInsert);
+                        if (!seedErr) {
+                            return { available: true, count: toInsert.length, seeded: true };
+                        }
+                    } else {
+                        const normalized = data.map(d => ({
+                            id: d.id,
+                            category: d.category || 'General',
+                            question: d.question,
+                            details: d.details || '',
+                            active: d.active !== false
+                        }));
+                        saveTrainingQuestionsMaster(normalized);
+                        return { available: true, count: normalized.length, data: normalized };
+                    }
+                }
+                return { available: true, count: data ? data.length : 0 };
+            } catch (err) {
+                return { available: false, error: err.message };
+            }
+        };
+
+        const saveQuestionToSupabase = async (questionItem, displayOrder) => {
+            const sb = window.SupabaseClient;
+            if (!sb) return false;
+            try {
+                const payload = {
+                    id: questionItem.id,
+                    category: questionItem.category || 'General',
+                    question: questionItem.question,
+                    details: questionItem.details || '',
+                    display_order: displayOrder || 0,
+                    active: questionItem.active !== false,
+                    updated_at: new Date().toISOString()
+                };
+                const { error } = await sb.from('training_questions').upsert(payload);
+                if (error) console.warn('Supabase training question upsert warning:', error.message);
+                return !error;
+            } catch (e) {
+                console.warn('Supabase training question upsert exception:', e);
+                return false;
+            }
+        };
+
+        const deleteQuestionFromSupabase = async (questionId) => {
+            const sb = window.SupabaseClient;
+            if (!sb) return false;
+            try {
+                const { error } = await sb.from('training_questions').delete().eq('id', questionId);
+                if (error) console.warn('Supabase training question delete warning:', error.message);
+                return !error;
+            } catch (e) {
+                console.warn('Supabase training question delete exception:', e);
+                return false;
+            }
+        };
 
         const loadSavedCommissioningCerts = () => {
             try {
@@ -2259,7 +2728,6 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             { id: 'DOC-06', name: 'Electrical Wiring & Schematic Diagram', mandatory: false, active: true },
             { id: 'DOC-07', name: 'Hydraulic & Pneumatic Piping Diagram', mandatory: false, active: true },
             { id: 'DOC-08', name: 'Recommended Spare Parts & Tools Inventory', mandatory: false, active: true },
-            { id: 'DOC-09', name: 'Preventive Maintenance (PM) Schedule Card', mandatory: false, active: true },
             { id: 'DOC-10', name: 'Comprehensive Warranty Certificate', mandatory: true, active: true },
             { id: 'DOC-11', name: 'Factory Acceptance / Hydro-Test Certificate', mandatory: false, active: true },
             { id: 'DOC-12', name: 'Third-Party Inspection & Compliance Report', mandatory: false, active: true },
@@ -2276,7 +2744,9 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                 const saved = localStorage.getItem('ff_handover_docs_master');
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed.filter(d => !d.name.toLowerCase().includes('preventive maintenance'));
+                    }
                 }
             } catch(e) {}
             return DEFAULT_HANDOVER_DOCUMENTS_MASTER;
@@ -2443,7 +2913,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
             const selectedDocsList = cert?.selectedHandoverDocuments || cert?.handoverSnapshot?.documents || [];
             const photosByDay = cert?.photosByDay || (cert?.groupPhoto ? { 1: cert.groupPhoto } : {});
-            const questionsList = cert?.questions && cert.questions.length > 0 ? cert.questions : DEFAULT_COMMISSIONING_QUESTIONS;
+            const questionsList = cert?.questions && cert.questions.length > 0 ? cert.questions : loadTrainingQuestionsMaster().filter(q => q.active !== false);
 
             const html = `<!DOCTYPE html>
 <html lang="en">
@@ -3251,7 +3721,8 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                         completedBy: q.completedBy || (q.completed ? (cert.commissioningEngineer || 'Lead Engineer') : null)
                     }));
                 }
-                return DEFAULT_COMMISSIONING_QUESTIONS.map(q => ({
+                const master = loadTrainingQuestionsMaster().filter(q => q.active !== false);
+                return master.map(q => ({
                     ...q,
                     completed: false,
                     completedOnDay: null,
@@ -4711,7 +5182,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const attendeesList = summaryAttendees.length > 0 ? summaryAttendees : (cert.attendees || []);
             const selectedDocsList = cert.selectedHandoverDocuments || cert.handoverSnapshot?.documents || [];
             const photosByDay = cert.photosByDay || (cert.groupPhoto ? { 1: cert.groupPhoto } : {});
-            const questionsList = cert.questions || DEFAULT_COMMISSIONING_QUESTIONS;
+            const questionsList = (cert.questions && cert.questions.length > 0) ? cert.questions : loadTrainingQuestionsMaster().filter(q => q.active !== false);
             const completedCount = questionsList.filter(q => q.completed).length;
 
             return (
@@ -8253,63 +8724,84 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
             return (
                 <div className="space-y-4 fade-up pb-16 text-slate-800 text-xs">
-                    {/* ── TOP CONTROL & DOCUMENT IDENTITY HEADER ── */}
-                    <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
+                    {/* ── TOP CONTROL & DOCUMENT IDENTITY HEADER (LIGHTWEIGHT, LIGHT FONTS & LIGHT PALETTE) ── */}
+                    <div className="bg-white/95 backdrop-blur-xs text-slate-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/80 relative overflow-hidden transition-all">
+                        {/* Subtle top ambient gradient line for modern aesthetic */}
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-amber-400 via-indigo-400 to-emerald-400 opacity-60"></div>
+
                         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                            <div className="space-y-1">
+                            <div className="space-y-1.5">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="bg-amber-500 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-wider">
+                                    <span className="bg-amber-50/80 text-amber-900 border border-amber-200/70 text-[9.5px] font-semibold uppercase px-2.5 py-0.5 rounded-full tracking-wide">
                                         Format No: IEVPL/IQC/FORM/004
                                     </span>
-                                    <span className="bg-white/10 text-slate-300 text-[9px] font-bold uppercase px-2 py-0.5 rounded">
+                                    <span className="bg-slate-100 text-slate-600 border border-slate-200/80 text-[9.5px] font-medium uppercase px-2.5 py-0.5 rounded-full">
                                         ISO 9001:2015 · 8D Method
                                     </span>
-                                    <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded ${
-                                        form.status === 'Closed' ? 'bg-emerald-500 text-slate-950' :
-                                        form.status === 'Reopened' ? 'bg-rose-500 text-white animate-pulse' :
-                                        'bg-blue-500 text-white'
+                                    <span className={`text-[9.5px] font-semibold uppercase px-2.5 py-0.5 rounded-full border ${
+                                        form.status === 'Closed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                        form.status === 'Reopened' ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse' :
+                                        'bg-blue-50 text-blue-700 border-blue-200'
                                     }`}>
-                                        {form.status}
+                                        ● {form.status}
                                     </span>
                                 </div>
-                                <h1 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
-                                    <span>{form.capaNo}</span>
-                                    <span className="text-xs font-bold text-slate-400">| {form.department} Quality Division</span>
-                                </h1>
-                                <p className="text-[11px] text-slate-300 font-medium">
+                                <div className="flex items-baseline gap-2 flex-wrap pt-0.5">
+                                    <h1 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 font-mono">
+                                        {form.capaNo}
+                                    </h1>
+                                    <span className="text-slate-300 font-light">|</span>
+                                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                        {form.department} Quality Division
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-normal leading-relaxed">
                                     Indus Fire Safety Pvt. Ltd. · Closed-Loop Corrective &amp; Preventive Action Document
                                 </p>
                             </div>
 
                             <div className="flex items-center gap-2 flex-wrap">
                                 {!isViewing && !form.problemStatement && (
-                                    <div className="hidden xl:flex items-center gap-1 bg-white/10 p-1 rounded-xl">
-                                        <span className="text-[8.5px] font-black uppercase text-amber-400 px-1.5">Autofill Template:</span>
-                                        <button onClick={() => handleApplyPreset('pump_leakage')} className="bg-white/20 hover:bg-white/30 text-white text-[9px] font-bold px-2 py-0.5 rounded-lg transition-all">
+                                    <div className="hidden xl:flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-xl">
+                                        <span className="text-[9px] font-semibold uppercase text-slate-400 tracking-wider">Autofill:</span>
+                                        <button 
+                                            type="button"
+                                            onClick={() => handleApplyPreset('pump_leakage')} 
+                                            className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[9.5px] font-medium px-2 py-0.5 rounded-lg transition-all cursor-pointer shadow-2xs hover:border-slate-300"
+                                        >
                                             Pump Leakage
                                         </button>
-                                        <button onClick={() => handleApplyPreset('electrical_siren')} className="bg-white/20 hover:bg-white/30 text-white text-[9px] font-bold px-2 py-0.5 rounded-lg transition-all">
+                                        <button 
+                                            type="button"
+                                            onClick={() => handleApplyPreset('electrical_siren')} 
+                                            className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[9.5px] font-medium px-2 py-0.5 rounded-lg transition-all cursor-pointer shadow-2xs hover:border-slate-300"
+                                        >
                                             Electrical / Siren
                                         </button>
                                     </div>
                                 )}
                                 <button 
+                                    type="button"
                                     onClick={() => printCapaPdf(form, linkedComplaintsList, whys, m51e, actions, trucks, customers)} 
-                                    className="bg-white hover:bg-slate-100 text-slate-900 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                                    className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-semibold tracking-wide shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer hover:border-slate-300"
                                 >
-                                    <Icon name="printer" size={13}/> Print / Export PDF
+                                    <Icon name="printer" size={13} className="text-slate-500"/>
+                                    <span>Print / Export PDF</span>
                                 </button>
                                 {!isViewing && (
                                     <button 
+                                        type="button"
                                         onClick={handleSave} 
-                                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-semibold tracking-wide shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                                     >
-                                        <Icon name="check" size={13}/> Save CAPA
+                                        <Icon name="check" size={13}/>
+                                        <span>Save CAPA</span>
                                     </button>
                                 )}
                                 <button 
+                                    type="button"
                                     onClick={onCancel} 
-                                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/80 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer"
                                 >
                                     Close
                                 </button>
@@ -10015,7 +10507,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                                 <table className="w-full text-left text-xs border-collapse">
                                                                     <thead>
                                                                         <tr className="bg-slate-100/70 text-[9px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-200">
-                                                                            <th className="px-2.5 py-1.5">PO No</th>
+                                                                            <th className="px-2.5 py-1.5">PO &amp; Delivery</th>
                                                                             <th className="px-2.5 py-1.5">Tender Type</th>
                                                                             <th className="px-2.5 py-1.5">Pump Serial</th>
                                                                             <th className="px-2.5 py-1.5 text-center">Warranty Status</th>
@@ -10027,7 +10519,15 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                                             const days = calculateDaysRemaining(exp);
                                                                             return (
                                                                                 <tr key={t.id} className="hover:bg-slate-50/60">
-                                                                                    <td className="px-2.5 py-2 font-black text-slate-900">{t.poNo || '—'}</td>
+                                                                                    <td className="px-2.5 py-2 font-black text-slate-900">
+                                                                                        <div>{t.poNo || '—'}</div>
+                                                                                        {t.deliveryDate && (
+                                                                                            <div className="text-[10px] font-mono font-semibold text-indigo-700 flex items-center gap-1 mt-0.5">
+                                                                                                <Icon name="calendar" size={9} className="text-indigo-500"/>
+                                                                                                {formatDate(t.deliveryDate)}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </td>
                                                                                     <td className="px-2.5 py-2 font-bold text-slate-700 truncate max-w-[120px]">{t.tenderType || '—'}</td>
                                                                                     <td className="px-2.5 py-2 text-slate-600 font-mono text-[10.5px] truncate max-w-[100px]">{t.pumpSrNo || t.pumpMake || '—'}</td>
                                                                                     <td className="px-2.5 py-2 text-center">
@@ -10091,8 +10591,8 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         <table className="w-full text-left table-fixed min-w-[950px] border-collapse text-xs">
                                             <thead>
                                                 <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-slate-500 border-b border-slate-200">
-                                                    <th className="px-3.5 py-2.5 w-[26%] font-medium">Client Organization</th>
-                                                    <th className="px-3.5 py-2.5 w-[18%] font-medium">PO Number</th>
+                                                    <th className="px-3.5 py-2.5 w-[25%] font-medium">Client Organization</th>
+                                                    <th className="px-3.5 py-2.5 w-[19%] font-medium">PO &amp; Delivery Date</th>
                                                     <th className="px-3.5 py-2.5 w-[20%] font-medium">Type Of Fire Tender</th>
                                                     <th className="px-3.5 py-2.5 w-[14%] text-center font-medium">Insurance Policy</th>
                                                     <th className="px-3.5 py-2.5 w-[12%] text-center font-medium">Warranty Coverage</th>
@@ -10127,15 +10627,30 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                                 </div>
                                                             </td>
 
-                                                            {/* 2. PO Number */}
+                                                            {/* 2. PO Number & Delivery Date */}
                                                             <td className="px-3.5 py-3">
-                                                                <div className="space-y-0.5">
-                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
-                                                                        PO: {t.poNo || 'N/A'}
-                                                                    </span>
-                                                                    <p className="text-[10.5px] text-slate-400 font-mono">
-                                                                        {t.poDate ? formatDate(t.poDate) : 'Date not set'}
-                                                                    </p>
+                                                                <div className="space-y-1">
+                                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
+                                                                            PO: {t.poNo || 'N/A'}
+                                                                        </span>
+                                                                        {t.poDate && (
+                                                                            <span className="text-[10px] text-slate-400 font-mono">
+                                                                                ({formatDate(t.poDate)})
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1 font-mono text-[11px]">
+                                                                        <span className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Delivered:</span>
+                                                                        {t.deliveryDate ? (
+                                                                            <span className="inline-flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-1.5 py-0.2 rounded text-[10.5px]">
+                                                                                <Icon name="calendar" size={10} className="text-indigo-600"/>
+                                                                                {formatDate(t.deliveryDate)}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-slate-400 italic text-[10px]">Pending</span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </td>
 
@@ -10393,6 +10908,161 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const [editingDocId, setEditingDocId] = useState(null);
             const [editDocName, setEditDocName] = useState('');
 
+            // Training Questions state
+            const [trainingQuestionsList, setTrainingQuestionsList] = useState(() => loadTrainingQuestionsMaster());
+            const [newQCategory, setNewQCategory] = useState('Chassis & Driveline');
+            const [newQQuestion, setNewQQuestion] = useState('');
+            const [newQDetails, setNewQDetails] = useState('');
+            
+            // Edit state for Training Questions
+            const [editingQId, setEditingQId] = useState(null);
+            const [editQCategory, setEditQCategory] = useState('');
+            const [editQQuestion, setEditQQuestion] = useState('');
+            const [editQDetails, setEditQDetails] = useState('');
+            
+            // Filter / search state
+            const [qFilterCat, setQFilterCat] = useState('All');
+            const [qSearchTerm, setQSearchTerm] = useState('');
+
+            // Supabase sync status state: 'idle' | 'checking' | 'synced' | 'table_missing' | 'offline'
+            const [sbQStatus, setSbQStatus] = useState('idle');
+            const [sbQDetail, setSbQDetail] = useState('');
+            const [copiedSql, setCopiedSql] = useState(false);
+            const [showSqlPreview, setShowSqlPreview] = useState(false);
+
+            // Auto-check Supabase status when training_questions tab is viewed
+            useEffect(() => {
+                if (activeTab === 'training_questions') {
+                    setSbQStatus('checking');
+                    syncTrainingQuestionsWithSupabase().then(res => {
+                        if (res.available) {
+                            setSbQStatus('synced');
+                            setTrainingQuestionsList(loadTrainingQuestionsMaster());
+                        } else if (res.code === 'PGRST205' || (res.error && res.error.includes('schema cache'))) {
+                            setSbQStatus('table_missing');
+                            setSbQDetail(res.error || 'Table training_questions not found in Supabase schema cache.');
+                        } else {
+                            setSbQStatus('offline');
+                            setSbQDetail(res.error || 'Local storage mode active');
+                        }
+                    }).catch(e => {
+                        setSbQStatus('offline');
+                    });
+                }
+            }, [activeTab]);
+
+            const handleManualSyncQ = () => {
+                setSbQStatus('checking');
+                syncTrainingQuestionsWithSupabase().then(res => {
+                    if (res.available) {
+                        setSbQStatus('synced');
+                        setTrainingQuestionsList(loadTrainingQuestionsMaster());
+                        alert('Cloud sync complete! ' + res.count + ' questions loaded.');
+                    } else if (res.code === 'PGRST205' || (res.error && res.error.includes('schema cache'))) {
+                        setSbQStatus('table_missing');
+                        setSbQDetail(res.error || 'Table not found in Supabase.');
+                        alert('Supabase table "training_questions" does not exist yet. Please run the SQL schema script.');
+                    } else {
+                        setSbQStatus('offline');
+                        alert('Supabase notice: ' + (res.error || 'Operating in local persistence mode.'));
+                    }
+                }).catch(e => {
+                    setSbQStatus('offline');
+                    alert('Sync failed: ' + e.message);
+                });
+            };
+
+            const handleAddQuestion = (e) => {
+                e && e.preventDefault();
+                if (!newQQuestion.trim()) { alert('Please enter question / training point description'); return; }
+                const newQ = {
+                    id: 'Q_' + Date.now().toString().slice(-6),
+                    category: newQCategory.trim() || 'General Test',
+                    question: newQQuestion.trim(),
+                    details: newQDetails.trim(),
+                    active: true
+                };
+                const updated = [...trainingQuestionsList, newQ];
+                setTrainingQuestionsList(updated);
+                saveTrainingQuestionsMaster(updated);
+                saveQuestionToSupabase(newQ, updated.length);
+                setNewQQuestion('');
+                setNewQDetails('');
+            };
+
+            const handleStartEditQuestion = (q) => {
+                setEditingQId(q.id);
+                setEditQCategory(q.category || 'General Test');
+                setEditQQuestion(q.question);
+                setEditQDetails(q.details || '');
+            };
+
+            const handleSaveEditQuestion = (qId) => {
+                if (!editQQuestion.trim()) { alert('Question description cannot be empty'); return; }
+                const idx = trainingQuestionsList.findIndex(q => q.id === qId);
+                if (idx === -1) return;
+                const updatedItem = {
+                    ...trainingQuestionsList[idx],
+                    category: editQCategory.trim() || 'General Test',
+                    question: editQQuestion.trim(),
+                    details: editQDetails.trim()
+                };
+                const updated = [...trainingQuestionsList];
+                updated[idx] = updatedItem;
+                setTrainingQuestionsList(updated);
+                saveTrainingQuestionsMaster(updated);
+                saveQuestionToSupabase(updatedItem, idx + 1);
+                setEditingQId(null);
+            };
+
+            const handleDeleteQuestion = (qId) => {
+                if (confirm('Delete this training question from the master checklist?')) {
+                    const updated = trainingQuestionsList.filter(q => q.id !== qId);
+                    setTrainingQuestionsList(updated);
+                    saveTrainingQuestionsMaster(updated);
+                    deleteQuestionFromSupabase(qId);
+                }
+            };
+
+            const handleToggleQuestionActive = (qId) => {
+                const idx = trainingQuestionsList.findIndex(q => q.id === qId);
+                if (idx === -1) return;
+                const updatedItem = {
+                    ...trainingQuestionsList[idx],
+                    active: trainingQuestionsList[idx].active === false ? true : false
+                };
+                const updated = [...trainingQuestionsList];
+                updated[idx] = updatedItem;
+                setTrainingQuestionsList(updated);
+                saveTrainingQuestionsMaster(updated);
+                saveQuestionToSupabase(updatedItem, idx + 1);
+            };
+
+            const handleMoveQuestion = (idx, dir) => {
+                const newIdx = idx + dir;
+                if (newIdx < 0 || newIdx >= trainingQuestionsList.length) return;
+                const copy = [...trainingQuestionsList];
+                const temp = copy[idx];
+                copy[idx] = copy[newIdx];
+                copy[newIdx] = temp;
+                setTrainingQuestionsList(copy);
+                saveTrainingQuestionsMaster(copy);
+                // Save updated orders
+                copy.forEach((item, pos) => {
+                    saveQuestionToSupabase(item, pos + 1);
+                });
+            };
+
+            const handleResetDefaultQuestions = () => {
+                if (confirm('Reset Training Questions Master list to standard 10 factory commissioning points? Any custom added questions will be replaced.')) {
+                    setTrainingQuestionsList(DEFAULT_COMMISSIONING_QUESTIONS);
+                    saveTrainingQuestionsMaster(DEFAULT_COMMISSIONING_QUESTIONS);
+                    DEFAULT_COMMISSIONING_QUESTIONS.forEach((item, pos) => {
+                        saveQuestionToSupabase(item, pos + 1);
+                    });
+                }
+            };
+
             // Trainer Password state
             const [currentTrainerPass, setCurrentTrainerPass] = useState(() => getTrainerPortalPassword());
             const [newTrainerPassInput, setNewTrainerPassInput] = useState('');
@@ -10482,8 +11152,18 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         activeTab === 'handover_docs' ? 'bg-amber-600 text-white shadow-2xs' : 'bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100'
                                     )}
                                 >
-                                    <span>📄 Handover Docs Master</span>
+                                    <span>📄 Handover Docs</span>
                                     <span className="text-[9px] bg-white/20 px-1.5 py-0.2 rounded-full font-extrabold">{masterDocsList.length}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('training_questions')}
+                                    className={'px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ' + (
+                                        activeTab === 'training_questions' ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-indigo-50 text-indigo-900 border border-indigo-200 hover:bg-indigo-100'
+                                    )}
+                                >
+                                    <span>🎓 Training Questions</span>
+                                    <span className="text-[9px] bg-white/20 px-1.5 py-0.2 rounded-full font-extrabold">{trainingQuestionsList.length}</span>
                                 </button>
                                 <button
                                     type="button"
@@ -10692,6 +11372,374 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB 4: TRAINING QUESTIONS MASTER */}
+                    {activeTab === 'training_questions' && accessMode === 'master_admin' && (
+                        <div className="space-y-3.5 fade-up">
+                            {/* Header Banner & Supabase Status */}
+                            <div className="bg-indigo-50/80 p-3.5 rounded-2xl border border-indigo-200 space-y-2">
+                                <div className="flex flex-wrap justify-between items-center gap-2">
+                                    <div>
+                                        <h4 className="text-xs font-black uppercase text-indigo-950 flex items-center gap-1.5">
+                                            <span>🎓 Commissioning & Training Checklist Master</span>
+                                        </h4>
+                                        <p className="text-[10px] font-bold text-indigo-800 mt-0.5">
+                                            Manage standard commissioning tests & operator training points. Field trainers and certificate generators automatically use these questions.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        {sbQStatus === 'checking' && (
+                                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200 animate-pulse">
+                                                🔄 Checking Supabase...
+                                            </span>
+                                        )}
+                                        {sbQStatus === 'synced' && (
+                                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                                                ● Cloud Synced (Supabase Active)
+                                            </span>
+                                        )}
+                                        {sbQStatus === 'table_missing' && (
+                                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                                                ▲ Local Storage Mode (Table Not Found)
+                                            </span>
+                                        )}
+                                        {sbQStatus === 'offline' && (
+                                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 border border-slate-300">
+                                                📁 Local Storage Active
+                                            </span>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={handleManualSyncQ}
+                                            className="text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer transition-all shadow-2xs"
+                                            title="Sync with Supabase"
+                                        >
+                                            🔄 Sync
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleResetDefaultQuestions}
+                                            className="text-[9px] font-bold uppercase px-2 py-1 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer"
+                                            title="Reset to 10 Standard Questions"
+                                        >
+                                            ↺ Reset 10 Defaults
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Table Missing / SQL Setup Helper Banner */}
+                                {sbQStatus === 'table_missing' && (
+                                    <div className="bg-amber-100/90 border border-amber-300 rounded-xl p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                                        <div className="text-amber-950 text-[11px]">
+                                            <span className="font-extrabold">⚠️ Cloud Table Note:</span> The <code className="bg-amber-200/80 px-1 py-0.5 rounded text-[10px] font-mono">training_questions</code> table has not been created in Supabase yet. Changes are fully saved locally. Click <span className="font-bold">Copy Setup SQL</span> and execute in Supabase SQL editor to enable cloud sync.
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(TRAINING_QUESTIONS_SETUP_SQL);
+                                                    setCopiedSql(true);
+                                                    setTimeout(() => setCopiedSql(false), 3000);
+                                                }}
+                                                className="bg-amber-700 hover:bg-amber-800 text-white font-black px-2.5 py-1 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer shadow-2xs"
+                                            >
+                                                {copiedSql ? '✓ Copied SQL!' : '📋 Copy Setup SQL'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowSqlPreview(!showSqlPreview)}
+                                                className="bg-white/80 border border-amber-300 text-amber-900 font-bold px-2 py-1 rounded-lg text-[10px] cursor-pointer"
+                                            >
+                                                {showSqlPreview ? 'Hide' : 'View SQL'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {showSqlPreview && (
+                                    <div className="relative">
+                                        <pre className="bg-slate-900 text-emerald-300 p-3 rounded-xl text-[10px] font-mono overflow-x-auto max-h-36 border border-slate-700 select-all">
+                                            {TRAINING_QUESTIONS_SETUP_SQL}
+                                        </pre>
+                                        <div className="absolute top-2 right-2 flex gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(TRAINING_QUESTIONS_SETUP_SQL);
+                                                    setCopiedSql(true);
+                                                    setTimeout(() => setCopiedSql(false), 3000);
+                                                }}
+                                                className="bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer"
+                                            >
+                                                {copiedSql ? '✓ Copied!' : 'Copy'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Add New Question Form */}
+                            <form onSubmit={handleAddQuestion} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1">
+                                        <span>➕ Add New Training Point / Commissioning Question</span>
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                    <div>
+                                        <label className="text-[9px] font-black uppercase tracking-wider text-slate-500 block mb-0.5">Category</label>
+                                        <input
+                                            type="text"
+                                            list="preset-categories-list"
+                                            value={newQCategory}
+                                            onChange={e => setNewQCategory(e.target.value)}
+                                            placeholder="e.g. Chassis & Driveline"
+                                            className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
+                                        />
+                                        <datalist id="preset-categories-list">
+                                            <option value="Chassis & Driveline" />
+                                            <option value="PTO & Transmission" />
+                                            <option value="Fire Pump Operations" />
+                                            <option value="Priming & Suction" />
+                                            <option value="High & Low Pressure" />
+                                            <option value="Foam Proportioning" />
+                                            <option value="Monitor Turret" />
+                                            <option value="Emergency Warning" />
+                                            <option value="Locker & Tools" />
+                                            <option value="Maintenance & Safety" />
+                                            <option value="Hydraulic & Winch" />
+                                            <option value="Electrical System" />
+                                            <option value="Acceptance Test" />
+                                        </datalist>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="text-[9px] font-black uppercase tracking-wider text-slate-500 block mb-0.5">Question / Test Description *</label>
+                                        <input
+                                            type="text"
+                                            value={newQQuestion}
+                                            onChange={e => setNewQQuestion(e.target.value)}
+                                            placeholder="e.g. Suction Lift & Deep Water Priming Test"
+                                            className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[9px] font-black uppercase tracking-wider text-slate-500 block mb-0.5">Details / Acceptance Criteria (Optional)</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newQDetails}
+                                            onChange={e => setNewQDetails(e.target.value)}
+                                            placeholder="e.g. Vacuum build-up within 25-30s from open reservoir/hydrant, primer automatic disengagement."
+                                            className="flex-1 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer shadow-2xs transition-all shrink-0"
+                                        >
+                                            Add Question
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            {/* Search & Filter Bar */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-[10px] font-black uppercase text-slate-500">Filter:</span>
+                                    <select
+                                        value={qFilterCat}
+                                        onChange={e => setQFilterCat(e.target.value)}
+                                        className="bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 outline-none"
+                                    >
+                                        <option value="All">All Categories ({trainingQuestionsList.length})</option>
+                                        {Array.from(new Set(trainingQuestionsList.map(q => q.category).filter(Boolean))).map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={qSearchTerm}
+                                        onChange={e => setQSearchTerm(e.target.value)}
+                                        placeholder="Search questions..."
+                                        className="bg-slate-100 border border-slate-200 rounded-lg pl-2 pr-6 py-1 text-[11px] font-bold text-slate-800 outline-none w-48 focus:w-60 transition-all"
+                                    />
+                                    {qSearchTerm && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setQSearchTerm('')}
+                                            className="absolute right-1.5 top-1 text-slate-400 hover:text-slate-700 text-xs font-bold"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Questions List */}
+                            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                                {trainingQuestionsList
+                                    .map((q, origIdx) => ({ ...q, origIdx }))
+                                    .filter(q => {
+                                        if (qFilterCat !== 'All' && q.category !== qFilterCat) return false;
+                                        if (qSearchTerm.trim()) {
+                                            const term = qSearchTerm.trim().toLowerCase();
+                                            const matchQ = (q.question || '').toLowerCase().includes(term);
+                                            const matchC = (q.category || '').toLowerCase().includes(term);
+                                            const matchD = (q.details || '').toLowerCase().includes(term);
+                                            if (!matchQ && !matchC && !matchD) return false;
+                                        }
+                                        return true;
+                                    })
+                                    .map((q) => (
+                                        <div key={q.id || q.origIdx} className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col gap-2 shadow-2xs hover:border-slate-300 transition-all">
+                                            {editingQId === q.id ? (
+                                                <div className="space-y-2 p-1 bg-indigo-50/50 rounded-lg border border-indigo-200">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                        <div>
+                                                            <label className="text-[9px] font-black uppercase text-indigo-900 block mb-0.5">Category</label>
+                                                            <input
+                                                                type="text"
+                                                                list="preset-categories-list"
+                                                                value={editQCategory}
+                                                                onChange={e => setEditQCategory(e.target.value)}
+                                                                className="w-full bg-white border border-indigo-300 rounded px-2 py-1 text-xs font-bold text-slate-800"
+                                                            />
+                                                        </div>
+                                                        <div className="sm:col-span-2">
+                                                            <label className="text-[9px] font-black uppercase text-indigo-900 block mb-0.5">Question Description</label>
+                                                            <input
+                                                                type="text"
+                                                                value={editQQuestion}
+                                                                onChange={e => setEditQQuestion(e.target.value)}
+                                                                className="w-full bg-white border border-indigo-300 rounded px-2 py-1 text-xs font-bold text-slate-800"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-indigo-900 block mb-0.5">Details / Acceptance Criteria</label>
+                                                        <textarea
+                                                            rows={2}
+                                                            value={editQDetails}
+                                                            onChange={e => setEditQDetails(e.target.value)}
+                                                            className="w-full bg-white border border-indigo-300 rounded px-2 py-1 text-xs text-slate-800"
+                                                        />
+                                                    </div>
+                                                    <div className="flex justify-end gap-2 pt-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditingQId(null)}
+                                                            className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded text-[10px] font-bold cursor-pointer"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSaveEditQuestion(q.id)}
+                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1 rounded text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-2xs"
+                                                        >
+                                                            Save Changes
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-start justify-between gap-2.5">
+                                                    <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                                        {/* Reorder Buttons */}
+                                                        <div className="flex flex-col gap-0.5 pt-0.5">
+                                                            <button
+                                                                type="button"
+                                                                disabled={q.origIdx === 0}
+                                                                onClick={() => handleMoveQuestion(q.origIdx, -1)}
+                                                                className="text-slate-300 hover:text-slate-700 disabled:opacity-20 cursor-pointer text-xs"
+                                                                title="Move Up"
+                                                            >
+                                                                ▲
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                disabled={q.origIdx === trainingQuestionsList.length - 1}
+                                                                onClick={() => handleMoveQuestion(q.origIdx, 1)}
+                                                                className="text-slate-300 hover:text-slate-700 disabled:opacity-20 cursor-pointer text-xs"
+                                                                title="Move Down"
+                                                            >
+                                                                ▼
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Index Badge */}
+                                                        <span className="text-[10px] font-mono font-black text-slate-400 bg-slate-100 rounded px-1.5 py-0.5 shrink-0 mt-0.5">
+                                                            #{q.origIdx + 1}
+                                                        </span>
+
+                                                        {/* Text Content */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                                    {q.category || 'General'}
+                                                                </span>
+                                                                {q.active === false && (
+                                                                    <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-rose-50 text-rose-600 border border-rose-200">
+                                                                        Disabled
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <h5 className={'text-xs font-bold mt-1 ' + (q.active === false ? 'line-through text-slate-400' : 'text-slate-900')}>
+                                                                {q.question}
+                                                            </h5>
+                                                            {q.details && (
+                                                                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                                                                    {q.details}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Right Actions */}
+                                                    <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleToggleQuestionActive(q.id)}
+                                                            className={'text-[9px] font-black uppercase px-2 py-1 rounded-md cursor-pointer transition-all ' + (
+                                                                q.active !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                                            )}
+                                                            title={q.active !== false ? 'Active in new checklists' : 'Disabled from new checklists'}
+                                                        >
+                                                            {q.active !== false ? 'Active' : 'Disabled'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleStartEditQuestion(q)}
+                                                            className="text-slate-400 hover:text-indigo-600 p-1.5 rounded-lg hover:bg-indigo-50 transition-all cursor-pointer"
+                                                            title="Edit Question"
+                                                        >
+                                                            <Icon name="edit-2" size={13}/>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteQuestion(q.id)}
+                                                            className="text-slate-300 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
+                                                            title="Delete Question"
+                                                        >
+                                                            <Icon name="trash-2" size={13}/>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+
+                                {trainingQuestionsList.length === 0 && (
+                                    <div className="p-6 text-center text-slate-400 text-xs">
+                                        No training questions configured. Click "Reset 10 Defaults" above to load the standard checklist.
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -11408,7 +12456,10 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             setNewCust,
             setShowCustomerModal,
             setDeleteStep,
-            formatDate
+            formatDate,
+            setEditingTruck,
+            setNewTrk,
+            setShowTruckModal
         }) => {
             const [custViewMode, setCustViewMode] = useState('table'); // 'table' | 'grid'
             const [searchQuery, setSearchQuery] = useState('');
@@ -11509,7 +12560,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                 type="button"
                                 onClick={() => {
                                     setEditingCustomer(null);
-                                    setNewCust({ name:'', address:'', contactPerson:'', phone:'', email:'', poDate:'' });
+                                    setNewCust({ name:'', address:'', contactPerson:'', phone:'', email:'', poNo:'', poDate:'' });
                                     setShowCustomerModal(true);
                                 }}
                                 className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-3.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-98"
@@ -11531,7 +12582,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                             <th className="px-3.5 py-2.5 font-medium">Contact Person &amp; Phone</th>
                                             <th className="px-3.5 py-2.5 text-center font-medium">Fleet Deployed</th>
                                             <th className="px-3.5 py-2.5 text-center font-medium">Warranty Coverage</th>
-                                            <th className="px-3.5 py-2.5 text-center font-medium">PO Date</th>
+                                            <th className="px-3.5 py-2.5 text-center font-medium">PO &amp; Date</th>
                                             <th className="px-3.5 py-2.5 text-right w-24 pr-4 font-medium">Actions</th>
                                         </tr>
                                     </thead>
@@ -11616,9 +12667,16 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                         </div>
                                                     </td>
 
-                                                    {/* PO Date */}
-                                                    <td className="px-3.5 py-2.5 text-center text-slate-500 font-mono text-[11.5px] whitespace-nowrap">
-                                                        {c.poDate ? formatDate(c.poDate) : '—'}
+                                                    {/* PO Details */}
+                                                    <td className="px-3.5 py-2.5 text-center font-mono text-[11.5px] whitespace-nowrap">
+                                                        {c.poNo ? (
+                                                            <span className="font-semibold text-teal-800 bg-teal-50 border border-teal-100/90 px-1.5 py-0.5 rounded text-[11px] inline-block mb-0.5">
+                                                                {c.poNo}
+                                                            </span>
+                                                        ) : null}
+                                                        <div className="text-slate-400 text-[10.5px]">
+                                                            {c.poDate ? formatDate(c.poDate) : (!c.poNo ? '—' : '')}
+                                                        </div>
                                                     </td>
 
                                                     {/* Actions */}
@@ -11632,6 +12690,30 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                             >
                                                                 <Icon name="eye" size={13.5}/>
                                                             </button>
+                                                            {setShowTruckModal && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (setEditingTruck) setEditingTruck(null);
+                                                                        if (setNewTrk) setNewTrk({
+                                                                            customerId: c.id,
+                                                                            poNo: c.poNo || '',
+                                                                            poDate: c.poDate || '',
+                                                                            ocNo: '', ocDate: '',
+                                                                            costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
+                                                                            foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
+                                                                            deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
+                                                                            insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
+                                                                            submittedToAccountsAt: null, costCenterCreatedAt: null
+                                                                        });
+                                                                        setShowTruckModal(true);
+                                                                    }}
+                                                                    className="h-7 w-7 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors cursor-pointer"
+                                                                    title="Mark Delivery for Client"
+                                                                >
+                                                                    <Icon name="truck" size={13.5}/>
+                                                                </button>
+                                                            )}
                                                             <button
                                                                 type="button"
                                                                 onClick={() => { setEditingCustomer(c); setNewCust({ ...c }); setShowCustomerModal(true); }}
@@ -11683,6 +12765,30 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     >
                                                         <Icon name="eye" size={13}/>
                                                     </button>
+                                                    {setShowTruckModal && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (setEditingTruck) setEditingTruck(null);
+                                                                if (setNewTrk) setNewTrk({
+                                                                    customerId: c.id,
+                                                                    poNo: c.poNo || '',
+                                                                    poDate: c.poDate || '',
+                                                                    ocNo: '', ocDate: '',
+                                                                    costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
+                                                                    foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
+                                                                    deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
+                                                                    insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
+                                                                    submittedToAccountsAt: null, costCenterCreatedAt: null
+                                                                });
+                                                                setShowTruckModal(true);
+                                                            }}
+                                                            className="text-slate-400 hover:text-emerald-600 p-1 rounded hover:bg-emerald-50 transition-colors cursor-pointer"
+                                                            title="Mark Delivery for Client"
+                                                        >
+                                                            <Icon name="truck" size={13}/>
+                                                        </button>
+                                                    )}
                                                     <button
                                                         type="button"
                                                         onClick={() => { setEditingCustomer(c); setNewCust({ ...c }); setShowCustomerModal(true); }}
@@ -11723,9 +12829,14 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     <Icon name="phone" size={10.5} className="text-slate-400"/>
                                                     <span>{c.phone || '—'}</span>
                                                 </p>
+                                                {c.poNo && (
+                                                    <p className="flex items-center gap-2 font-mono text-[11px] font-semibold text-teal-800">
+                                                        <Icon name="file-text" size={10.5} className="text-[#0B6B63]"/> PO: {c.poNo}
+                                                    </p>
+                                                )}
                                                 {c.poDate && (
                                                     <p className="flex items-center gap-2 text-slate-500 font-mono text-[10.5px]">
-                                                        <Icon name="calendar" size={10.5} className="text-slate-400"/> PO: {formatDate(c.poDate)}
+                                                        <Icon name="calendar" size={10.5} className="text-slate-400"/> Date: {formatDate(c.poDate)}
                                                     </p>
                                                 )}
                                             </div>
@@ -11856,6 +12967,12 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     </p>
                                                 </div>
 
+                                                {cust.poNo && (
+                                                    <div className="p-2 bg-white rounded-xl border border-slate-100 flex items-center justify-between text-[11px]">
+                                                        <span className="font-bold text-slate-400">PO Number:</span>
+                                                        <span className="font-mono font-bold text-teal-800 bg-teal-50 border border-teal-100 px-2 py-0.5 rounded">{cust.poNo}</span>
+                                                    </div>
+                                                )}
                                                 {cust.poDate && (
                                                     <div className="p-2 bg-white rounded-xl border border-slate-100 flex items-center justify-between text-[11px]">
                                                         <span className="font-bold text-slate-400">PO Date:</span>
@@ -11881,7 +12998,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                     <table className="w-full text-left text-xs border-collapse">
                                                         <thead>
                                                             <tr className="bg-slate-100/70 text-[9px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-200">
-                                                                <th className="px-2.5 py-1.5">PO No</th>
+                                                                <th className="px-2.5 py-1.5">PO &amp; Delivery</th>
                                                                 <th className="px-2.5 py-1.5">Tender Type</th>
                                                                 <th className="px-2.5 py-1.5">Pump Serial</th>
                                                                 <th className="px-2.5 py-1.5 text-center">Warranty Status</th>
@@ -11893,7 +13010,15 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
                                                                 const days = calculateDaysRemaining(exp);
                                                                 return (
                                                                     <tr key={t.id} className="hover:bg-slate-50/60">
-                                                                        <td className="px-2.5 py-2 font-black text-slate-900">{t.poNo || '—'}</td>
+                                                                        <td className="px-2.5 py-2 font-black text-slate-900">
+                                                                            <div>{t.poNo || '—'}</div>
+                                                                            {t.deliveryDate && (
+                                                                                <div className="text-[10px] font-mono font-semibold text-indigo-700 flex items-center gap-1 mt-0.5">
+                                                                                    <Icon name="calendar" size={9} className="text-indigo-500"/>
+                                                                                    {formatDate(t.deliveryDate)}
+                                                                                </div>
+                                                                            )}
+                                                                        </td>
                                                                         <td className="px-2.5 py-2 font-bold text-slate-700 truncate max-w-[120px]">{t.tenderType || '—'}</td>
                                                                         <td className="px-2.5 py-2 text-slate-600 font-mono text-[10.5px] truncate max-w-[100px]">{t.pumpSrNo || t.pumpMake || '—'}</td>
                                                                         <td className="px-2.5 py-2 text-center">
@@ -11917,19 +13042,46 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
                                     {/* Modal Footer */}
                                     <div className="pt-3 border-t border-slate-100 flex justify-between items-center mt-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const targetCust = cust;
-                                                setSelectedCustomerForDetails(null);
-                                                setEditingCustomer(targetCust);
-                                                setNewCust({ ...targetCust });
-                                                setShowCustomerModal(true);
-                                            }}
-                                            className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
-                                        >
-                                            <Icon name="pencil" size={13}/> Edit Customer
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const targetCust = cust;
+                                                    setSelectedCustomerForDetails(null);
+                                                    setEditingCustomer(targetCust);
+                                                    setNewCust({ ...targetCust });
+                                                    setShowCustomerModal(true);
+                                                }}
+                                                className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+                                            >
+                                                <Icon name="pencil" size={13}/> Edit Customer
+                                            </button>
+                                            {setShowTruckModal && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const targetCust = cust;
+                                                        setSelectedCustomerForDetails(null);
+                                                        if (setEditingTruck) setEditingTruck(null);
+                                                        if (setNewTrk) setNewTrk({
+                                                            customerId: targetCust.id,
+                                                            poNo: targetCust.poNo || '',
+                                                            poDate: targetCust.poDate || '',
+                                                            ocNo: '', ocDate: '',
+                                                            costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
+                                                            foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
+                                                            deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
+                                                            insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
+                                                            submittedToAccountsAt: null, costCenterCreatedAt: null
+                                                        });
+                                                        setShowTruckModal(true);
+                                                    }}
+                                                    className="px-3.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-[#0B6B63] border border-teal-200 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+                                                >
+                                                    <Icon name="truck" size={13}/> + Mark Delivery
+                                                </button>
+                                            )}
+                                        </div>
                                         <button
                                             type="button"
                                             onClick={() => setSelectedCustomerForDetails(null)}
@@ -12638,7 +13790,7 @@ function App() {
             const [editingTruck, setEditingTruck] = useState(null);
 
             // Form state
-            const [newCust, setNewCust] = useState({ name:'', address:'', contactPerson:'', phone:'', email:'', poDate:'' });
+            const [newCust, setNewCust] = useState({ name:'', address:'', contactPerson:'', phone:'', email:'', poNo:'', poDate:'' });
             const [newTrk, setNewTrk] = useState({ customerId:'', poNo:'', poDate:'', ocNo:'', ocDate:'', costCenterNo:'', tenderType:'', pumpMake:'', pumpLpm:'', pumpSrNo:'', foamCapacity:'', waterCapacity:'', chassisMake:'', modelNo:'', deliveryDate:'', warrantyMonths:12, insurancePolicyNo:'', insuranceCompany:'', insuranceExpiryDate:'', costCenterStatus:'Not Generated', poAtGlanceGeneratedAt:null, submittedToAccountsAt:null, costCenterCreatedAt:null });
 
             const [newCat, setNewCat] = useState('');
@@ -14078,7 +15230,7 @@ function App() {
                 if (!sb || !user) { setter(prev=>prev.map(item=>item.id===id?{...item,...data}:item)); if(modalSetter)modalSetter(false); if(resetData)resetData(); return; }
                 try {
                     let payload = {};
-                    if (type==='customers') payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email,po_date:data.poDate || null};
+                    if (type==='customers') payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email,po_no:data.poNo || null,po_date:data.poDate || null};
                     else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate || null,oc_no:data.ocNo || null,oc_date:data.ocDate || null,cost_center_no:data.costCenterNo || null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null,cost_center_status:data.costCenterStatus || 'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt || null,submitted_to_accounts_at:data.submittedToAccountsAt || null,cost_center_created_at:data.costCenterCreatedAt || null};
                     else if (type==='complaints') payload={truck_id:data.truckId,category:data.category,description:data.description,date_received:data.dateReceived || null,mode:data.mode||'Mail',reported_by:data.reportedBy};
                     else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate || null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
@@ -14092,6 +15244,7 @@ function App() {
                         delete fallbackPayload.insurance_policy_no;
                         delete fallbackPayload.insurance_company;
                         delete fallbackPayload.insurance_expiry_date;
+                        delete fallbackPayload.po_no;
                         delete fallbackPayload.po_date;
                         delete fallbackPayload.cost_center_status;
                         delete fallbackPayload.po_at_glance_generated_at;
@@ -14109,6 +15262,13 @@ function App() {
                     }
                     if (updated) {
                         let mapped = type==='customers'?mapCustomer(updated):type==='trucks'?mapTruck(updated):type==='complaints'?mapComplaint(updated):mapFeedback(updated);
+                        if (type==='customers') {
+                            mapped = {
+                                ...mapped,
+                                poNo: mapped.poNo || data.poNo,
+                                poDate: mapped.poDate || data.poDate
+                            };
+                        }
                         if (type==='trucks') {
                             mapped = {
                                 ...mapped,
@@ -14147,7 +15307,7 @@ function App() {
                 if (!sb || !user) { setter(prev=>[{id:'LOCAL-'+Date.now(),...data,timestamp:new Date().toISOString()},...prev]); if(modalSetter)modalSetter(typeof modalSetter==='function'?false:null); if(resetData)resetData(); return; }
                 try {
                     let payload = {};
-                    if (type==='customers') payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email,po_date:data.poDate || null};
+                    if (type==='customers') payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email,po_no:data.poNo || null,po_date:data.poDate || null};
                     else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate || null,oc_no:data.ocNo || null,oc_date:data.ocDate || null,cost_center_no:data.costCenterNo || null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null,cost_center_status:data.costCenterStatus || 'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt || null,submitted_to_accounts_at:data.submittedToAccountsAt || null,cost_center_created_at:data.costCenterCreatedAt || null};
                     else if (type==='complaints') payload={truck_id:data.truckId,complaint_id:data.complaintId,category:data.category,description:data.description,date_received:data.dateReceived || null,mode:data.mode||'Mail',reported_by:data.reportedBy,status:data.status||'Open'};
                     else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate || null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
@@ -14159,6 +15319,7 @@ function App() {
                         delete fallbackPayload.insurance_policy_no;
                         delete fallbackPayload.insurance_company;
                         delete fallbackPayload.insurance_expiry_date;
+                        delete fallbackPayload.po_no;
                         delete fallbackPayload.po_date;
                         delete fallbackPayload.cost_center_status;
                         delete fallbackPayload.po_at_glance_generated_at;
@@ -14176,6 +15337,13 @@ function App() {
                     }
                     if (inserted) {
                         let mapped = type==='customers'?mapCustomer(inserted):type==='trucks'?mapTruck(inserted):type==='complaints'?mapComplaint(inserted):mapFeedback(inserted);
+                        if (type==='customers') {
+                            mapped = {
+                                ...mapped,
+                                poNo: mapped.poNo || data.poNo,
+                                poDate: mapped.poDate || data.poDate
+                            };
+                        }
                         if (type==='trucks') {
                             mapped = {
                                 ...mapped,
@@ -15317,13 +16485,14 @@ function App() {
                                                                                 phone: sub.phone || '',
                                                                                 email: sub.email || '',
                                                                                 address: sub.address || '',
+                                                                                poNo: sub.poNo || sub.po_no || '',
                                                                                 poDate: sub.poDate || sub.po_date || null
                                                                             };
                                                                             setCustomers(prev => [...prev, custRecord]);
                                                                             custId = newCustId;
                                                                             const sb = window.SupabaseClient;
                                                                             if (sb) {
-                                                                                try { await sb.from('customers').insert({ id: newCustId, name: custRecord.name, contact_person: custRecord.contactPerson, phone: custRecord.phone, email: custRecord.email, address: custRecord.address, po_date: custRecord.poDate }); } catch(e){}
+                                                                                try { await sb.from('customers').insert({ id: newCustId, name: custRecord.name, contact_person: custRecord.contactPerson, phone: custRecord.phone, email: custRecord.email, address: custRecord.address, po_no: custRecord.poNo, po_date: custRecord.poDate }); } catch(e){}
                                                                             }
                                                                         }
 
@@ -15641,8 +16810,7 @@ function App() {
                                 { id: 'dashboard', icon: 'home', label: 'Command Center' },
                                 { id: 'customers', icon: 'users', label: 'Customers & Assets', count: customers.length },
                                 { id: 'trucks', icon: 'shield-check', label: 'Fleet Inventory', count: trucks.length },
-                                { id: 'po-glance', icon: 'file-text', label: 'PO At Glance' },
-                                { id: 'pm-schedule', icon: 'calendar-check', label: 'Preventive Maintenance' }
+                                { id: 'po-glance', icon: 'file-text', label: 'PO At Glance' }
                             ];
                             const serviceNav = [
                                 { id: 'complaints', icon: 'alert-circle', label: 'Complaints Desk', count: complaints.filter(c=>c.status==='Open').length, badgeColor: 'bg-rose-50 text-rose-700 border border-rose-200' },
@@ -16140,6 +17308,9 @@ function App() {
                                 setShowCustomerModal={setShowCustomerModal}
                                 setDeleteStep={setDeleteStep}
                                 formatDate={formatDate}
+                                setEditingTruck={setEditingTruck}
+                                setNewTrk={setNewTrk}
+                                setShowTruckModal={setShowTruckModal}
                             />
                         )}
 
@@ -16690,9 +17861,15 @@ function App() {
                                                                     {custObj?.name || 'Client Not Linked'}
                                                                 </p>
                                                             </div>
-                                                            <span className="shrink-0 font-mono font-bold text-[11px] px-2 py-0.5 rounded bg-teal-50 text-[#0B6B63] border border-teal-100/80">
-                                                                PO: {t.poNo || 'N/A'}
-                                                            </span>
+                                                            <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                                                                <span className="font-mono font-bold text-[11px] px-2 py-0.5 rounded bg-teal-50 text-[#0B6B63] border border-teal-100/80" title="Purchase Order Number">
+                                                                    PO: {t.poNo || 'N/A'}
+                                                                </span>
+                                                                <span className="font-mono font-semibold text-[11px] px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/80 flex items-center gap-1" title="Vehicle Delivery Date">
+                                                                    <Icon name="calendar" size={11} className="text-indigo-600"/>
+                                                                    <span>Del: {t.deliveryDate ? formatDate(t.deliveryDate) : 'Pending'}</span>
+                                                                </span>
+                                                            </div>
                                                         </div>
 
                                                         {/* Row 2: Tender Type & Engineering Specs */}
@@ -16836,7 +18013,7 @@ function App() {
                                                     <thead>
                                                         <tr className="sticky top-0 z-10 bg-[#F8FAFC] border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                                                             <th className="px-3.5 py-3 w-[23%] min-w-[210px]">Customer &amp; Site</th>
-                                                            <th className="px-3 py-3 w-[17%] min-w-[160px]">Purchase Order</th>
+                                                            <th className="px-3 py-3 w-[17%] min-w-[160px]">PO &amp; Delivery Date</th>
                                                             <th className="px-3 py-3 w-[24%] min-w-[210px]">Fire Tender &amp; Specs</th>
                                                             <th className="px-3 py-3 w-[12%] min-w-[115px] text-center">OEM Warranty</th>
                                                             <th className="px-3 py-3 w-[11%] min-w-[110px] text-center">Insurance Policy</th>
@@ -16882,15 +18059,30 @@ function App() {
                                                                         </div>
                                                                     </td>
 
-                                                                    {/* 2. Purchase Order */}
+                                                                    {/* 2. Purchase Order & Delivery Date */}
                                                                     <td className="px-3 py-3 align-middle border-b border-slate-100/90">
-                                                                        <div className="w-full max-w-full overflow-hidden min-w-0 space-y-0.5">
-                                                                            <span className="inline-block max-w-full truncate px-2 py-0.5 rounded text-[11px] font-mono font-bold text-[#0B6B63] bg-teal-50 border border-teal-100/80">
-                                                                                PO: {t.poNo || 'N/A'}
-                                                                            </span>
-                                                                            <p className="text-[10.5px] text-slate-400 font-mono truncate">
-                                                                                {t.poDate ? `Date: ${formatDate(t.poDate)}` : <span className="italic text-slate-300">Date not set</span>}
-                                                                            </p>
+                                                                        <div className="w-full max-w-full overflow-hidden min-w-0 space-y-1">
+                                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                                <span className="inline-block max-w-full truncate px-2 py-0.5 rounded text-[11px] font-mono font-bold text-[#0B6B63] bg-teal-50 border border-teal-100/80">
+                                                                                    PO: {t.poNo || 'N/A'}
+                                                                                </span>
+                                                                                {t.poDate && (
+                                                                                    <span className="text-[10px] text-slate-400 font-mono">
+                                                                                        ({formatDate(t.poDate)})
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1 font-mono text-[11px]">
+                                                                                <span className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Delivered:</span>
+                                                                                {t.deliveryDate ? (
+                                                                                    <span className="inline-flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-1.5 py-0.5 rounded text-[10.5px]">
+                                                                                        <Icon name="calendar" size={10} className="text-indigo-600"/>
+                                                                                        {formatDate(t.deliveryDate)}
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span className="text-slate-400 italic text-[10px]">Pending</span>
+                                                                                )}
+                                                                            </div>
                                                                         </div>
                                                                     </td>
 
@@ -17059,7 +18251,7 @@ function App() {
                                         const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
                                         const truckComplaints = complaints.filter(c => c.truckId === t.id);
 
-                                        return (
+                                        const modalContent = (
                                             <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
                                                 <div 
                                                     className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden"
@@ -17078,6 +18270,10 @@ function App() {
                                                                     </h3>
                                                                     <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-teal-50 text-[#0B6B63] border border-teal-200/80">
                                                                         PO: {t.poNo || 'N/A'}
+                                                                    </span>
+                                                                    <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/80 flex items-center gap-1">
+                                                                        <Icon name="calendar" size={11} className="text-indigo-600"/>
+                                                                        <span>Delivered: {t.deliveryDate ? formatDate(t.deliveryDate) : 'Pending'}</span>
                                                                     </span>
                                                                 </div>
                                                                 <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
@@ -17104,7 +18300,18 @@ function App() {
                                                     {/* Modal Scrollable Body */}
                                                     <div className="p-5 overflow-y-auto space-y-4 text-xs">
                                                         {/* Coverage Banner */}
-                                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 font-mono">
+                                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 font-mono">
+                                                            <div>
+                                                                <span className="text-[10px] font-bold text-slate-400 uppercase block">Delivery Date</span>
+                                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                                    <Icon name="calendar" size={12} className="text-indigo-600 shrink-0"/>
+                                                                    <span className="font-extrabold text-indigo-900 text-sm">
+                                                                        {t.deliveryDate ? formatDate(t.deliveryDate) : 'Pending'}
+                                                                    </span>
+                                                                </div>
+                                                                <span className="text-[10px] text-slate-500 block mt-0.5">PO: {t.poNo || 'N/A'}</span>
+                                                            </div>
+
                                                             <div>
                                                                 <span className="text-[10px] font-bold text-slate-400 uppercase block">Warranty Coverage</span>
                                                                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -17127,7 +18334,7 @@ function App() {
                                                                 <span className="text-[10px] text-slate-500 block mt-0.5">{t.insuranceCompany || 'No Policy Linked'}</span>
                                                             </div>
 
-                                                            <div className="col-span-2 sm:col-span-1">
+                                                            <div>
                                                                 <span className="text-[10px] font-bold text-slate-400 uppercase block">Handover Training</span>
                                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                                     <span className={`w-2 h-2 rounded-full ${isTrained ? 'bg-purple-500' : 'bg-amber-400'}`}></span>
@@ -17360,6 +18567,7 @@ function App() {
                                                 </div>
                                             </div>
                                         );
+                                        return typeof document !== 'undefined' && document.body ? ReactDOM.createPortal(modalContent, document.body) : modalContent;
                                     })()}
                                 </div>
                             );
@@ -17506,8 +18714,8 @@ function App() {
                                             <table className="w-full text-left table-fixed min-w-[850px] border-collapse text-xs">
                                                 <thead>
                                                     <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-slate-500 border-b border-slate-200">
-                                                        <th className="px-4 py-2.5 w-[38%] font-medium">Client Name</th>
-                                                        <th className="px-4 py-2.5 w-[25%] font-medium">PO Number</th>
+                                                        <th className="px-4 py-2.5 w-[34%] font-medium">Client Name</th>
+                                                        <th className="px-4 py-2.5 w-[29%] font-medium">PO &amp; Delivery Date</th>
                                                         <th className="px-4 py-2.5 w-[22%] text-center font-medium">Status</th>
                                                         <th className="px-4 py-2.5 w-[15%] text-right pr-4 font-medium">Action</th>
                                                     </tr>
@@ -17549,17 +18757,30 @@ function App() {
                                                                         </div>
                                                                     </td>
 
-                                                                    {/* PO Number */}
+                                                                    {/* PO Number & Delivery Date */}
                                                                     <td className="px-4 py-3 whitespace-nowrap">
-                                                                        <div className="flex items-center gap-1.5">
-                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
-                                                                                {t.poNo || 'N/A'}
-                                                                            </span>
-                                                                            {poDateStr && (
-                                                                                <span className="text-[10.5px] text-slate-400 font-mono">
-                                                                                    ({poDateStr})
+                                                                        <div className="space-y-1">
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
+                                                                                    {t.poNo || 'N/A'}
                                                                                 </span>
-                                                                            )}
+                                                                                {poDateStr && (
+                                                                                    <span className="text-[10.5px] text-slate-400 font-mono">
+                                                                                        ({poDateStr})
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1 font-mono text-[11px]">
+                                                                                <span className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Delivered:</span>
+                                                                                {t.deliveryDate ? (
+                                                                                    <span className="inline-flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-1.5 py-0.2 rounded text-[10.5px]">
+                                                                                        <Icon name="calendar" size={10} className="text-indigo-600"/>
+                                                                                        {formatDateDDMMYYYY(t.deliveryDate)}
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span className="text-slate-400 italic text-[10px]">Pending</span>
+                                                                                )}
+                                                                            </div>
                                                                         </div>
                                                                     </td>
 
@@ -17615,14 +18836,7 @@ function App() {
                     {/* ══════════════════════════════════════════════════════ */}
                     {/* ── TAB: CAPA MANAGEMENT ── */}
                     {/* ══════════════════════════════════════════════════════ */}
-                    {activeTab === 'pm-schedule' && (
-                        <AdminPmScheduleView 
-                            trucks={trucks} 
-                            customers={customers} 
-                            pmRecords={pmRecords}
-                            onSavePmRecord={handleSavePmRecord}
-                        />
-                    )}
+
 
                     {activeTab === 'capa' && (
                         <div className="space-y-6">
@@ -18296,7 +19510,23 @@ function App() {
                                 };
                                 saveRecord('trucks',newTrk,setTrucks,setShowTruckModal,resetFn,editingTruck?.id);
                             }} className="space-y-4">
-                                <SearchableSelect label="Client" options={customers} value={newTrk.customerId} onChange={v=>setNewTrk({...newTrk,customerId:v})} getOptionLabel={c=>c.name} getOptionValue={c=>c.id} required/>
+                                <SearchableSelect
+                                    label="Client"
+                                    options={customers}
+                                    value={newTrk.customerId}
+                                    onChange={v => {
+                                        const selectedCust = customers.find(c => c.id === v);
+                                        setNewTrk(prev => ({
+                                            ...prev,
+                                            customerId: v,
+                                            poNo: (selectedCust?.poNo ? selectedCust.poNo : prev.poNo) || '',
+                                            poDate: (selectedCust?.poDate ? selectedCust.poDate : prev.poDate) || ''
+                                        }));
+                                    }}
+                                    getOptionLabel={c=>c.name}
+                                    getOptionValue={c=>c.id}
+                                    required
+                                />
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <Input label="PO / WO Number *" value={newTrk.poNo} onChange={v=>setNewTrk({...newTrk,poNo:v})} required/>
                                     <Input label="PO Date *" type="date" value={newTrk.poDate} onChange={v=>setNewTrk({...newTrk,poDate:v})} required/>
@@ -18759,15 +19989,19 @@ function App() {
 
                     {showCustomerModal && (
                         <Modal title={editingCustomer?"Edit Client":"Register Client"} onClose={()=>setShowCustomerModal(false)}>
-                            <form onSubmit={e=>{e.preventDefault();saveRecord('customers',newCust,setCustomers,setShowCustomerModal,()=>setNewCust({name:'',address:'',contactPerson:'',phone:'',email:'',poDate:''}),editingCustomer?.id);}} className="space-y-4">
-                                <Input label="Organization" value={newCust.name} onChange={v=>setNewCust({...newCust,name:v})} required/>
-                                <Input label="Address" value={newCust.address} onChange={v=>setNewCust({...newCust,address:v})} required/>
-                                <div className="grid grid-cols-2 gap-4"><Input label="Contact Person" value={newCust.contactPerson} onChange={v=>setNewCust({...newCust,contactPerson:v})} required/><Input label="Phone" value={newCust.phone} onChange={v=>setNewCust({...newCust,phone:v})} required/></div>
+                            <form onSubmit={e=>{e.preventDefault();saveRecord('customers',newCust,setCustomers,setShowCustomerModal,()=>setNewCust({name:'',address:'',contactPerson:'',phone:'',email:'',poNo:'',poDate:''}),editingCustomer?.id);}} className="space-y-4">
+                                <Input label="Organization *" value={newCust.name} onChange={v=>setNewCust({...newCust,name:v})} required placeholder="e.g. Municipal Corporation..."/>
+                                <Input label="Address *" value={newCust.address} onChange={v=>setNewCust({...newCust,address:v})} required placeholder="Office / Site Address..."/>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <Input label="Email" type="email" value={newCust.email} onChange={v=>setNewCust({...newCust,email:v})} required/>
+                                    <Input label="Contact Person *" value={newCust.contactPerson} onChange={v=>setNewCust({...newCust,contactPerson:v})} required placeholder="Name of officer..."/>
+                                    <Input label="Phone *" value={newCust.phone} onChange={v=>setNewCust({...newCust,phone:v})} required placeholder="Mobile / Landline..."/>
+                                </div>
+                                <Input label="Email *" type="email" value={newCust.email} onChange={v=>setNewCust({...newCust,email:v})} required placeholder="official@client.gov.in"/>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <Input label="PO / WO Number *" value={newCust.poNo} onChange={v=>setNewCust({...newCust,poNo:v})} required placeholder="e.g. PO/2024/098"/>
                                     <Input label="PO Date" type="date" value={newCust.poDate} onChange={v=>setNewCust({...newCust,poDate:v})}/>
                                 </div>
-                                <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-black">Save</button>
+                                <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-black transition-all cursor-pointer">Save Client Record</button>
                             </form>
                         </Modal>
                     )}
@@ -18799,7 +20033,7 @@ function App() {
                     )}
 
                     {showCategoryModal && (
-                        <Modal title={accessMode === 'master_admin' ? "Master Admin Settings & Handover Documents" : "Complaint Categories"} onClose={()=>setShowCategoryModal(false)} maxW="max-w-2xl">
+                        <Modal title={accessMode === 'master_admin' ? "Master Admin Settings & Master Registers" : "Complaint Categories"} onClose={()=>setShowCategoryModal(false)} maxW="max-w-4xl">
                             <MasterSettingsModal
                                 categories={categories}
                                 onAddCategory={handleAddCategory}

@@ -155,4 +155,33 @@ CREATE POLICY "Allow all for trucks" ON trucks FOR ALL USING (true) WITH CHECK (
 CREATE POLICY "Allow all for complaints" ON complaints FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all for feedbacks" ON feedbacks FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all for warranty_costs" ON warranty_costs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for warranty_cost_audit" ON warranty_cost_audit FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all for warranty_cost_audit" ON warranty_cost_audit FOR ALL USING (true) WITH CHECK (true);
+
+
+-- 10. TRAINING QUESTIONS MASTER
+CREATE TABLE IF NOT EXISTS training_questions (
+    id TEXT PRIMARY KEY,
+    category TEXT NOT NULL,
+    question TEXT NOT NULL,
+    details TEXT,
+    display_order INTEGER DEFAULT 0,
+    active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE training_questions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all for training_questions" ON training_questions;
+CREATE POLICY "Allow all for training_questions" ON training_questions FOR ALL USING (true) WITH CHECK (true);
+
+INSERT INTO training_questions (id, category, question, details, display_order, active) VALUES
+    ('Q_1', 'Chassis & Driveline', 'Chassis Pre-Drive Orientation & Pneumatic Air Brake Buildup Test', 'Pre-drive checks, air brake pressure charging time, ABS indicator, and steering clearance.', 1, true),
+    ('Q_2', 'PTO & Transmission', 'Pneumatic PTO Engagement & Safety Interlock Verification', 'Neutral interlock, parking brake interlock, PTO engagement indicator lamp, and emergency override.', 2, true),
+    ('Q_3', 'Fire Pump Operations', 'Centrifugal Fire Pump Stationary Pumping & RPM Governor Acceleration', 'Rated speed discharge test, engine speed governor response, pressure gauge calibration.', 3, true),
+    ('Q_4', 'Priming & Suction', 'Suction Lift & Deep Water Priming Test (Vacuum Pull Time)', 'Vacuum build-up within 25-30s from open reservoir/hydrant, primer automatic disengagement.', 4, true),
+    ('Q_5', 'High & Low Pressure', 'Twin-Pressure (LP / HP) Changeover & Thermal Relief Valve (TRV)', 'High-pressure hosereel rewind, fog gun nozzle test, TRV temperature discharge at 48°C.', 5, true),
+    ('Q_6', 'Foam Proportioning', 'Around-The-Pump (ATP) Foam Induction & Ratio Selector (3% / 6%)', 'AFFF/AR-AFFF foam tank selector, proportioning ratio verification, and post-operation clean water flush.', 6, true),
+    ('Q_7', 'Monitor Turret', 'Roof / Bumper Fire Monitor 360° Rotation & Fog-to-Jet Stream Control', 'Elevation travel, horizontal swivel rotation, spray pattern nozzle, and travel transport locking pins.', 7, true),
+    ('Q_8', 'Emergency Warning', 'Multi-Pattern LED Lightbar, PA System & Electronic Siren Tone Tests', 'Wail, yelp, hi-lo tones, microphone clarity, scene lighting mast, and master battery isolator.', 8, true),
+    ('Q_9', 'Locker & Tools', 'Equipment Locker Inventory Verification & Tool Mounting Security', 'Delivery hoses Type-B, diffuser branch pipes, SCBA brackets, suction wrenches, and roll-up shutter locks.', 9, true)
+ON CONFLICT (id) DO NOTHING;
