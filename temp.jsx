@@ -17662,12 +17662,13 @@ function App() {
                                     </div>
 
                                     {/* ── 2. ENTERPRISE OMNI-SEARCH & ACTION TOOLBAR ── */}
-                                    <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
-                                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                                            {/* Search & Filter Inputs Cluster */}
-                                            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                                    <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5">
+                                        {/* Row 1: Search, Dropdown Filters & View Switcher */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                            {/* Search & Filter Inputs in single non-wrapping line */}
+                                            <div className="flex items-center gap-2 flex-nowrap min-w-0 flex-1">
                                                 {/* Omni Search Box */}
-                                                <div className="relative w-full sm:w-52 lg:w-48 xl:w-56 shrink-0">
+                                                <div className="relative flex-1 sm:flex-initial sm:w-44 lg:w-48 xl:w-56 shrink min-w-[130px]">
                                                     <input
                                                         type="text"
                                                         value={fleetSearch}
@@ -17694,7 +17695,7 @@ function App() {
                                                 <select
                                                     value={fleetCustomerFilter}
                                                     onChange={e => setFleetCustomerFilter(e.target.value)}
-                                                    className="h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer max-w-[135px] sm:max-w-[155px] truncate shrink-0"
+                                                    className="h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer w-32 sm:w-36 truncate shrink-0"
                                                 >
                                                     <option value="All">All Clients ({customers.length})</option>
                                                     {customers.map(c => (
@@ -17706,7 +17707,7 @@ function App() {
                                                 <select
                                                     value={fleetTypeFilter}
                                                     onChange={e => setFleetTypeFilter(e.target.value)}
-                                                    className="h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer max-w-[130px] sm:max-w-[145px] truncate shrink-0"
+                                                    className="h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer w-32 sm:w-36 truncate shrink-0"
                                                 >
                                                     <option value="All">All Tender Types</option>
                                                     {tenderTypes.map(t => (
@@ -17724,7 +17725,7 @@ function App() {
                                                             setFleetTypeFilter('All');
                                                             setFleetCommissionFilter('All');
                                                         }}
-                                                        className="h-8.5 px-2.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                                                        className="h-8.5 px-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
                                                         title="Reset all search and filtering criteria"
                                                     >
                                                         <Icon name="x" size={11.5}/>
@@ -17733,88 +17734,54 @@ function App() {
                                                 )}
                                             </div>
 
-                                            {/* Enterprise Actions & View Toggle Cluster */}
-                                            <div className="flex items-center gap-2 shrink-0 justify-end">
-                                                {/* View Mode Toggle (Cards vs Table) */}
-                                                <div className="hidden sm:flex items-center h-8.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/90 shrink-0">
-                                                    <button
-                                                        onClick={() => setFleetViewMode('cards')}
-                                                        className={`h-full px-2.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                                                            fleetViewMode === 'cards'
-                                                                ? 'bg-white text-slate-800 shadow-2xs'
-                                                                : 'text-slate-500 hover:text-slate-800'
-                                                        }`}
-                                                        title="Compact Card View"
-                                                    >
-                                                        <Icon name="layout-grid" size={12}/>
-                                                        <span>Cards</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setFleetViewMode('table')}
-                                                        className={`h-full px-2.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                                                            fleetViewMode === 'table'
-                                                                ? 'bg-white text-slate-800 shadow-2xs'
-                                                                : 'text-slate-500 hover:text-slate-800'
-                                                        }`}
-                                                        title="Detailed Table View"
-                                                    >
-                                                        <Icon name="table" size={12}/>
-                                                        <span>Table</span>
-                                                    </button>
-                                                </div>
-
-                                                {/* Export CSV (Secondary Outline) */}
+                                            {/* View Mode Toggle (Cards vs Table) */}
+                                            <div className="hidden sm:flex items-center h-8.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/90 shrink-0 self-end sm:self-auto">
                                                 <button
-                                                    onClick={exportFleetToCsv}
-                                                    className="h-8.5 px-3 rounded-lg border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-2xs shrink-0"
-                                                    title="Export active filtered fleet dataset to CSV"
+                                                    onClick={() => setFleetViewMode('cards')}
+                                                    className={`h-full px-2.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                        fleetViewMode === 'cards'
+                                                            ? 'bg-white text-slate-800 shadow-2xs'
+                                                            : 'text-slate-500 hover:text-slate-800'
+                                                    }`}
+                                                    title="Compact Card View"
                                                 >
-                                                    <Icon name="download" size={13} className="text-slate-500"/>
-                                                    <span>Export CSV</span>
+                                                    <Icon name="layout-grid" size={12}/>
+                                                    <span>Cards</span>
                                                 </button>
-
-                                                {/* Add Vehicle (Primary Solid Brand) */}
                                                 <button
-                                                    onClick={() => {
-                                                        setEditingTruck(null);
-                                                        setNewTrk({
-                                                            customerId: '', poNo: '', poDate: '', ocNo: '', ocDate: '',
-                                                            costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
-                                                            foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
-                                                            deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
-                                                            insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
-                                                            submittedToAccountsAt: null, costCenterCreatedAt: null
-                                                        });
-                                                        setShowTruckModal(true);
-                                                    }}
-                                                    className="h-8.5 px-3.5 rounded-lg bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-98 shrink-0"
-                                                    title="Directly add a new commissioned vehicle record"
+                                                    onClick={() => setFleetViewMode('table')}
+                                                    className={`h-full px-2.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                        fleetViewMode === 'table'
+                                                            ? 'bg-white text-slate-800 shadow-2xs'
+                                                            : 'text-slate-500 hover:text-slate-800'
+                                                    }`}
+                                                    title="Detailed Table View"
                                                 >
-                                                    <Icon name="plus" size={13}/>
-                                                    <span>Add Vehicle</span>
+                                                    <Icon name="table" size={12}/>
+                                                    <span>Table</span>
                                                 </button>
                                             </div>
                                         </div>
 
-                                        {/* Coverage Status Segmented Filter Bar */}
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-100">
+                                        {/* Row 2: Coverage Status Segmented Sub-Cards & Action Buttons */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2.5 border-t border-slate-100">
                                             {/* Sub-cards / Filter Pills */}
-                                            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1 shrink-0">
+                                            <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-0.5 flex items-center gap-1 shrink-0">
                                                     COVERAGE:
                                                 </span>
                                                 {[
                                                     { id: 'All', label: 'All Fleet', count: trucks.length },
-                                                    { id: 'Active', label: 'Active OEM Warranty', count: fleetKpis.active, dot: 'bg-emerald-500' },
-                                                    { id: 'Expiring', label: 'Expiring Soon (<60d)', count: fleetKpis.expiring, dot: 'bg-amber-500' },
-                                                    { id: 'Expired', label: 'Warranty Expired', count: fleetKpis.expired, dot: 'bg-slate-400' }
+                                                    { id: 'Active', label: 'Active OEM', count: fleetKpis.active, dot: 'bg-emerald-500' },
+                                                    { id: 'Expiring', label: 'Expiring', count: fleetKpis.expiring, dot: 'bg-amber-500' },
+                                                    { id: 'Expired', label: 'Expired', count: fleetKpis.expired, dot: 'bg-slate-400' }
                                                 ].map(chip => {
                                                     const isSelected = fleetWarrantyFilter === chip.id;
                                                     return (
                                                         <button
                                                             key={chip.id}
                                                             onClick={() => setFleetWarrantyFilter(chip.id)}
-                                                            className={`h-7.5 px-2.5 sm:px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                            className={`h-7 px-2 sm:px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                                                                 isSelected 
                                                                     ? 'bg-slate-900 text-white shadow-2xs' 
                                                                     : 'bg-slate-100/90 hover:bg-slate-200/80 text-slate-700'
@@ -17832,20 +17799,48 @@ function App() {
                                                 })}
                                             </div>
 
-                                            {/* Submissions Alert & Results Count */}
-                                            <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
+                                            {/* Actions Cluster (Export CSV + Add Vehicle) */}
+                                            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                                                 {deliverySubmissions.filter(s => s.status === 'Pending Approval').length > 0 && (
                                                     <button
                                                         onClick={() => setShowPendingSubmissionsModal(true)}
                                                         className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
                                                     >
                                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                        <span>{deliverySubmissions.filter(s => s.status === 'Pending Approval').length} Staged Submissions</span>
+                                                        <span>{deliverySubmissions.filter(s => s.status === 'Pending Approval').length} Staged</span>
                                                     </button>
                                                 )}
-                                                <span className="text-[11px] text-slate-400 font-medium hidden md:inline-flex items-center gap-1">
-                                                    Showing <strong className="font-semibold text-slate-700 font-mono">{filteredFleetTrucks.length}</strong> of <strong className="font-semibold text-slate-700 font-mono">{trucks.length}</strong> units
-                                                </span>
+
+                                                {/* Export CSV (Secondary Outline) */}
+                                                <button
+                                                    onClick={exportFleetToCsv}
+                                                    className="h-8 px-2.5 rounded-lg border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-2xs shrink-0"
+                                                    title="Export active filtered fleet dataset to CSV"
+                                                >
+                                                    <Icon name="download" size={12.5} className="text-slate-500"/>
+                                                    <span>Export CSV</span>
+                                                </button>
+
+                                                {/* Add Vehicle (Primary Solid Brand) */}
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingTruck(null);
+                                                        setNewTrk({
+                                                            customerId: '', poNo: '', poDate: '', ocNo: '', ocDate: '',
+                                                            costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
+                                                            foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
+                                                            deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
+                                                            insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
+                                                            submittedToAccountsAt: null, costCenterCreatedAt: null
+                                                        });
+                                                        setShowTruckModal(true);
+                                                    }}
+                                                    className="h-8 px-3 rounded-lg bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-98 shrink-0"
+                                                    title="Directly add a new commissioned vehicle record"
+                                                >
+                                                    <Icon name="plus" size={13}/>
+                                                    <span>Add Vehicle</span>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
