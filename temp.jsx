@@ -17772,15 +17772,6 @@ function App() {
                                                     <span>Export CSV</span>
                                                 </button>
 
-                                                {/* Register Staged Delivery (Secondary Outline) */}
-                                                <button
-                                                    onClick={() => setShowRegisterDeliveryModal(true)}
-                                                    className="h-8 px-2.5 rounded-lg border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-98 shadow-2xs shrink-0"
-                                                    title="Open staged delivery registration wizard"
-                                                >
-                                                    <Icon name="truck" size={13} className="text-slate-500"/>
-                                                    <span>Register Delivery</span>
-                                                </button>
 
                                                 {/* Add Vehicle (Primary Solid Brand) */}
                                                 <button
