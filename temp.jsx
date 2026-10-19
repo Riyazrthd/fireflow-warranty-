@@ -17674,7 +17674,7 @@ function App() {
                                                         value={fleetSearch}
                                                         onChange={e => setFleetSearch(e.target.value)}
                                                         placeholder="Search fleet..."
-                                                        className="w-full h-8.5 pl-8 pr-7 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all bg-white"
+                                                        className="w-full h-8.5 pl-8 pr-7 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all bg-white box-border"
                                                     />
                                                     <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                                                         <Icon name="search" size={13}/>
@@ -17695,7 +17695,7 @@ function App() {
                                                 <select
                                                     value={fleetCustomerFilter}
                                                     onChange={e => setFleetCustomerFilter(e.target.value)}
-                                                    className="h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer w-32 sm:w-36 truncate shrink-0"
+                                                    className="h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer w-32 sm:w-36 truncate shrink-0 box-border"
                                                 >
                                                     <option value="All">All Clients ({customers.length})</option>
                                                     {customers.map(c => (
@@ -17707,7 +17707,7 @@ function App() {
                                                 <select
                                                     value={fleetTypeFilter}
                                                     onChange={e => setFleetTypeFilter(e.target.value)}
-                                                    className="h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer w-32 sm:w-36 truncate shrink-0"
+                                                    className="h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium outline-none focus:border-[#0B6B63] cursor-pointer w-32 sm:w-36 truncate shrink-0 box-border"
                                                 >
                                                     <option value="All">All Tender Types</option>
                                                     {tenderTypes.map(t => (
@@ -17725,7 +17725,7 @@ function App() {
                                                             setFleetTypeFilter('All');
                                                             setFleetCommissionFilter('All');
                                                         }}
-                                                        className="h-8.5 px-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                                                        className="h-8.5 px-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0 box-border"
                                                         title="Reset all search and filtering criteria"
                                                     >
                                                         <Icon name="x" size={11.5}/>
@@ -17735,7 +17735,7 @@ function App() {
                                             </div>
 
                                             {/* View Mode Toggle (Cards vs Table) */}
-                                            <div className="hidden sm:flex items-center h-8.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/90 shrink-0 self-end sm:self-auto">
+                                            <div className="hidden sm:flex items-center h-8.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/90 shrink-0 self-end sm:self-auto box-border">
                                                 <button
                                                     onClick={() => setFleetViewMode('cards')}
                                                     className={`h-full px-2.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
