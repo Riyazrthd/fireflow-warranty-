@@ -140,6 +140,9 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             pumpMake: r.pump_make,
             pumpLpm: r.pump_lpm,
             pumpSrNo: r.pump_sr_no,
+            ptoMake: r.pto_make || null,
+            ptoRatio: r.pto_ratio || null,
+            ptoSrNo: r.pto_sr_no || null,
             foamCapacity: r.foam_capacity,
             waterCapacity: r.water_capacity,
             chassisMake: r.chassis_make,
@@ -5615,6 +5618,7 @@ ON CONFLICT (id) DO NOTHING;`;
                 const found = trucks.find(t => 
                     (t.poNo || '').trim().toUpperCase() === q || 
                     (t.pumpSrNo || '').trim().toUpperCase() === q ||
+                    (t.ptoSrNo && (t.ptoSrNo || '').trim().toUpperCase() === q) ||
                     (t.chassisSrNo && (t.chassisSrNo || '').trim().toUpperCase() === q && (t.chassisSrNo || '').trim().length > 5) ||
                     (t.chassisNo && (t.chassisNo || '').trim().toUpperCase() === q && (t.chassisNo || '').trim().length > 5)
                 );
@@ -6493,6 +6497,16 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                         { l: 'Chassis Make', v: foundTruck.chassisMake, i: 'truck' },
                                                                         { l: 'Pump Make & Sr. No.', v: `${foundTruck.pumpMake || 'Standard'} (${foundTruck.pumpSrNo || 'N/A'})`, i: 'activity' }
                                                                     ];
+
+                                                                    // Conditionally show PTO Details if provided
+                                                                    if (foundTruck.ptoMake || foundTruck.ptoRatio || foundTruck.ptoSrNo) {
+                                                                        const ptoDesc = [
+                                                                            foundTruck.ptoMake || 'PTO',
+                                                                            foundTruck.ptoRatio ? `(Ratio: ${foundTruck.ptoRatio})` : '',
+                                                                            foundTruck.ptoSrNo ? `Sr: ${foundTruck.ptoSrNo}` : ''
+                                                                        ].filter(Boolean).join(' ');
+                                                                        specs.push({ l: 'PTO Details (Make / Ratio / Sr)', v: ptoDesc, i: 'settings' });
+                                                                    }
 
                                                                     // Conditionally show UHP Pump if provided
                                                                     if (foundTruck.uhpPumpMake || foundTruck.uhpPumpSrNo || foundTruck.uhpPumpLpm) {
@@ -12719,6 +12733,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                             poDate: c.poDate || '',
                                                                             ocNo: '', ocDate: '',
                                                                             costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
+                                                                            ptoMake: '', ptoRatio: '', ptoSrNo: '',
                                                                             foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
                                                                             deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
                                                                             insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
@@ -12794,6 +12809,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                     poDate: c.poDate || '',
                                                                     ocNo: '', ocDate: '',
                                                                     costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
+                                                                    ptoMake: '', ptoRatio: '', ptoSrNo: '',
                                                                     foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
                                                                     deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
                                                                     insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
@@ -13087,6 +13103,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                             poDate: targetCust.poDate || '',
                                                             ocNo: '', ocDate: '',
                                                             costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
+                                                            ptoMake: '', ptoRatio: '', ptoSrNo: '',
                                                             foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
                                                             deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
                                                             insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
@@ -13153,6 +13170,9 @@ ON CONFLICT (id) DO NOTHING;`;
                 pumpMake: '',
                 pumpSrNo: '',
                 pumpLpm: '',
+                ptoMake: '',
+                ptoRatio: '',
+                ptoSrNo: '',
                 chassisMake: '',
                 waterCapacity: '',
                 foamCapacity: '',
@@ -13206,6 +13226,9 @@ ON CONFLICT (id) DO NOTHING;`;
                         pumpMake: form.pumpMake.trim(),
                         pumpSrNo: form.pumpSrNo.trim(),
                         pumpLpm: form.pumpLpm.trim(),
+                        ptoMake: form.ptoMake.trim(),
+                        ptoRatio: form.ptoRatio.trim(),
+                        ptoSrNo: form.ptoSrNo.trim(),
                         chassisMake: form.chassisMake.trim(),
                         waterCapacity: form.waterCapacity ? parseFloat(form.waterCapacity) : 0,
                         foamCapacity: form.foamCapacity ? parseFloat(form.foamCapacity) : 0,
@@ -13240,6 +13263,9 @@ ON CONFLICT (id) DO NOTHING;`;
                                 pump_make: newSubmission.pumpMake,
                                 pump_sr_no: newSubmission.pumpSrNo,
                                 pump_lpm: newSubmission.pumpLpm ? parseFloat(newSubmission.pumpLpm) : null,
+                                pto_make: newSubmission.ptoMake,
+                                pto_ratio: newSubmission.ptoRatio,
+                                pto_sr_no: newSubmission.ptoSrNo,
                                 chassis_make: newSubmission.chassisMake,
                                 water_capacity: newSubmission.waterCapacity,
                                 foam_capacity: newSubmission.foamCapacity,
@@ -13306,7 +13332,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                 type="button"
                                 onClick={() => {
                                     if (confirm('Clear and reset all form fields?')) {
-                                        setForm({ organization: '', address: '', contactPerson: '', phone: '', email: '', poDate: new Date().toISOString().split('T')[0], poNo: '', tenderType: '', pumpMake: '', pumpSrNo: '', pumpLpm: '', chassisMake: '', waterCapacity: '', foamCapacity: '', deliveryDate: new Date().toISOString().split('T')[0], warrantyMonths: '12', insuranceCompany: '', insurancePolicyNo: '', insuranceExpiryDate: '', uhpPumpMake: '', uhpPumpLpm: '', uhpPumpSrNo: '', dcpCapacity: '', dcpHptDueDate: '' });
+                                        setForm({ organization: '', address: '', contactPerson: '', phone: '', email: '', poDate: new Date().toISOString().split('T')[0], poNo: '', tenderType: '', pumpMake: '', pumpSrNo: '', pumpLpm: '', ptoMake: '', ptoRatio: '', ptoSrNo: '', chassisMake: '', waterCapacity: '', foamCapacity: '', deliveryDate: new Date().toISOString().split('T')[0], warrantyMonths: '12', insuranceCompany: '', insurancePolicyNo: '', insuranceExpiryDate: '', uhpPumpMake: '', uhpPumpLpm: '', uhpPumpSrNo: '', dcpCapacity: '', dcpHptDueDate: '' });
                                     }
                                 }}
                                 className="h-7 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md text-xs font-normal border border-slate-700 transition-colors cursor-pointer"
@@ -13504,6 +13530,18 @@ ON CONFLICT (id) DO NOTHING;`;
                                             />
                                         </div>
                                         <div>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Delivery Date <span className="text-rose-500">*</span></label>
+                                            <input
+                                                type="date"
+                                                required
+                                                value={form.deliveryDate}
+                                                onChange={e => handleTextChange('deliveryDate', e.target.value)}
+                                                className="w-full h-7.5 px-2 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
+                                            />
+                                        </div>
+
+                                        {/* Row 2: Pump & PTO Driveline System (6 cols) */}
+                                        <div>
                                             <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Pump Make</label>
                                             <input
                                                 type="text"
@@ -13513,8 +13551,6 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
-
-                                        {/* Row 2: Capacities & Delivery */}
                                         <div>
                                             <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Pump Serial No</label>
                                             <input
@@ -13539,6 +13575,38 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-slate-400 bg-slate-100 px-1 py-0.2 rounded pointer-events-none">LPM</span>
                                             </div>
                                         </div>
+                                        <div>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">PTO Make</label>
+                                            <input
+                                                type="text"
+                                                value={form.ptoMake}
+                                                onChange={e => handleTextChange('ptoMake', e.target.value)}
+                                                placeholder="e.g. KOZMAKSAN / PZB"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">PTO Ratio</label>
+                                            <input
+                                                type="text"
+                                                value={form.ptoRatio}
+                                                onChange={e => handleTextChange('ptoRatio', e.target.value)}
+                                                placeholder="e.g. 1:1.33 / 1:1.54"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">PTO Sr Number</label>
+                                            <input
+                                                type="text"
+                                                value={form.ptoSrNo}
+                                                onChange={e => handleTextChange('ptoSrNo', e.target.value)}
+                                                placeholder="PTO SERIAL NO"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
+                                            />
+                                        </div>
+
+                                        {/* Row 3: Capacities, Warranty & Insurance (6 cols) */}
                                         <div>
                                             <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Water Tank Capacity</label>
                                             <div className="relative">
@@ -13568,17 +13636,10 @@ ON CONFLICT (id) DO NOTHING;`;
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Delivery Date <span className="text-rose-500">*</span></label>
-                                            <input
-                                                type="date"
-                                                required
-                                                value={form.deliveryDate}
-                                                onChange={e => handleTextChange('deliveryDate', e.target.value)}
-                                                className="w-full h-7.5 px-2 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Warranty Period</label>
+                                            <div className="flex items-center justify-between mb-0.5">
+                                                <label className="text-[11px] font-normal text-slate-600">Warranty</label>
+                                                <span className="text-[10px] text-teal-700 font-mono">Exp: {calculatedExpiryPreview}</span>
+                                            </div>
                                             <div className="relative">
                                                 <input
                                                     type="text"
@@ -13591,19 +13652,17 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-slate-400 bg-slate-100 px-1 py-0.2 rounded pointer-events-none">MOS</span>
                                             </div>
                                         </div>
-
-                                        {/* Row 3: Insurance & Expiry Preview */}
-                                        <div className="lg:col-span-2">
+                                        <div>
                                             <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Insurance Company</label>
                                             <input
                                                 type="text"
                                                 value={form.insuranceCompany}
                                                 onChange={e => handleTextChange('insuranceCompany', e.target.value)}
-                                                placeholder="INSURANCE COMPANY"
+                                                placeholder="INSURANCE CO."
                                                 className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
-                                        <div className="lg:col-span-2">
+                                        <div>
                                             <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Policy Number</label>
                                             <input
                                                 type="text"
@@ -13621,13 +13680,6 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 onChange={e => handleTextChange('insuranceExpiryDate', e.target.value)}
                                                 className="w-full h-7.5 px-2 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                             />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[11px] font-normal text-slate-500 mb-0.5">Warranty Expiry (Est)</label>
-                                            <div className="h-7.5 px-2.5 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between text-xs font-normal font-mono text-slate-600">
-                                                <span>{calculatedExpiryPreview}</span>
-                                                <span className="text-[10px] text-teal-700 bg-teal-50 px-1 py-0.2 rounded border border-teal-100">Auto</span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -13864,7 +13916,7 @@ function App() {
 
             // Form state
             const [newCust, setNewCust] = useState({ name:'', address:'', contactPerson:'', phone:'', email:'', poNo:'', poDate:'' });
-            const [newTrk, setNewTrk] = useState({ customerId:'', poNo:'', poDate:'', ocNo:'', ocDate:'', costCenterNo:'', tenderType:'', pumpMake:'', pumpLpm:'', pumpSrNo:'', foamCapacity:'', waterCapacity:'', chassisMake:'', modelNo:'', deliveryDate:'', warrantyMonths:12, insurancePolicyNo:'', insuranceCompany:'', insuranceExpiryDate:'', costCenterStatus:'Not Generated', poAtGlanceGeneratedAt:null, submittedToAccountsAt:null, costCenterCreatedAt:null });
+            const [newTrk, setNewTrk] = useState({ customerId:'', poNo:'', poDate:'', ocNo:'', ocDate:'', costCenterNo:'', tenderType:'', pumpMake:'', pumpLpm:'', pumpSrNo:'', ptoMake:'', ptoRatio:'', ptoSrNo:'', foamCapacity:'', waterCapacity:'', chassisMake:'', modelNo:'', deliveryDate:'', warrantyMonths:12, insurancePolicyNo:'', insuranceCompany:'', insuranceExpiryDate:'', costCenterStatus:'Not Generated', poAtGlanceGeneratedAt:null, submittedToAccountsAt:null, costCenterCreatedAt:null });
 
             const [newCat, setNewCat] = useState('');
             const [newFb, setNewFb] = useState({ feedbackText:'', feedbackDate: new Date().toISOString().split('T')[0], mode:'Telephonic', personName:'', contactNumber:'', rating: 5 });
@@ -15045,6 +15097,9 @@ function App() {
                     'Pump OEM',
                     'Pump Flow (LPM)',
                     'Pump Serial No',
+                    'PTO Make',
+                    'PTO Ratio',
+                    'PTO Serial No',
                     'Water Tank Capacity',
                     'Foam Tank Capacity',
                     'Delivery Date',
@@ -15088,6 +15143,9 @@ function App() {
                         escCsv(t.pumpMake || 'N/A'),
                         escCsv(t.pumpLpm || 'N/A'),
                         escCsv(t.pumpSrNo || 'N/A'),
+                        escCsv(t.ptoMake || 'N/A'),
+                        escCsv(t.ptoRatio || 'N/A'),
+                        escCsv(t.ptoSrNo || 'N/A'),
                         escCsv(t.waterCapacity ? `${t.waterCapacity} L` : '0 L'),
                         escCsv(t.foamCapacity ? `${t.foamCapacity} L` : '0 L'),
                         escCsv(t.deliveryDate ? formatDate(t.deliveryDate) : 'N/A'),
@@ -15304,7 +15362,7 @@ function App() {
                 try {
                     let payload = {};
                     if (type==='customers') payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email,po_no:data.poNo || null,po_date:data.poDate || null};
-                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate || null,oc_no:data.ocNo || null,oc_date:data.ocDate || null,cost_center_no:data.costCenterNo || null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null,cost_center_status:data.costCenterStatus || 'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt || null,submitted_to_accounts_at:data.submittedToAccountsAt || null,cost_center_created_at:data.costCenterCreatedAt || null};
+                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate || null,oc_no:data.ocNo || null,oc_date:data.ocDate || null,cost_center_no:data.costCenterNo || null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,pto_make:data.ptoMake || null,pto_ratio:data.ptoRatio || null,pto_sr_no:data.ptoSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null,cost_center_status:data.costCenterStatus || 'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt || null,submitted_to_accounts_at:data.submittedToAccountsAt || null,cost_center_created_at:data.costCenterCreatedAt || null};
                     else if (type==='complaints') payload={truck_id:data.truckId,category:data.category,description:data.description,date_received:data.dateReceived || null,mode:data.mode||'Mail',reported_by:data.reportedBy};
                     else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate || null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
                     
@@ -15324,6 +15382,9 @@ function App() {
                         delete fallbackPayload.submitted_to_accounts_at;
                         delete fallbackPayload.cost_center_created_at;
                         delete fallbackPayload.rating;
+                        delete fallbackPayload.pto_make;
+                        delete fallbackPayload.pto_ratio;
+                        delete fallbackPayload.pto_sr_no;
                         const retry = await sb.from(type).update(fallbackPayload).eq('id',id).select().single();
                         updated = retry.data;
                         error = retry.error;
@@ -15353,6 +15414,9 @@ function App() {
                                 insuranceCompany: mapped.insuranceCompany || data.insuranceCompany,
                                 insuranceExpiryDate: mapped.insuranceExpiryDate || data.insuranceExpiryDate,
                                 pumpSrNo: mapped.pumpSrNo || data.pumpSrNo,
+                                ptoMake: mapped.ptoMake || data.ptoMake,
+                                ptoRatio: mapped.ptoRatio || data.ptoRatio,
+                                ptoSrNo: mapped.ptoSrNo || data.ptoSrNo,
                                 costCenterStatus: mapped.costCenterStatus || data.costCenterStatus || 'Not Generated',
                                 poAtGlanceGeneratedAt: mapped.poAtGlanceGeneratedAt || data.poAtGlanceGeneratedAt,
                                 submittedToAccountsAt: mapped.submittedToAccountsAt || data.submittedToAccountsAt,
@@ -15381,7 +15445,7 @@ function App() {
                 try {
                     let payload = {};
                     if (type==='customers') payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email,po_no:data.poNo || null,po_date:data.poDate || null};
-                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate || null,oc_no:data.ocNo || null,oc_date:data.ocDate || null,cost_center_no:data.costCenterNo || null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null,cost_center_status:data.costCenterStatus || 'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt || null,submitted_to_accounts_at:data.submittedToAccountsAt || null,cost_center_created_at:data.costCenterCreatedAt || null};
+                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate || null,oc_no:data.ocNo || null,oc_date:data.ocDate || null,cost_center_no:data.costCenterNo || null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,pto_make:data.ptoMake || null,pto_ratio:data.ptoRatio || null,pto_sr_no:data.ptoSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null,cost_center_status:data.costCenterStatus || 'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt || null,submitted_to_accounts_at:data.submittedToAccountsAt || null,cost_center_created_at:data.costCenterCreatedAt || null};
                     else if (type==='complaints') payload={truck_id:data.truckId,complaint_id:data.complaintId,category:data.category,description:data.description,date_received:data.dateReceived || null,mode:data.mode||'Mail',reported_by:data.reportedBy,status:data.status||'Open'};
                     else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate || null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
                     
@@ -15399,6 +15463,9 @@ function App() {
                         delete fallbackPayload.submitted_to_accounts_at;
                         delete fallbackPayload.cost_center_created_at;
                         delete fallbackPayload.rating;
+                        delete fallbackPayload.pto_make;
+                        delete fallbackPayload.pto_ratio;
+                        delete fallbackPayload.pto_sr_no;
                         const retry = await sb.from(type).insert(fallbackPayload).select().single();
                         inserted = retry.data;
                         error = retry.error;
@@ -15428,6 +15495,9 @@ function App() {
                                 insuranceCompany: mapped.insuranceCompany || data.insuranceCompany,
                                 insuranceExpiryDate: mapped.insuranceExpiryDate || data.insuranceExpiryDate,
                                 pumpSrNo: mapped.pumpSrNo || data.pumpSrNo,
+                                ptoMake: mapped.ptoMake || data.ptoMake,
+                                ptoRatio: mapped.ptoRatio || data.ptoRatio,
+                                ptoSrNo: mapped.ptoSrNo || data.ptoSrNo,
                                 costCenterStatus: mapped.costCenterStatus || data.costCenterStatus || 'Not Generated',
                                 poAtGlanceGeneratedAt: mapped.poAtGlanceGeneratedAt || data.poAtGlanceGeneratedAt,
                                 submittedToAccountsAt: mapped.submittedToAccountsAt || data.submittedToAccountsAt,
@@ -15499,6 +15569,9 @@ function App() {
                 const pumpSrNo = trk ? esc(trk.pumpSrNo || 'N/A') : 'N/A';
                 const pumpMake = trk ? esc(trk.pumpMake || 'Standard') : 'Standard';
                 const pumpLpm = trk && trk.pumpLpm ? esc(trk.pumpLpm) + ' LPM' : '';
+                const ptoMake = trk ? esc(trk.ptoMake || '') : '';
+                const ptoRatio = trk ? esc(trk.ptoRatio || '') : '';
+                const ptoSrNo = trk ? esc(trk.ptoSrNo || '') : '';
                 const chassisMake = trk ? esc(trk.chassisMake || 'Commercial Chassis') : 'Commercial Chassis';
                 const modelNo = trk && trk.modelNo ? esc(trk.modelNo) : '';
                 const waterCapacity = trk && trk.waterCapacity ? esc(trk.waterCapacity) : '';
@@ -16167,6 +16240,7 @@ function App() {
         <div class="field-label">Pump Serial &amp; Specification</div>
         <div class="field-value mono">${pumpSrNo} — ${pumpMake} ${pumpLpm}</div>
         ${(waterCapacity || foamCapacity || costCenterNo) ? `<div class="field-sub mono" style="font-size:11px;">${waterCapacity ? 'Water: ' + waterCapacity : ''} ${foamCapacity ? '· Foam: ' + foamCapacity : ''} ${costCenterNo ? '· CC: ' + costCenterNo : ''}</div>` : ''}
+        ${(ptoMake || ptoRatio || ptoSrNo) ? `<div class="field-sub mono" style="font-size:11px;">PTO: ${ptoMake || ''} ${ptoRatio ? '(' + ptoRatio + ')' : ''} ${ptoSrNo ? '· Sr: ' + ptoSrNo : ''}</div>` : ''}
       </div>
     </div>
   </section>
@@ -16586,6 +16660,9 @@ function App() {
                                                                             pumpMake: sub.pumpMake || sub.pump_make || '',
                                                                             pumpLpm: sub.pumpLpm || sub.pump_lpm || '',
                                                                             pumpSrNo: sub.pumpSrNo || sub.pump_sr_no || '',
+                                                                            ptoMake: sub.ptoMake || sub.pto_make || '',
+                                                                            ptoRatio: sub.ptoRatio || sub.pto_ratio || '',
+                                                                            ptoSrNo: sub.ptoSrNo || sub.pto_sr_no || '',
                                                                             waterCapacity: sub.waterCapacity || sub.water_capacity || 0,
                                                                             foamCapacity: sub.foamCapacity || sub.foam_capacity || 0,
                                                                             uhpPumpMake: sub.uhpPumpMake || sub.uhp_pump_make || null,
@@ -16625,6 +16702,9 @@ function App() {
                                                                                     pump_make: newTrkPayload.pumpMake,
                                                                                     pump_lpm: newTrkPayload.pumpLpm ? parseFloat(newTrkPayload.pumpLpm) : null,
                                                                                     pump_sr_no: newTrkPayload.pumpSrNo,
+                                                                                    pto_make: newTrkPayload.ptoMake,
+                                                                                    pto_ratio: newTrkPayload.ptoRatio,
+                                                                                    pto_sr_no: newTrkPayload.ptoSrNo,
                                                                                     water_capacity: newTrkPayload.waterCapacity,
                                                                                     foam_capacity: newTrkPayload.foamCapacity,
                                                                                     uhp_pump_make: newTrkPayload.uhpPumpMake,
@@ -16671,10 +16751,11 @@ function App() {
                                                 </div>
 
                                                 {/* Details Grid */}
-                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
                                                     <div className="bg-white p-2.5 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Contact:</span><span className="font-extrabold text-slate-800">{sub.contactPerson || sub.contact_person || '—'} ({sub.phone || '—'})</span></div>
                                                     <div className="bg-white p-2.5 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Delivery Date:</span><span className="font-extrabold text-slate-800">{formatDate(sub.deliveryDate || sub.delivery_date)}</span></div>
                                                     <div className="bg-white p-2.5 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Pump / Capacity:</span><span className="font-extrabold text-slate-800">{sub.pumpMake || sub.pump_make || '—'} · {sub.waterCapacity || sub.water_capacity || 0}L/{sub.foamCapacity || sub.foam_capacity || 0}L</span></div>
+                                                    <div className="bg-white p-2.5 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">PTO Details:</span><span className="font-extrabold text-slate-800">{sub.ptoMake || sub.pto_make || '—'} {sub.ptoRatio || sub.pto_ratio ? `(${sub.ptoRatio || sub.pto_ratio})` : ''}</span></div>
                                                     <div className="bg-white p-2.5 rounded-xl border border-slate-100"><span className="text-slate-400 font-bold block text-[9px] uppercase">Auxiliary:</span><span className="font-extrabold text-slate-800">{sub.uhpPumpMake || sub.uhp_pump_make ? '⚡ UHP' : ''} {sub.dcpCapacity || sub.dcp_capacity ? '🧯 DCP' : ''} {!sub.uhpPumpMake && !sub.uhp_pump_make && !sub.dcpCapacity && !sub.dcp_capacity ? 'Standard' : ''}</span></div>
                                                 </div>
                                             </div>
@@ -17435,6 +17516,9 @@ function App() {
                                     ['Fire Pump OEM / Make', t.pumpMake || 'N/A'],
                                     ['Pump Flow Output (LPM)', t.pumpLpm ? `${t.pumpLpm} LPM` : 'N/A'],
                                     ['Pump Serial Number', t.pumpSrNo || 'N/A'],
+                                    ['PTO Manufacturer / Make', t.ptoMake || 'N/A'],
+                                    ['PTO Ratio', t.ptoRatio || 'N/A'],
+                                    ['PTO Serial Number', t.ptoSrNo || 'N/A'],
                                     ['Water Tank Capacity (Liters)', t.waterCapacity ? `${t.waterCapacity} L` : '0 L'],
                                     ['Foam Tank Capacity (Liters)', t.foamCapacity ? `${t.foamCapacity} L` : '0 L'],
                                     [''],
@@ -17568,6 +17652,8 @@ function App() {
             <div class="row"><span class="label">Engine Number:</span><span class="val">${t.engineNo || 'N/A'}</span></div>
             <div class="row"><span class="label">Pump OEM &amp; Output:</span><span class="val">${t.pumpMake || 'N/A'} · ${t.pumpLpm ? `${t.pumpLpm} LPM` : 'Standard'}</span></div>
             <div class="row"><span class="label">Pump Serial No:</span><span class="val">${t.pumpSrNo || 'N/A'}</span></div>
+            <div class="row"><span class="label">PTO Make &amp; Ratio:</span><span class="val">${t.ptoMake || 'N/A'}${t.ptoRatio ? ` (${t.ptoRatio})` : ''}</span></div>
+            <div class="row"><span class="label">PTO Serial No:</span><span class="val">${t.ptoSrNo || 'N/A'}</span></div>
             <div class="row"><span class="label">Water Capacity:</span><span class="val">${t.waterCapacity ? `${t.waterCapacity} Liters` : '0 L'}</span></div>
             <div class="row"><span class="label">Foam Capacity:</span><span class="val">${t.foamCapacity ? `${t.foamCapacity} Liters` : '0 L'}</span></div>
         </div>
@@ -17883,6 +17969,7 @@ function App() {
                                                         setNewTrk({
                                                             customerId: '', poNo: '', poDate: '', ocNo: '', ocDate: '',
                                                             costCenterNo: '', tenderType: '', pumpMake: '', pumpLpm: '', pumpSrNo: '',
+                                                            ptoMake: '', ptoRatio: '', ptoSrNo: '',
                                                             foamCapacity: '', waterCapacity: '', chassisMake: '', modelNo: '',
                                                             deliveryDate: '', warrantyMonths: 12, insurancePolicyNo: '', insuranceCompany: '',
                                                             insuranceExpiryDate: '', costCenterStatus: 'Not Generated', poAtGlanceGeneratedAt: null,
@@ -18525,6 +18612,14 @@ function App() {
                                                                     <div className="flex justify-between gap-2">
                                                                         <span className="text-slate-400">Pump Serial Number</span>
                                                                         <span className="font-mono text-slate-700 text-right">{t.pumpSrNo || 'N/A'}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">PTO Make &amp; Ratio</span>
+                                                                        <span className="font-semibold text-slate-800 text-right">{t.ptoMake || 'N/A'}{t.ptoRatio ? ` (${t.ptoRatio})` : ''}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between gap-2">
+                                                                        <span className="text-slate-400">PTO Serial Number</span>
+                                                                        <span className="font-mono text-slate-700 text-right">{t.ptoSrNo || 'N/A'}</span>
                                                                     </div>
                                                                     <div className="flex justify-between gap-2">
                                                                         <span className="text-slate-400">Water Tank / Foam Tank</span>
@@ -19578,7 +19673,7 @@ function App() {
                                 const captured = {...newTrk};
                                 const isNew = !editingTruck;
                                 const resetFn = () => {
-                                    setNewTrk({customerId:'',poNo:'',poDate:'',ocNo:'',ocDate:'',costCenterNo:'',tenderType:'',pumpMake:'',pumpLpm:'',pumpSrNo:'',foamCapacity:'',waterCapacity:'',chassisMake:'',modelNo:'',deliveryDate:'',warrantyMonths:12,insurancePolicyNo:'',insuranceCompany:'',insuranceExpiryDate:'',costCenterStatus:'Not Generated',poAtGlanceGeneratedAt:null,submittedToAccountsAt:null,costCenterCreatedAt:null});
+                                    setNewTrk({customerId:'',poNo:'',poDate:'',ocNo:'',ocDate:'',costCenterNo:'',tenderType:'',pumpMake:'',pumpLpm:'',pumpSrNo:'',ptoMake:'',ptoRatio:'',ptoSrNo:'',foamCapacity:'',waterCapacity:'',chassisMake:'',modelNo:'',deliveryDate:'',warrantyMonths:12,insurancePolicyNo:'',insuranceCompany:'',insuranceExpiryDate:'',costCenterStatus:'Not Generated',poAtGlanceGeneratedAt:null,submittedToAccountsAt:null,costCenterCreatedAt:null});
                                     if (isNew && captured.poNo) { setQrTruck(captured); setShowQrModal(true); }
                                 };
                                 saveRecord('trucks',newTrk,setTrucks,setShowTruckModal,resetFn,editingTruck?.id);
@@ -19606,6 +19701,11 @@ function App() {
                                     <Input label="Tender Type *" value={newTrk.tenderType} onChange={v=>setNewTrk({...newTrk,tenderType:v})} required/>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="Pump Make" value={newTrk.pumpMake} onChange={v=>setNewTrk({...newTrk,pumpMake:v})} required/><Input label="Pump Serial No" value={newTrk.pumpSrNo} onChange={v=>setNewTrk({...newTrk,pumpSrNo:v})}/></div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <Input label="PTO Make" placeholder="e.g. Kozmaksan / Parker / OMSI" value={newTrk.ptoMake || ''} onChange={v=>setNewTrk({...newTrk,ptoMake:v})}/>
+                                    <Input label="PTO Ratio" placeholder="e.g. 1:1.2 / 1:1.48" value={newTrk.ptoRatio || ''} onChange={v=>setNewTrk({...newTrk,ptoRatio:v})}/>
+                                    <Input label="PTO Serial No" placeholder="e.g. PTO-2026-001" value={newTrk.ptoSrNo || ''} onChange={v=>setNewTrk({...newTrk,ptoSrNo:v})}/>
+                                </div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="LPM Capacity" value={newTrk.pumpLpm} onChange={v=>setNewTrk({...newTrk,pumpLpm:v})}/><Input label="Chassis Make" value={newTrk.chassisMake} onChange={v=>setNewTrk({...newTrk,chassisMake:v})}/></div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="Water Tank Capacity (Ltrs)" value={newTrk.waterCapacity} onChange={v=>setNewTrk({...newTrk,waterCapacity:v})}/><Input label="Foam Tank Capacity (Ltrs)" value={newTrk.foamCapacity} onChange={v=>setNewTrk({...newTrk,foamCapacity:v})}/></div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="Delivery Date *" type="date" value={newTrk.deliveryDate} onChange={v=>setNewTrk({...newTrk,deliveryDate:v})} required/><Input label="Warranty Months" type="number" value={newTrk.warrantyMonths} onChange={v=>setNewTrk({...newTrk,warrantyMonths:v})}/></div>
