@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS public.trucks (
     pump_lpm NUMERIC,
     pump_sr_no TEXT,
     pto_make TEXT,
+    pto_ratio TEXT,
     pto_sr_no TEXT,
     water_capacity NUMERIC DEFAULT 0,
     foam_capacity NUMERIC DEFAULT 0,
@@ -106,7 +107,9 @@ ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS pump_make TEXT;
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS pump_lpm NUMERIC;
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS pump_sr_no TEXT;
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS pto_make TEXT;
+ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS pto_ratio TEXT;
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS pto_sr_no TEXT;
+CREATE INDEX IF NOT EXISTS idx_trucks_pto_sr_no ON public.trucks(pto_sr_no);
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS water_capacity NUMERIC DEFAULT 0;
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS foam_capacity NUMERIC DEFAULT 0;
 ALTER TABLE public.trucks ADD COLUMN IF NOT EXISTS delivery_date DATE;
@@ -281,6 +284,9 @@ CREATE TABLE IF NOT EXISTS public.delivery_submissions (
     pump_make TEXT,
     pump_lpm NUMERIC,
     pump_sr_no TEXT,
+    pto_make TEXT,
+    pto_ratio TEXT,
+    pto_sr_no TEXT,
     water_capacity NUMERIC DEFAULT 0,
     foam_capacity NUMERIC DEFAULT 0,
     uhp_pump_make TEXT,
@@ -297,6 +303,12 @@ CREATE TABLE IF NOT EXISTS public.delivery_submissions (
     created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
 );
+
+-- Safely add missing PTO columns to delivery_submissions if table already existed
+ALTER TABLE public.delivery_submissions ADD COLUMN IF NOT EXISTS pto_make TEXT;
+ALTER TABLE public.delivery_submissions ADD COLUMN IF NOT EXISTS pto_ratio TEXT;
+ALTER TABLE public.delivery_submissions ADD COLUMN IF NOT EXISTS pto_sr_no TEXT;
+CREATE INDEX IF NOT EXISTS idx_delivery_submissions_pto_sr_no ON public.delivery_submissions(pto_sr_no);
 
 ALTER TABLE public.delivery_submissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public all on delivery_submissions" ON public.delivery_submissions;

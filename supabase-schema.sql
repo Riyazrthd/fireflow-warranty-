@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS trucks (
     pump_make TEXT NOT NULL,
     pump_lpm TEXT,
     pump_sr_no TEXT,             -- Added for Warranty.html
+    pto_make TEXT,               -- Added for PTO Specifications
+    pto_ratio TEXT,              -- Added for PTO Ratio
+    pto_sr_no TEXT,              -- Added for PTO Serial Number
     foam_capacity TEXT,
     water_capacity TEXT,
     chassis_make TEXT NOT NULL,
@@ -52,6 +55,12 @@ CREATE TABLE IF NOT EXISTS trucks (
     cost_center_no TEXT,         -- Added for Cost Center in Tally Tracking
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Safely add PTO columns to trucks if table already exists
+ALTER TABLE trucks ADD COLUMN IF NOT EXISTS pto_make TEXT;
+ALTER TABLE trucks ADD COLUMN IF NOT EXISTS pto_ratio TEXT;
+ALTER TABLE trucks ADD COLUMN IF NOT EXISTS pto_sr_no TEXT;
+CREATE INDEX IF NOT EXISTS idx_trucks_pto_sr_no ON trucks(pto_sr_no);
 
 
 
