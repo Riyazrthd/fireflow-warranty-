@@ -10646,26 +10646,27 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                                             {/* 2. PO Number & Delivery Date */}
                                                             <td className="px-3.5 py-3">
-                                                                <div className="space-y-1">
-                                                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
-                                                                            PO: {t.poNo || 'N/A'}
+                                                                <div className="flex flex-col gap-1.5 py-0.5">
+                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-200/80 shadow-2xs">
+                                                                            <Icon name="file-text" size={11.5} className="text-[#0B6B63] opacity-80 shrink-0"/>
+                                                                            <span className="tracking-tight">{t.poNo || 'N/A'}</span>
                                                                         </span>
                                                                         {t.poDate && (
-                                                                            <span className="text-[10px] text-slate-400 font-mono">
+                                                                            <span className="text-[11px] text-slate-400 font-mono">
                                                                                 ({formatDate(t.poDate)})
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <div className="flex items-center gap-1 font-mono text-[11px]">
-                                                                        <span className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Delivered:</span>
+                                                                    <div className="flex items-center gap-1.5 text-[11px]">
+                                                                        <span className="text-slate-400 text-[10.5px] font-medium">Delivered:</span>
                                                                         {t.deliveryDate ? (
-                                                                            <span className="inline-flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-1.5 py-0.2 rounded text-[10.5px]">
-                                                                                <Icon name="calendar" size={10} className="text-indigo-600"/>
+                                                                            <span className="inline-flex items-center gap-1.5 font-bold font-mono text-indigo-700 bg-indigo-50/80 border border-indigo-200/70 px-2 py-0.5 rounded-md text-[10.5px]">
+                                                                                <Icon name="calendar" size={11} className="text-indigo-600 shrink-0"/>
                                                                                 {formatDate(t.deliveryDate)}
                                                                             </span>
                                                                         ) : (
-                                                                            <span className="text-slate-400 italic text-[10px]">Pending</span>
+                                                                            <span className="text-slate-400 italic text-[10.5px]">Pending</span>
                                                                         )}
                                                                     </div>
                                                                 </div>
@@ -18069,26 +18070,27 @@ function App() {
 
                                                                     {/* 2. Purchase Order & Delivery Date */}
                                                                     <td className="px-3 py-3 align-middle border-b border-slate-100/90">
-                                                                        <div className="w-full max-w-full overflow-hidden min-w-0 space-y-1">
-                                                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                                                <span className="inline-block max-w-full truncate px-2 py-0.5 rounded text-[11px] font-mono font-bold text-[#0B6B63] bg-teal-50 border border-teal-100/80">
-                                                                                    PO: {t.poNo || 'N/A'}
+                                                                        <div className="w-full max-w-full overflow-hidden min-w-0 flex flex-col gap-1.5 py-0.5">
+                                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-200/80 shadow-2xs">
+                                                                                    <Icon name="file-text" size={11.5} className="text-[#0B6B63] opacity-80 shrink-0"/>
+                                                                                    <span className="tracking-tight">{t.poNo || 'N/A'}</span>
                                                                                 </span>
                                                                                 {t.poDate && (
-                                                                                    <span className="text-[10px] text-slate-400 font-mono">
+                                                                                    <span className="text-[11px] text-slate-400 font-mono">
                                                                                         ({formatDate(t.poDate)})
                                                                                     </span>
                                                                                 )}
                                                                             </div>
-                                                                            <div className="flex items-center gap-1 font-mono text-[11px]">
-                                                                                <span className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Delivered:</span>
+                                                                            <div className="flex items-center gap-1.5 text-[11px]">
+                                                                                <span className="text-slate-400 text-[10.5px] font-medium">Delivered:</span>
                                                                                 {t.deliveryDate ? (
-                                                                                    <span className="inline-flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-1.5 py-0.5 rounded text-[10.5px]">
-                                                                                        <Icon name="calendar" size={10} className="text-indigo-600"/>
+                                                                                    <span className="inline-flex items-center gap-1.5 font-bold font-mono text-indigo-700 bg-indigo-50/80 border border-indigo-200/70 px-2 py-0.5 rounded-md text-[10.5px]">
+                                                                                        <Icon name="calendar" size={11} className="text-indigo-600 shrink-0"/>
                                                                                         {formatDate(t.deliveryDate)}
                                                                                     </span>
                                                                                 ) : (
-                                                                                    <span className="text-slate-400 italic text-[10px]">Pending</span>
+                                                                                    <span className="text-slate-400 italic text-[10.5px]">Pending</span>
                                                                                 )}
                                                                             </div>
                                                                         </div>
@@ -18767,26 +18769,27 @@ function App() {
 
                                                                     {/* PO Number & Delivery Date */}
                                                                     <td className="px-4 py-3 whitespace-nowrap">
-                                                                        <div className="space-y-1">
-                                                                            <div className="flex items-center gap-1.5">
-                                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-100/70">
-                                                                                    {t.poNo || 'N/A'}
+                                                                        <div className="flex flex-col gap-1.5 py-0.5">
+                                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold text-[#0B6B63] bg-teal-50 border border-teal-200/80 shadow-2xs">
+                                                                                    <Icon name="file-text" size={11.5} className="text-[#0B6B63] opacity-80 shrink-0"/>
+                                                                                    <span className="tracking-tight">{t.poNo || 'N/A'}</span>
                                                                                 </span>
                                                                                 {poDateStr && (
-                                                                                    <span className="text-[10.5px] text-slate-400 font-mono">
+                                                                                    <span className="text-[11px] text-slate-400 font-mono">
                                                                                         ({poDateStr})
                                                                                     </span>
                                                                                 )}
                                                                             </div>
-                                                                            <div className="flex items-center gap-1 font-mono text-[11px]">
-                                                                                <span className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">Delivered:</span>
+                                                                            <div className="flex items-center gap-1.5 text-[11px]">
+                                                                                <span className="text-slate-400 text-[10.5px] font-medium">Delivered:</span>
                                                                                 {t.deliveryDate ? (
-                                                                                    <span className="inline-flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-1.5 py-0.2 rounded text-[10.5px]">
-                                                                                        <Icon name="calendar" size={10} className="text-indigo-600"/>
+                                                                                    <span className="inline-flex items-center gap-1.5 font-bold font-mono text-indigo-700 bg-indigo-50/80 border border-indigo-200/70 px-2 py-0.5 rounded-md text-[10.5px]">
+                                                                                        <Icon name="calendar" size={11} className="text-indigo-600 shrink-0"/>
                                                                                         {formatDateDDMMYYYY(t.deliveryDate)}
                                                                                     </span>
                                                                                 ) : (
-                                                                                    <span className="text-slate-400 italic text-[10px]">Pending</span>
+                                                                                    <span className="text-slate-400 italic text-[10.5px]">Pending</span>
                                                                                 )}
                                                                             </div>
                                                                         </div>
