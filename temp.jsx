@@ -5950,7 +5950,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                     <img 
                                         src="./logo.png" 
                                         alt="Indus Fire Safety Logo" 
-                                        className="w-12 h-12 rounded-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.15)] relative z-10 transition-transform duration-300 hover:scale-105" 
+                                        className="w-10 h-10 rounded-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.15)] relative z-10 transition-transform duration-300 hover:scale-105" 
                                     />
                                 </div>
                             </div>
@@ -6007,7 +6007,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                     <span>Staff Login</span>
                                 </button>
                             </div>
-                            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight mb-0.5">
+                            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight mb-0.5">
                                 {portalMode === 'login' ? (
                                     <>FireFlow Enterprise <span className="text-amber-600">Access</span></>
                                 ) : isTrainerMode ? (
@@ -6030,22 +6030,22 @@ ON CONFLICT (id) DO NOTHING;`;
                         {/* ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? */}
                         {portalMode === 'login' ? (
                             /* CLEAN CENTERED STAFF LOGIN TERMINAL ('OLD IS GOLD') */
-                            <div className="max-w-md mx-auto w-full flex-1 flex flex-col justify-center items-center py-3 fade-up">
-                                <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 border border-slate-200/90 w-full text-center space-y-4">
-                                    <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto text-white shadow-md">
-                                        <Icon name="lock" size={24} className="text-amber-400"/>
+                            <div className="max-w-sm mx-auto w-full flex-1 flex flex-col justify-center items-center py-1 sm:py-2 fade-up">
+                                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg p-5 sm:p-6 border border-slate-200/90 w-full text-center space-y-3">
+                                    <div className="w-11 h-11 bg-slate-900 rounded-xl flex items-center justify-center mx-auto text-white shadow-sm">
+                                        <Icon name="lock" size={18} className="text-amber-400"/>
                                     </div>
 
                                     <div>
-                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-base sm:text-lg">
+                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm sm:text-base">
                                             Secure Access Terminal
                                         </h3>
-                                        <p className="text-[11px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest">
+                                        <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">
                                             Enter 4-Digit Passcode to Unlock
                                         </p>
                                     </div>
 
-                                    <form onSubmit={(e) => { e.preventDefault(); handlePasscodeCheck(loginInput); }} className="space-y-3 max-w-xs mx-auto">
+                                    <form onSubmit={(e) => { e.preventDefault(); handlePasscodeCheck(loginInput); }} className="space-y-2.5 max-w-[270px] mx-auto">
                                         <div className="relative">
                                             <input
                                                 type={showLoginPass ? "text" : "password"}
@@ -6061,7 +6061,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 placeholder="••••"
                                                 autoFocus
                                                 maxLength={4}
-                                                className="w-full bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-2xl px-4 py-2.5 text-lg font-black text-slate-900 outline-none text-center tracking-[0.4em] transition-all"
+                                                className="w-full bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl px-3 py-2 text-base font-black text-slate-900 outline-none text-center tracking-[0.35em] transition-all"
                                             />
                                             <button
                                                 type="button"
@@ -6083,14 +6083,14 @@ ON CONFLICT (id) DO NOTHING;`;
                                             <button
                                                 type="button"
                                                 onClick={() => { setPortalMode('portal'); setLoginInput(''); setLoginError(false); }}
-                                                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                                                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                             >
                                                 ← Customer
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={isVerifying}
-                                                className="flex-1 bg-slate-900 hover:bg-black text-white py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer disabled:opacity-60"
+                                                className="flex-1 bg-slate-900 hover:bg-black text-white py-2 rounded-xl text-[11px] font-black uppercase tracking-wider shadow-sm transition-all cursor-pointer disabled:opacity-60"
                                             >
                                                 {isVerifying ? 'Verifying...' : 'Unlock →'}
                                             </button>
