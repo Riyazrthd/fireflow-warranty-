@@ -13273,20 +13273,32 @@ ON CONFLICT (id) DO NOTHING;`;
                 }
             };
 
+            // Helper: Auto-calculated Warranty Expiry preview
+            const calculatedExpiryPreview = useMemo(() => {
+                if (!form.deliveryDate) return 'DD-MM-YYYY';
+                try {
+                    const d = new Date(form.deliveryDate);
+                    if (isNaN(d.getTime())) return 'DD-MM-YYYY';
+                    const m = parseInt(form.warrantyMonths) || 12;
+                    d.setMonth(d.getMonth() + m);
+                    return d.toLocaleDateString('en-GB');
+                } catch(e) {
+                    return 'DD-MM-YYYY';
+                }
+            }, [form.deliveryDate, form.warrantyMonths]);
+
             const modalContent = (
-                <div className="fixed inset-0 z-[9999] w-screen h-screen bg-slate-100 flex flex-col font-sans select-none overflow-hidden">
-                    {/* ── 1. CLEAN TOP HEADER ── */}
-                    <div className="bg-slate-900 text-white px-5 py-3 flex items-center justify-between shadow-md shrink-0 border-b border-slate-800">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
+                <div className="fixed inset-0 z-[9999] w-screen h-screen bg-slate-100/95 flex flex-col font-sans select-none overflow-hidden">
+                    {/* ── 1. SLEEK TOP HEADER (No bold, compact 44px) ── */}
+                    <div className="bg-slate-900 text-white px-4 py-2 flex items-center justify-between shrink-0 border-b border-slate-800">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-md bg-teal-600/30 border border-teal-500/40 text-teal-300 flex items-center justify-center text-xs">
                                 🚚
                             </div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h1 className="text-base font-black uppercase tracking-tight text-white">Register Client To Delivery</h1>
-                                    <span className="bg-emerald-500 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md shadow-xs">Authorized Access</span>
-                                </div>
-                                <p className="text-[11px] text-slate-400 font-medium">Complete Landscape Delivery Form · All Inputs Automatically Format to UPPERCASE</p>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs sm:text-sm font-medium text-slate-100">Register Client to Delivery</span>
+                                <span className="text-[10px] font-normal text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded">Authorized Access (PIN: 2038)</span>
+                                <span className="text-[11px] font-normal text-slate-400 ml-2 hidden md:inline">· Landscape Tabular Dispatch View</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -13297,181 +13309,224 @@ ON CONFLICT (id) DO NOTHING;`;
                                         setForm({ organization: '', address: '', contactPerson: '', phone: '', email: '', poDate: new Date().toISOString().split('T')[0], poNo: '', tenderType: '', pumpMake: '', pumpSrNo: '', pumpLpm: '', chassisMake: '', waterCapacity: '', foamCapacity: '', deliveryDate: new Date().toISOString().split('T')[0], warrantyMonths: '12', insuranceCompany: '', insurancePolicyNo: '', insuranceExpiryDate: '', uhpPumpMake: '', uhpPumpLpm: '', uhpPumpSrNo: '', dcpCapacity: '', dcpHptDueDate: '' });
                                     }
                                 }}
-                                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                                className="h-7 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md text-xs font-normal border border-slate-700 transition-colors cursor-pointer"
                             >
                                 ↺ Reset Form
                             </button>
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer shadow-xs"
+                                className="h-7 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md text-xs font-normal border border-slate-700 transition-colors cursor-pointer"
                             >
                                 ✕ Close
                             </button>
                         </div>
                     </div>
 
-                    {/* ── 2. FORM LANDSCAPE WORKSPACE ── */}
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100">
+                    {/* ── 2. FORM LANDSCAPE WORKSPACE (Compact Table Cards) ── */}
+                    <div className="flex-1 overflow-y-auto p-3.5 space-y-2 max-w-7xl w-full mx-auto">
                         {submittedRef ? (
-                            <div className="max-w-xl mx-auto my-12 bg-white rounded-3xl shadow-2xl p-8 border border-slate-200 text-center space-y-4">
-                                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto text-3xl font-black shadow-inner">
+                            <div className="max-w-md mx-auto my-12 bg-white rounded-xl shadow-lg p-6 border border-slate-200 text-center space-y-3">
+                                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mx-auto text-xl border border-emerald-200">
                                     ✓
                                 </div>
-                                <h2 className="text-xl font-black text-slate-900 uppercase">Registration Submitted Successfully!</h2>
-                                <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center space-y-1.5">
-                                    <p className="text-[10px] font-black uppercase text-slate-400">Submission Reference ID</p>
-                                    <p className="text-2xl font-black text-indigo-600 font-mono">{submittedRef}</p>
-                                    <p className="text-xs text-slate-600 pt-2 font-medium">Staged in system queue. Master Admin will review, accept &amp; generate live QR code.</p>
+                                <h2 className="text-base font-medium text-slate-900">Registration Submitted Successfully</h2>
+                                <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg text-center space-y-1">
+                                    <p className="text-[10px] font-normal text-slate-500 uppercase tracking-wide">Submission Reference ID</p>
+                                    <p className="text-xl font-medium text-[#0B6B63] font-mono">{submittedRef}</p>
+                                    <p className="text-xs text-slate-500 pt-1 font-normal">Staged in system queue for admin verification &amp; live QR generation.</p>
                                 </div>
-                                <div className="pt-3 flex gap-3 justify-center">
-                                    <button onClick={() => setSubmittedRef(null)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer">
+                                <div className="pt-2 flex gap-2 justify-center">
+                                    <button onClick={() => setSubmittedRef(null)} className="h-8 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-normal transition-colors cursor-pointer">
                                         + Submit Another
                                     </button>
-                                    <button onClick={onClose} className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer shadow-md">
+                                    <button onClick={onClose} className="h-8 px-5 bg-slate-900 hover:bg-black text-white rounded-md text-xs font-medium transition-colors cursor-pointer shadow-xs">
                                         Close
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <form onSubmit={handleSubmit} className="max-w-7xl mx-auto space-y-5">
-                                {/* ── SECTION 1: CLIENT / ORGANIZATION INFORMATION ── */}
-                                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-                                    <div className="pb-2 border-b border-slate-100 flex items-center justify-between">
-                                        <h3 className="text-xs font-black uppercase text-indigo-900 tracking-wider flex items-center gap-2">
-                                            <span>🏢</span> 1. Client / Customer Details
-                                        </h3>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Mandatory Organization Field</span>
+                            <form onSubmit={handleSubmit} className="space-y-2">
+                                {/* ── TABLE 1: CLIENT & ORGANIZATION DETAILS ── */}
+                                <div className="bg-white rounded-lg border border-slate-200/90 shadow-2xs overflow-hidden">
+                                    <div className="bg-slate-50/80 px-3 py-1.5 border-b border-slate-200 flex items-center justify-between text-xs font-medium text-slate-700">
+                                        <div className="flex items-center gap-1.5">
+                                            <span>🏢</span>
+                                            <span>1. Client &amp; Organization Details</span>
+                                        </div>
+                                        <span className="text-[10.5px] font-normal text-slate-400">Mandatory Organization Data</span>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                                    <div className="p-2.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
                                         <div className="lg:col-span-2">
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Organization Name *</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Organization Name <span className="text-rose-500">*</span></label>
                                             <input
                                                 type="text"
                                                 required
                                                 value={form.organization}
                                                 onChange={e => handleTextChange('organization', e.target.value)}
                                                 placeholder="ORGANIZATION NAME"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
                                         <div className="lg:col-span-2">
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Plant / Site Address</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Plant / Site Address</label>
                                             <input
                                                 type="text"
                                                 value={form.address}
                                                 onChange={e => handleTextChange('address', e.target.value)}
                                                 placeholder="DELIVERY SITE ADDRESS"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Contact Person</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Contact Person</label>
                                             <input
                                                 type="text"
                                                 value={form.contactPerson}
                                                 onChange={e => handleTextChange('contactPerson', e.target.value)}
                                                 placeholder="CONTACT PERSON"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Mobile / Phone</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Mobile / Phone</label>
                                             <input
                                                 type="text"
                                                 value={form.phone}
                                                 onChange={e => handleTextChange('phone', e.target.value)}
                                                 placeholder="+91 MOBILE NUMBER"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
+
+                                        {/* Row 2 */}
                                         <div className="lg:col-span-2">
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Contact Email</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Contact Email</label>
                                             <input
                                                 type="email"
                                                 value={form.email}
                                                 onChange={e => handleTextChange('email', e.target.value)}
                                                 placeholder="OFFICER@CLIENT.COM"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">PO Date</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">PO Date</label>
                                             <input
                                                 type="date"
                                                 value={form.poDate}
                                                 onChange={e => handleTextChange('poDate', e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-indigo-600"
+                                                className="w-full h-7.5 px-2 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                             />
+                                        </div>
+                                        <div className="lg:col-span-3">
+                                            <label className="block text-[11px] font-normal text-slate-500 mb-0.5">Quick Autofill (Existing Clients)</label>
+                                            <select
+                                                onChange={e => {
+                                                    const selId = e.target.value;
+                                                    if (!selId) return;
+                                                    const c = existingCustomers.find(cust => cust.id === selId);
+                                                    if (c) {
+                                                        setForm(prev => ({
+                                                            ...prev,
+                                                            organization: c.name || '',
+                                                            address: c.address || '',
+                                                            contactPerson: c.contactPerson || '',
+                                                            phone: c.phone || '',
+                                                            email: c.email || '',
+                                                            poNo: c.poNo || prev.poNo,
+                                                            poDate: c.poDate || prev.poDate
+                                                        }));
+                                                    }
+                                                }}
+                                                className="w-full h-7.5 px-2 text-xs font-normal text-slate-600 bg-slate-50/60 border border-slate-200 rounded-md outline-none focus:border-[#0B6B63] focus:bg-white cursor-pointer"
+                                            >
+                                                <option value="">-- Choose registered client to autofill details --</option>
+                                                {existingCustomers.map(c => (
+                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* ── SECTION 2: VEHICLE & FIRE TENDER SPECIFICATIONS ── */}
-                                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-                                    <div className="pb-2 border-b border-slate-100 flex items-center justify-between">
-                                        <h3 className="text-xs font-black uppercase text-indigo-900 tracking-wider flex items-center gap-2">
-                                            <span>🚒</span> 2. Vehicle &amp; Delivery Specifications
-                                        </h3>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Core Fleet Specifications</span>
+                                {/* ── TABLE 2: VEHICLE & DELIVERY SPECIFICATIONS ── */}
+                                <div className="bg-white rounded-lg border border-slate-200/90 shadow-2xs overflow-hidden">
+                                    <div className="bg-slate-50/80 px-3 py-1.5 border-b border-slate-200 flex items-center justify-between text-xs font-medium text-slate-700">
+                                        <div className="flex items-center gap-1.5">
+                                            <span>🚒</span>
+                                            <span>2. Vehicle &amp; Delivery Specifications</span>
+                                        </div>
+                                        <span className="text-[10.5px] font-normal text-slate-400">Core Fleet Engineering Data</span>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                                    <div className="p-2.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
+                                        {/* Row 1: Primary Identifiers */}
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">PO / WO Number *</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">PO / WO Number <span className="text-rose-500">*</span></label>
                                             <input
                                                 type="text"
                                                 required
                                                 value={form.poNo}
                                                 onChange={e => handleTextChange('poNo', e.target.value)}
                                                 placeholder="PO / WO NUMBER"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">PO Date *</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">PO Date <span className="text-rose-500">*</span></label>
                                             <input
                                                 type="date"
                                                 required
                                                 value={form.poDate}
                                                 onChange={e => handleTextChange('poDate', e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-indigo-600"
+                                                className="w-full h-7.5 px-2 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                             />
                                         </div>
                                         <div className="lg:col-span-2">
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Tender Type *</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Tender Type <span className="text-rose-500">*</span></label>
                                             <input
                                                 type="text"
                                                 required
                                                 value={form.tenderType}
                                                 onChange={e => handleTextChange('tenderType', e.target.value)}
                                                 placeholder="TENDER TYPE"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Pump Make</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Chassis Make</label>
+                                            <input
+                                                type="text"
+                                                value={form.chassisMake}
+                                                onChange={e => handleTextChange('chassisMake', e.target.value)}
+                                                placeholder="CHASSIS MAKE"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Pump Make</label>
                                             <input
                                                 type="text"
                                                 value={form.pumpMake}
                                                 onChange={e => handleTextChange('pumpMake', e.target.value)}
                                                 placeholder="PUMP MAKE"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
+
+                                        {/* Row 2: Capacities & Delivery */}
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Pump Serial No</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Pump Serial No</label>
                                             <input
                                                 type="text"
                                                 value={form.pumpSrNo}
                                                 onChange={e => handleTextChange('pumpSrNo', e.target.value)}
                                                 placeholder="PUMP SERIAL NO"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
-
-                                        {/* Row 2 */}
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Pump LPM Capacity</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Pump LPM Capacity</label>
                                             <div className="relative">
                                                 <input
                                                     type="text"
@@ -13479,23 +13534,13 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     value={form.pumpLpm}
                                                     onChange={e => handleTextChange('pumpLpm', e.target.value)}
                                                     placeholder="4000"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-12 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all font-mono"
+                                                    className="w-full h-7.5 pl-2.5 pr-10 text-xs font-normal font-mono text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                                 />
-                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">LPM</span>
+                                                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-slate-400 bg-slate-100 px-1 py-0.2 rounded pointer-events-none">LPM</span>
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Chassis Make</label>
-                                            <input
-                                                type="text"
-                                                value={form.chassisMake}
-                                                onChange={e => handleTextChange('chassisMake', e.target.value)}
-                                                placeholder="CHASSIS MAKE"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Water Tank Capacity</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Water Tank Capacity</label>
                                             <div className="relative">
                                                 <input
                                                     type="text"
@@ -13503,13 +13548,13 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     value={form.waterCapacity}
                                                     onChange={e => handleTextChange('waterCapacity', e.target.value)}
                                                     placeholder="5000"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-14 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all font-mono"
+                                                    className="w-full h-7.5 pl-2.5 pr-11 text-xs font-normal font-mono text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                                 />
-                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">LTRS</span>
+                                                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-slate-400 bg-slate-100 px-1 py-0.2 rounded pointer-events-none">LTRS</span>
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Foam Tank Capacity</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Foam Tank Capacity</label>
                                             <div className="relative">
                                                 <input
                                                     type="text"
@@ -13517,23 +13562,23 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     value={form.foamCapacity}
                                                     onChange={e => handleTextChange('foamCapacity', e.target.value)}
                                                     placeholder="1000"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-14 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all font-mono"
+                                                    className="w-full h-7.5 pl-2.5 pr-11 text-xs font-normal font-mono text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                                 />
-                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">LTRS</span>
+                                                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-slate-400 bg-slate-100 px-1 py-0.2 rounded pointer-events-none">LTRS</span>
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Delivery Date *</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Delivery Date <span className="text-rose-500">*</span></label>
                                             <input
                                                 type="date"
                                                 required
                                                 value={form.deliveryDate}
                                                 onChange={e => handleTextChange('deliveryDate', e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-indigo-600"
+                                                className="w-full h-7.5 px-2 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Warranty Period</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Warranty Period</label>
                                             <div className="relative">
                                                 <input
                                                     type="text"
@@ -13541,86 +13586,94 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     value={form.warrantyMonths}
                                                     onChange={e => handleTextChange('warrantyMonths', e.target.value)}
                                                     placeholder="12"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-16 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all font-mono"
+                                                    className="w-full h-7.5 pl-2.5 pr-12 text-xs font-normal font-mono text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                                 />
-                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">MONTHS</span>
+                                                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-slate-400 bg-slate-100 px-1 py-0.2 rounded pointer-events-none">MOS</span>
                                             </div>
                                         </div>
 
-                                        {/* Row 3: Insurance */}
+                                        {/* Row 3: Insurance & Expiry Preview */}
                                         <div className="lg:col-span-2">
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Insurance Company</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Insurance Company</label>
                                             <input
                                                 type="text"
                                                 value={form.insuranceCompany}
                                                 onChange={e => handleTextChange('insuranceCompany', e.target.value)}
                                                 placeholder="INSURANCE COMPANY"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
                                         <div className="lg:col-span-2">
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Policy Number</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Policy Number</label>
                                             <input
                                                 type="text"
                                                 value={form.insurancePolicyNo}
                                                 onChange={e => handleTextChange('insurancePolicyNo', e.target.value)}
                                                 placeholder="POLICY NUMBER"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
-                                        <div className="lg:col-span-2">
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Insurance Expiry Date</label>
+                                        <div>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">Insurance Expiry Date</label>
                                             <input
                                                 type="date"
                                                 value={form.insuranceExpiryDate}
                                                 onChange={e => handleTextChange('insuranceExpiryDate', e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-indigo-600"
+                                                className="w-full h-7.5 px-2 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                             />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-normal text-slate-500 mb-0.5">Warranty Expiry (Est)</label>
+                                            <div className="h-7.5 px-2.5 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between text-xs font-normal font-mono text-slate-600">
+                                                <span>{calculatedExpiryPreview}</span>
+                                                <span className="text-[10px] text-teal-700 bg-teal-50 px-1 py-0.2 rounded border border-teal-100">Auto</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* ── SECTION 3: OPTIONAL AUXILIARY EQUIPMENT ── */}
-                                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-                                    <div className="pb-2 border-b border-slate-100 flex items-center justify-between">
-                                        <h3 className="text-xs font-black uppercase text-indigo-900 tracking-wider flex items-center gap-2">
-                                            <span>⚡</span> 3. Optional Auxiliary Equipment (UHP Pump &amp; DCP System)
-                                        </h3>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Fill only if installed on this vehicle</span>
+                                {/* ── TABLE 3: OPTIONAL AUXILIARY EQUIPMENT ── */}
+                                <div className="bg-white rounded-lg border border-slate-200/90 shadow-2xs overflow-hidden">
+                                    <div className="bg-slate-50/80 px-3 py-1.5 border-b border-slate-200 flex items-center justify-between text-xs font-medium text-slate-700">
+                                        <div className="flex items-center gap-1.5">
+                                            <span>⚡</span>
+                                            <span>3. Optional Auxiliary Equipment (UHP Pump &amp; DCP System)</span>
+                                        </div>
+                                        <span className="text-[10.5px] font-normal text-slate-400">Fill only if installed on this vehicle</span>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                                    <div className="p-2.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">⚡ UHP Pump Make</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">UHP Pump Make</label>
                                             <input
                                                 type="text"
                                                 value={form.uhpPumpMake}
                                                 onChange={e => handleTextChange('uhpPumpMake', e.target.value)}
-                                                placeholder="e.g. Hawk / Interpump"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                placeholder="e.g. HAWK / INTERPUMP"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">⚡ UHP LPM / Bar</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">UHP LPM / Bar</label>
                                             <input
                                                 type="text"
                                                 value={form.uhpPumpLpm}
                                                 onChange={e => handleTextChange('uhpPumpLpm', e.target.value)}
-                                                placeholder="e.g. 50 LPM @ 100 Bar"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                placeholder="e.g. 50 LPM @ 100 BAR"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">⚡ UHP Pump Serial No</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">UHP Pump Serial No</label>
                                             <input
                                                 type="text"
                                                 value={form.uhpPumpSrNo}
                                                 onChange={e => handleTextChange('uhpPumpSrNo', e.target.value)}
                                                 placeholder="e.g. UHP-2026-901"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 uppercase focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                                                className="w-full h-7.5 px-2.5 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none uppercase transition-colors"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">🧯 DCP Capacity</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">DCP Capacity</label>
                                             <div className="relative">
                                                 <input
                                                     type="text"
@@ -13628,43 +13681,45 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     value={form.dcpCapacity}
                                                     onChange={e => handleTextChange('dcpCapacity', e.target.value)}
                                                     placeholder="150"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-12 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:border-[#0B6B63] focus:ring-2 focus:ring-teal-500/20 outline-none transition-all font-mono"
+                                                    className="w-full h-7.5 pl-2.5 pr-8 text-xs font-normal font-mono text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                                 />
-                                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md pointer-events-none">KG</span>
+                                                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-normal text-slate-400 bg-slate-100 px-1 py-0.2 rounded pointer-events-none">KG</span>
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">🧯 DCP HPT Due Date</label>
+                                            <label className="block text-[11px] font-normal text-slate-600 mb-0.5">DCP HPT Due Date</label>
                                             <input
                                                 type="date"
                                                 value={form.dcpHptDueDate}
                                                 onChange={e => handleTextChange('dcpHptDueDate', e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-indigo-600"
+                                                className="w-full h-7.5 px-2 text-xs font-normal text-slate-800 bg-slate-50/60 border border-slate-200 rounded-md focus:bg-white focus:border-[#0B6B63] outline-none transition-colors"
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* ── BOTTOM SUBMISSION BAR ── */}
-                                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-                                    <div className="flex items-center gap-3 text-xs text-slate-500 font-bold">
-                                        <span className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 font-black">Direct Entry</span>
-                                        <span>Direct Delivery Entry · UPPERCASE Typing Active</span>
+                                {/* ── BOTTOM SUBMISSION RIBBON ── */}
+                                <div className="bg-white rounded-lg border border-slate-200/90 px-3.5 py-2 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                                    <div className="flex items-center gap-2 text-xs font-normal text-slate-500">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                        <span>Tabular Direct Entry Active</span>
+                                        <span className="text-slate-300">|</span>
+                                        <span className="text-slate-400">All inputs automatically format to uppercase</span>
                                     </div>
-                                    <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
                                         <button
                                             type="button"
                                             onClick={onClose}
-                                            className="flex-1 sm:flex-none px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+                                            className="flex-1 sm:flex-none h-8 px-4 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-normal transition-colors cursor-pointer"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={submitting}
-                                            className="flex-2 sm:flex-none px-7 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                                            className="flex-2 sm:flex-none h-8 px-5 rounded-md bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-medium transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
                                         >
-                                            {submitting ? 'Submitting...' : '🚀 SUBMIT REGISTRATION FOR APPROVAL'}
+                                            {submitting ? 'Submitting...' : 'Submit Registration for Approval'}
                                         </button>
                                     </div>
                                 </div>
