@@ -5594,17 +5594,34 @@ ON CONFLICT (id) DO NOTHING;`;
             const handleLookup = () => {
                 setLookupError(''); setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null);
                 const q = lookupQuery.trim().toUpperCase();
-                if (!q) { setLookupError('Please enter a PO, Pump Serial, or Chassis/Model Number.'); return; }
+                if (!q) { 
+                    setLookupError('Please enter your Purchase Order (PO) Number or Pump Serial Number.'); 
+                    return; 
+                }
+
+                // SECURITY & PRIVACY GUARD: Never show customer data based on Chassis Make or Model
+                // Many customers share the same chassis make & model (e.g. Tata, Ashok Leyland, 1613)
+                const isChassisMakeOrModelQuery = trucks.some(t => 
+                    (t.chassisMake && t.chassisMake.trim().toUpperCase() === q) ||
+                    (t.modelNo && t.modelNo.trim().toUpperCase() === q)
+                ) || ['TATA', 'ASHOK LEYLAND', 'EICHER', 'BHARATBENZ', 'MAHINDRA', 'VOLVO', 'SCANIA', 'ISUZU', 'FORCE'].includes(q);
+
+                if (isChassisMakeOrModelQuery) {
+                    setLookupError(`Vehicle lookup cannot be performed using Chassis Make / Model ("${q}") because multiple customers share the same chassis model. Please enter your unique Purchase Order (PO) Number or Pump Serial Number.`);
+                    return;
+                }
+
+                // Look up by unique vehicle identifiers only
                 const found = trucks.find(t => 
-                    (t.poNo||'').trim().toUpperCase() === q || 
-                    (t.pumpSrNo||'').trim().toUpperCase() === q ||
-                    (t.chassisMake||'').trim().toUpperCase() === q ||
-                    (t.modelNo||'').trim().toUpperCase() === q
+                    (t.poNo || '').trim().toUpperCase() === q || 
+                    (t.pumpSrNo || '').trim().toUpperCase() === q ||
+                    (t.chassisSrNo && (t.chassisSrNo || '').trim().toUpperCase() === q && (t.chassisSrNo || '').trim().length > 5) ||
+                    (t.chassisNo && (t.chassisNo || '').trim().toUpperCase() === q && (t.chassisNo || '').trim().length > 5)
                 );
                 if (found) { 
                     setFoundTruck(found); 
                 } else { 
-                    setLookupError('No vehicle found with that PO, Pump Serial, or Chassis/Model Number. Please try again.'); 
+                    setLookupError('No vehicle found with that PO Number or Pump Serial Number. Please verify your purchase documents and try again.'); 
                 }
             };
 
@@ -6362,9 +6379,9 @@ ON CONFLICT (id) DO NOTHING;`;
                                     <div className="space-y-5 fade-up">
                                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 portal-glow">
                                             <h2 className="font-black text-slate-900 uppercase tracking-tight mb-1 flex items-center gap-2"><Icon name="shield-check" size={18} className="text-amber-500"/> Warranty & Vehicle Lookup</h2>
-                                            <p className="text-[11px] text-slate-500 font-semibold mb-5">Enter your Purchase Order (PO) Number, Pump Serial Number, or Chassis/Model Number to check warranty status.</p>
+                                            <p className="text-[11px] text-slate-500 font-semibold mb-5">Enter your unique Purchase Order (PO) Number or Pump Serial Number to check warranty status.</p>
                                             <div className="flex flex-col sm:flex-row gap-3">
-                                                <input type="text" value={lookupQuery} onChange={e=>setLookupQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleLookup()} placeholder="e.g. PO-802 or Pump Serial or Chassis..." className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-slate-800 transition-all placeholder:text-slate-300"/>
+                                                <input type="text" value={lookupQuery} onChange={e=>setLookupQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleLookup()} placeholder="Enter PO Number (e.g. PO-802) or Pump Serial..." className="flex-1 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold outline-none focus:border-slate-800 transition-all placeholder:text-slate-300"/>
                                                 <button onClick={handleLookup} className="bg-slate-900 text-white hover:bg-slate-800 px-7 py-3.5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-md transition-all w-full sm:w-auto cursor-pointer">Search Vehicle</button>
                                             </div>
                                             {lookupError && <div className="mt-3 flex items-center gap-2 text-rose-600 text-sm font-bold bg-rose-50 px-4 py-3 rounded-xl border border-rose-100"><Icon name="alert-circle" size={16}/>{lookupError}</div>}
@@ -7049,7 +7066,7 @@ ON CONFLICT (id) DO NOTHING;`;
 
             const projectName = firstCust ? (firstCust.name + ' - ' + (firstTrk ? firstTrk.tenderType : '')) : (capa.whereOccurred || 'General / Multi-site');
             const poNumber = firstTrk ? (firstTrk.poNo || 'N/A') : 'N/A';
-            const chassisNo = firstTrk ? (firstTrk.chassisMake || firstTrk.modelNo || firstTrk.pumpSrNo || 'N/A') : 'N/A';
+            const chassisNo = firstTrk ? (firstTrk.chassisNo || firstTrk.chassisSrNo || firstTrk.pumpSrNo || 'N/A') : 'N/A';
 
             const sortedWhys = (whyList || []).sort((a, b) => a.whyLevel - b.whyLevel);
             const correctiveActions = (actionsList || []).filter(a => a.actionType === 'Corrective');
