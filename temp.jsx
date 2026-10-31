@@ -4037,11 +4037,8 @@ ON CONFLICT (id) DO NOTHING;`;
                     issues.push(pendingQuestions.length + ' training questions are still pending in the checklist (' + completionPct + '% completed).');
                 }
 
-                // Check group photo
-                const uploadedPhotoDays = Object.keys(photosByDay).length;
-                if (uploadedPhotoDays === 0) {
-                    issues.push('At least one group training photo is required.');
-                }
+                // Group photos are optional per customer requirements
+                // Trainers can upload photos if available, but finalization is not blocked without them.
 
                 // Check mandatory handover documents
                 const missingMandatoryDocs = masterHandoverDocs.filter(d => d.mandatory && !selectedDocIds.includes(d.id) && !selectedDocIds.includes(d.name));
@@ -4115,33 +4112,42 @@ ON CONFLICT (id) DO NOTHING;`;
             ];
 
             return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs">
-                    <div className="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 modal-animate space-y-3 max-h-[94vh] flex flex-col text-slate-800">
-                        
-                        {/* ═══ TOP HEADER ═══ */}
-                        <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                            <div className="flex items-center gap-2.5">
-                                <img src={INDUS_LOGO_BASE64} alt="Indus Fire Safety" className="w-10 h-10 rounded-full object-contain border border-amber-300 shadow-2xs bg-white" />
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">
-                                            Commissioning &amp; Multi-Day Training Hub
-                                        </h3>
-                                        <span className={'text-[9px] font-black uppercase px-2 py-0.5 rounded-md border ' + (
-                                            status === 'Finalized' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse'
-                                        )}>
-                                            ● {status === 'Finalized' ? 'FINALIZED & ISSUED' : ('DRAFT (DAY ' + trainingDay + ' OF ' + trainingDays + ')')}
-                                        </span>
-                                    </div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                        PO: {truck.poNo || 'N/A'} · {customer?.name || 'Customer'} · Program: {certNo}
-                                    </p>
+                <div className="fixed inset-0 z-50 bg-white flex flex-col text-slate-800 overflow-hidden">
+                    
+                    {/* ═══ TOP NAVBAR (EDGE-TO-EDGE) ═══ */}
+                    <div className="flex justify-between items-center px-4 sm:px-6 py-2.5 bg-slate-50 border-b border-slate-200 shrink-0 shadow-2xs">
+                        <div className="flex items-center gap-3">
+                            <img src={INDUS_LOGO_BASE64} alt="Indus Fire Safety" className="w-9 h-9 rounded-full object-contain border border-amber-300 shadow-2xs bg-white shrink-0" />
+                            <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-tight text-slate-900">
+                                        Commissioning &amp; Multi-Day Training Sheet
+                                    </h3>
+                                    <span className={'text-[9px] font-medium uppercase px-2 py-0.5 rounded-md border ' + (
+                                        status === 'Finalized' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse'
+                                    )}>
+                                        ● {status === 'Finalized' ? 'FINALIZED & ISSUED' : ('DRAFT (DAY ' + trainingDay + ' OF ' + trainingDays + ')')}
+                                    </span>
                                 </div>
+                                <p className="text-[10px] font-normal text-slate-500 uppercase tracking-wider">
+                                    PO: {truck.poNo || 'N/A'} · {customer?.name || 'Customer'} · Program: {certNo}
+                                </p>
                             </div>
-                            <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">
-                                &times;
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                type="button" 
+                                onClick={onClose} 
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-medium cursor-pointer transition-all shadow-2xs"
+                                title="Close Training Sheet"
+                            >
+                                <Icon name="x" size={13} className="text-slate-500"/> Close Sheet
                             </button>
                         </div>
+                    </div>
+
+                    {/* ═══ INNER WORKSPACE CONTAINER ═══ */}
+                    <div className="flex-1 flex flex-col p-3 sm:p-5 max-w-6xl w-full mx-auto overflow-hidden space-y-3">
 
                         {/* ═══ 4-STEP WIZARD TABS ═══ */}
                         <div className="flex items-center gap-1 px-1 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
@@ -4156,13 +4162,13 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 setWizardStep(s.num);
                                             }
                                         }}
-                                        className={'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shrink-0 ' + (
+                                        className={'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-medium uppercase tracking-wider transition-all cursor-pointer shrink-0 ' + (
                                             wizardStep === s.num
                                                 ? 'bg-slate-900 text-white shadow-md'
                                                 : 'text-slate-600 hover:bg-slate-200/70'
                                         )}
                                     >
-                                        <span className="w-4 h-4 rounded-full bg-current/10 flex items-center justify-center text-[9px] font-black">{s.num}</span>
+                                        <span className="w-4 h-4 rounded-full bg-current/10 flex items-center justify-center text-[9px] font-medium">{s.num}</span>
                                         <span className="hidden sm:inline">{s.label}</span>
                                     </button>
                                     {i < STEPS.length - 1 && (
@@ -4176,7 +4182,7 @@ ON CONFLICT (id) DO NOTHING;`;
                         {wizardStep > 1 && (
                             <div className="bg-linear-to-r from-amber-500/10 via-amber-500/5 to-transparent p-2.5 rounded-2xl border border-amber-500/20 flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider flex items-center gap-1">
+                                    <span className="text-[10px] font-medium uppercase text-amber-900 tracking-wider flex items-center gap-1">
                                         <Icon name="calendar" size={13}/> Training Day:
                                     </span>
                                     <div className="flex items-center gap-1">
@@ -4190,7 +4196,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     key={dNum}
                                                     type="button"
                                                     onClick={() => setTrainingDay(dNum)}
-                                                    className={'flex items-center gap-1 px-3 py-1 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer ' + (
+                                                    className={'flex items-center gap-1 px-3 py-1 rounded-xl text-[10px] font-medium uppercase transition-all cursor-pointer ' + (
                                                         isSelected
                                                             ? 'bg-amber-600 text-white shadow-md scale-105'
                                                             : isDone
@@ -4206,11 +4212,11 @@ ON CONFLICT (id) DO NOTHING;`;
                                         })}
                                     </div>
                                 </div>
-                                <div className="text-[10px] font-bold text-amber-900 bg-white/80 px-3 py-1 rounded-xl border border-amber-200 shadow-2xs">
+                                <div className="text-[10px] font-medium text-amber-900 bg-white/80 px-3 py-1 rounded-xl border border-amber-200 shadow-2xs">
                                     <span>Active: </span>
-                                    <span className="font-extrabold text-slate-900">Day {trainingDay} of {trainingDays}</span>
+                                    <span className="font-medium text-slate-900">Day {trainingDay} of {trainingDays}</span>
                                     <span className="text-slate-400 mx-1.5">|</span>
-                                    <span className="font-bold text-emerald-700">{formatTrainingDateText(currentDateForActiveDay)}</span>
+                                    <span className="font-normal text-emerald-800">{formatTrainingDateText(currentDateForActiveDay)}</span>
                                 </div>
                             </div>
                         )}
@@ -4228,17 +4234,17 @@ ON CONFLICT (id) DO NOTHING;`;
                                         <div className="space-y-3">
                                             <div className="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200 flex justify-between items-center">
                                                 <div>
-                                                    <h4 className="text-xs font-black uppercase text-emerald-900 flex items-center gap-1.5">
+                                                    <h4 className="text-xs font-semibold uppercase text-emerald-900 flex items-center gap-1.5">
                                                         <Icon name="lock" size={14}/> Program Information — Locked &amp; Active
                                                     </h4>
-                                                    <p className="text-[10px] font-bold text-emerald-700 mt-0.5">
+                                                    <p className="text-[10px] font-normal text-emerald-800 mt-0.5">
                                                         Program parameters are saved. You can proceed directly to Day-Wise Attendance without re-entering dates or authority details.
                                                     </p>
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={() => setProgramLocked(false)}
-                                                    className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                                                    className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                                                     title="Unlock to edit program dates, trainer or location"
                                                 >
                                                     <Icon name="pencil" size={12}/> Edit Program
@@ -4247,13 +4253,13 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                             {/* Summary Cards */}
                                             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px]">
-                                                <div><span className="text-slate-400 font-bold uppercase block">Cert No:</span><span className="font-extrabold text-slate-800">{certNo}</span></div>
-                                                <div><span className="text-slate-400 font-bold uppercase block">Duration:</span><span className="font-extrabold text-emerald-700">{trainingDays} Days Program</span></div>
-                                                <div><span className="text-slate-400 font-bold uppercase block">Start Date:</span><span className="font-extrabold text-slate-800">{formatDate(startDate)}</span></div>
-                                                <div><span className="text-slate-400 font-bold uppercase block">Handover Date:</span><span className="font-extrabold text-slate-800">{formatDate(commissioningDate)}</span></div>
-                                                <div><span className="text-slate-400 font-bold uppercase block">Trainer:</span><span className="font-extrabold text-amber-800">{commissioningEngineer || 'Riyaz Rathod - R&D Head'}</span></div>
-                                                <div><span className="text-slate-400 font-bold uppercase block">Location:</span><span className="font-extrabold text-slate-800">{stationLocation}</span></div>
-                                                <div className="col-span-2"><span className="text-slate-400 font-bold uppercase block">Receiving Authority:</span><span className="font-extrabold text-slate-800">{receivingOfficer || 'CFO In-Charge'}</span></div>
+                                                <div><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Cert No:</span><span className="font-medium text-slate-800">{certNo}</span></div>
+                                                <div><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Duration:</span><span className="font-medium text-emerald-700">{trainingDays} Days Program</span></div>
+                                                <div><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Start Date:</span><span className="font-medium text-slate-800">{formatDate(startDate)}</span></div>
+                                                <div><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Handover Date:</span><span className="font-medium text-slate-800">{formatDate(commissioningDate)}</span></div>
+                                                <div><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Trainer:</span><span className="font-medium text-amber-800">{commissioningEngineer || 'Riyaz Rathod - R&D Head'}</span></div>
+                                                <div><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Location:</span><span className="font-medium text-slate-800">{stationLocation}</span></div>
+                                                <div className="col-span-2"><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Receiving Authority:</span><span className="font-medium text-slate-800">{receivingOfficer || 'CFO In-Charge'}</span></div>
                                             </div>
 
                                             <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-200/70 text-[10.5px] text-amber-900 font-medium">
@@ -4264,7 +4270,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 <button
                                                     type="button"
                                                     onClick={() => { setWizardStep(2); }}
-                                                    className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-md transition-all"
+                                                    className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-2xl font-medium text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-md transition-all"
                                                 >
                                                     Continue to Day-Wise Attendance <Icon name="arrow-right" size={14}/>
                                                 </button>
@@ -4274,43 +4280,43 @@ ON CONFLICT (id) DO NOTHING;`;
                                         /* ── EDITABLE PROGRAM FORM ── */
                                         <div className="space-y-3">
                                             <div className="bg-amber-50/70 p-3 rounded-2xl border border-amber-200">
-                                                <h4 className="text-xs font-black uppercase text-amber-900 flex items-center gap-1.5">
+                                                <h4 className="text-xs font-semibold uppercase text-amber-900 flex items-center gap-1.5">
                                                     <Icon name="calendar" size={14}/> Step 1 — Configure Program Details &amp; Training Dates
                                                 </h4>
-                                                <p className="text-[10px] font-bold text-amber-700 mt-0.5">
+                                                <p className="text-[10px] font-normal text-amber-800 mt-0.5">
                                                     These program-level settings apply across all training days. Once saved, they remain locked so you don't have to re-enter them daily.
                                                 </p>
                                             </div>
 
                                             <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
-                                                <div><span className="text-slate-400 font-bold uppercase block">Chassis:</span><span className="font-extrabold text-slate-800">{truck.chassisMake || chassisOem.brand}</span></div>
-                                                <div><span className="text-slate-400 font-bold uppercase block">Pump:</span><span className="font-extrabold text-slate-800">{truck.pumpMake || pumpOem.brand}</span></div>
-                                                <div><span className="text-slate-400 font-bold uppercase block">Tanks:</span><span className="font-extrabold text-slate-800">{truck.waterCapacity || 'Std'}L / {truck.foamCapacity || 'Std'}L</span></div>
-                                                <div><span className="text-slate-400 font-bold uppercase block">Delivery:</span><span className="font-extrabold text-slate-800">{formatDate(truck.deliveryDate)}</span></div>
+                                                <div><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Chassis:</span><span className="font-medium text-slate-800">{truck.chassisMake || chassisOem.brand}</span></div>
+                                                <div><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Pump:</span><span className="font-medium text-slate-800">{truck.pumpMake || pumpOem.brand}</span></div>
+                                                <div><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Tanks:</span><span className="font-medium text-slate-800">{truck.waterCapacity || 'Std'}L / {truck.foamCapacity || 'Std'}L</span></div>
+                                                <div><span className="text-slate-400 font-medium uppercase block text-[9.5px]">Delivery:</span><span className="font-medium text-slate-800">{formatDate(truck.deliveryDate)}</span></div>
                                             </div>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                                 <div className="space-y-1">
-                                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Certificate Number</label>
-                                                    <input type="text" value={certNo} onChange={e => setCertNo(e.target.value)} required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
+                                                    <label className="text-[9px] font-medium text-slate-500 uppercase tracking-widest">Certificate Number</label>
+                                                    <input type="text" value={certNo} onChange={e => setCertNo(e.target.value)} required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Training Start Date</label>
-                                                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
+                                                    <label className="text-[9px] font-medium text-slate-500 uppercase tracking-widest">Training Start Date</label>
+                                                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Handover Date</label>
-                                                    <input type="date" value={commissioningDate} onChange={e => setCommissioningDate(e.target.value)} required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
+                                                    <label className="text-[9px] font-medium text-slate-500 uppercase tracking-widest">Handover Date</label>
+                                                    <input type="date" value={commissioningDate} onChange={e => setCommissioningDate(e.target.value)} required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
                                                 </div>
                                             </div>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <div className="space-y-1">
-                                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Total Training Days (2 to 5 Days)</label>
+                                                    <label className="text-[9px] font-medium text-slate-500 uppercase tracking-widest">Total Training Days (2 to 5 Days)</label>
                                                     <select
                                                         value={trainingDays}
                                                         onChange={e => setTrainingDays(parseInt(e.target.value))}
-                                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white cursor-pointer"
+                                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white cursor-pointer"
                                                     >
                                                         <option value={1}>1 Day (Single Day Commissioning)</option>
                                                         <option value={2}>2 Days Training Program</option>
@@ -4320,15 +4326,15 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     </select>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Commissioning Site / Fire Station</label>
-                                                    <input type="text" value={stationLocation} onChange={e => setStationLocation(e.target.value)} placeholder="e.g. Dahej Terminal Fire Station" required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
+                                                    <label className="text-[9px] font-medium text-slate-500 uppercase tracking-widest">Commissioning Site / Fire Station</label>
+                                                    <input type="text" value={stationLocation} onChange={e => setStationLocation(e.target.value)} placeholder="e.g. Dahej Terminal Fire Station" required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
                                                 </div>
                                             </div>
 
                                             <div className="space-y-1">
-                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Training Conducted By (Engineer / Trainer Name) *</label>
+                                                <label className="text-[9px] font-medium text-slate-500 uppercase tracking-widest">Training Conducted By (Engineer / Trainer Name) *</label>
                                                 <div className="relative">
-                                                    <input type="text" list="trainerSuggestions" value={commissioningEngineer} onChange={e => setCommissioningEngineer(e.target.value)} placeholder="e.g. Riyaz Rathod - R&D Head" required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
+                                                    <input type="text" list="trainerSuggestions" value={commissioningEngineer} onChange={e => setCommissioningEngineer(e.target.value)} placeholder="e.g. Riyaz Rathod - R&D Head" required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
                                                     <datalist id="trainerSuggestions">
                                                         {savedTrainersList.map((t, i) => (<option key={i} value={t} />))}
                                                     </datalist>
@@ -4337,7 +4343,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     <div className="flex flex-wrap gap-1.5 mt-1">
                                                         {savedTrainersList.map((t, i) => (
                                                             <button key={i} type="button" onClick={() => setCommissioningEngineer(t)}
-                                                                className={'text-[9px] font-bold px-2 py-0.5 rounded-md border transition-all cursor-pointer ' + (commissioningEngineer === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100')}
+                                                                className={'text-[9px] font-medium px-2 py-0.5 rounded-md border transition-all cursor-pointer ' + (commissioningEngineer === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100')}
                                                             >{t}</button>
                                                         ))}
                                                     </div>
@@ -4345,24 +4351,16 @@ ON CONFLICT (id) DO NOTHING;`;
                                             </div>
 
                                             <div className="space-y-1">
-                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Customer Receiving Authority — Name &amp; Designation *</label>
-                                                <input type="text" value={receivingOfficer} onChange={e => setReceivingOfficer(e.target.value)} placeholder="e.g. Riyaz Rathod - R&D Head" required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
+                                                <label className="text-[9px] font-medium text-slate-500 uppercase tracking-widest">Customer Receiving Authority — Name &amp; Designation *</label>
+                                                <input type="text" value={receivingOfficer} onChange={e => setReceivingOfficer(e.target.value)} placeholder="e.g. Riyaz Rathod - R&D Head" required className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
                                             </div>
 
                                             <div className="space-y-1">
-                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Commissioning Remarks (Standard)</label>
+                                                <label className="text-[9px] font-medium text-slate-500 uppercase tracking-widest">Commissioning Remarks (Standard)</label>
                                                 <textarea value={remarks} onChange={e => setRemarks(e.target.value)} className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 min-h-[45px] outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
                                             </div>
 
-                                            <div className="pt-2 flex justify-end">
-                                                <button
-                                                    type="button"
-                                                    onClick={goNextFromStep1}
-                                                    className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-md transition-all"
-                                                >
-                                                    Save Program &amp; Start Day 1 →
-                                                </button>
-                                            </div>
+
                                         </div>
                                     )}
                                 </div>
@@ -4375,15 +4373,15 @@ ON CONFLICT (id) DO NOTHING;`;
                                 <div className="space-y-3.5 fade-up">
                                     <div className="flex justify-between items-center bg-blue-50/70 p-3 rounded-2xl border border-blue-200">
                                         <div>
-                                            <h4 className="text-xs font-black uppercase text-blue-900 flex items-center gap-1.5">
+                                            <h4 className="text-xs font-semibold uppercase text-blue-900 flex items-center gap-1.5">
                                                 <Icon name="users" size={14}/> Day {trainingDay} Attendance Roster ({formatTrainingDateText(currentDateForActiveDay)})
                                             </h4>
-                                            <p className="text-[10px] font-bold text-blue-700 mt-0.5">
+                                            <p className="text-[10px] font-normal text-blue-800 mt-0.5">
                                                 List of personnel who attended training today. Adding an employee here confirms their attendance for Day {trainingDay}.
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="bg-emerald-600 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-2xs">
+                                            <span className="bg-emerald-600 text-white font-medium text-xs px-3 py-1.5 rounded-xl shadow-2xs">
                                                 Day {trainingDay} Attendance: {currentDayAttendees.length} Present
                                             </span>
                                         </div>
@@ -4393,13 +4391,13 @@ ON CONFLICT (id) DO NOTHING;`;
                                     {previousAttendeesPool.length > 0 && (
                                         <div className="bg-amber-50/80 p-3 rounded-2xl border border-amber-200 space-y-2">
                                             <div className="flex justify-between items-center">
-                                                <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
+                                                <span className="text-[10px] font-medium uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
                                                     <Icon name="history" size={13}/> Quick-Add: Previous Attendees Present Today ({previousAttendeesPool.length})
                                                 </span>
                                                 <button
                                                     type="button"
                                                     onClick={handleAddAllPreviousAttendeesToToday}
-                                                    className="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all shadow-2xs"
+                                                    className="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-lg text-[9px] font-medium uppercase tracking-wider cursor-pointer transition-all shadow-2xs"
                                                 >
                                                     + Add All to Day {trainingDay}
                                                 </button>
@@ -4410,10 +4408,10 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         key={att.id || att.name}
                                                         type="button"
                                                         onClick={() => handleAddPreviousAttendeeToToday(att)}
-                                                        className="bg-white hover:bg-amber-100 text-slate-800 border border-amber-300 px-2.5 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                                                        className="bg-white hover:bg-amber-100 text-slate-800 border border-amber-300 px-2.5 py-1 rounded-xl text-[10px] font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                                                         title="Click to mark present on today's roster"
                                                     >
-                                                        <span className="text-amber-700 font-black">+</span>
+                                                        <span className="text-amber-700 font-medium">+</span>
                                                         <span>{att.name}</span>
                                                         <span className="text-[9px] text-slate-400">({att.designation})</span>
                                                     </button>
@@ -4425,7 +4423,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                     {/* Attendees Table for Active Day */}
                                     <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
                                         <table className="w-full text-left text-xs">
-                                            <thead className="bg-slate-100 text-[9px] font-black uppercase text-slate-500 border-b border-slate-200">
+                                            <thead className="bg-slate-100 text-[9px] font-medium uppercase text-slate-500 border-b border-slate-200">
                                                 <tr>
                                                     <th className="p-2.5 w-8">#</th>
                                                     <th className="p-2.5">Attendee / Officer Name</th>
@@ -4437,13 +4435,13 @@ ON CONFLICT (id) DO NOTHING;`;
                                             <tbody className="divide-y divide-slate-100">
                                                 {currentDayAttendees.map((att, idx) => (
                                                     <tr key={att.id || idx} className="hover:bg-slate-50/80">
-                                                        <td className="p-2.5 font-black text-slate-400 text-[10px]">{idx + 1}</td>
+                                                        <td className="p-2.5 font-medium text-slate-400 text-[10px]">{idx + 1}</td>
                                                         <td className="p-2.5">
                                                             <input
                                                                 type="text"
                                                                 value={att.name}
                                                                 onChange={e => handleUpdateAttendeeField(att.id, 'name', e.target.value)}
-                                                                className="w-full font-bold text-slate-900 border-b border-transparent hover:border-slate-300 focus:border-slate-800 outline-none bg-transparent"
+                                                                className="w-full font-normal text-slate-800 border-b border-transparent hover:border-slate-300 focus:border-slate-800 outline-none bg-transparent"
                                                             />
                                                         </td>
                                                         <td className="p-2.5">
@@ -4455,7 +4453,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                             />
                                                         </td>
                                                         <td className="p-2.5 text-center">
-                                                            <span className="bg-emerald-100 text-emerald-800 font-extrabold text-[9.5px] px-2.5 py-0.5 rounded-md uppercase">
+                                                            <span className="bg-emerald-100 text-emerald-800 font-medium text-[9.5px] px-2.5 py-0.5 rounded-md uppercase">
                                                                 ✓ Present
                                                             </span>
                                                         </td>
@@ -4483,7 +4481,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 ))}
                                                 {currentDayAttendees.length === 0 && (
                                                     <tr>
-                                                        <td colSpan="5" className="p-6 text-center text-slate-400 font-bold">
+                                                        <td colSpan="5" className="p-6 text-center text-slate-400 font-medium">
                                                             No personnel registered on Day {trainingDay} yet. Use the form below or select from previous attendees.
                                                         </td>
                                                     </tr>
@@ -4495,11 +4493,11 @@ ON CONFLICT (id) DO NOTHING;`;
                                     {/* Quick Add Form with Smart Attendee Matching */}
                                     <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                            <span className="text-[10px] font-medium uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                                                 <Icon name="user-plus" size={13}/> Add Attendee to Day {trainingDay} Roster
                                             </span>
                                             {previousAttendeesPool.length > 0 && (
-                                                <span className="text-[9px] font-bold text-slate-400">
+                                                <span className="text-[9px] font-normal text-slate-500">
                                                     🔍 Smart Match Active across {previousAttendeesPool.length} previous trainees
                                                 </span>
                                             )}
@@ -4511,23 +4509,23 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 placeholder="Trainee Full Name (Type to search previous) *"
                                                 value={newAttName}
                                                 onChange={e => setNewAttName(e.target.value)}
-                                                className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                                                className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white"
                                             />
                                             <input
                                                 type="text"
                                                 placeholder="Designation (e.g. SFO / Operator)"
                                                 value={newAttDesig}
                                                 onChange={e => setNewAttDesig(e.target.value)}
-                                                className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                                                className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white"
                                             />
                                         </div>
 
                                         {/* ── SMART MATCH SUGGESTION CALLOUT ── */}
                                         {smartMatchResult && smartMatchResult.type === 'exact' && (
                                             <div className="p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between gap-2 fade-up">
-                                                <div className="flex items-center gap-1.5 text-xs text-emerald-950 font-bold">
-                                                    <span className="text-emerald-700 font-black">✓ Existing Attendee Found:</span>
-                                                    <span className="font-extrabold">{smartMatchResult.attendee.name}</span>
+                                                <div className="flex items-center gap-1.5 text-xs text-emerald-950 font-medium">
+                                                    <span className="text-emerald-700 font-medium">✓ Existing Attendee Found:</span>
+                                                    <span className="font-medium">{smartMatchResult.attendee.name}</span>
                                                     <span className="text-emerald-700 text-[10px]">({smartMatchResult.attendee.designation})</span>
                                                 </div>
                                                 <button
@@ -4537,7 +4535,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         setNewAttName('');
                                                         setNewAttDesig('');
                                                     }}
-                                                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-2xs transition-all"
+                                                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1 rounded-lg text-[10px] font-medium uppercase tracking-wider cursor-pointer shadow-2xs transition-all"
                                                 >
                                                     + Add {smartMatchResult.attendee.name} to Day {trainingDay}
                                                 </button>
@@ -4546,7 +4544,7 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                         {smartMatchResult && smartMatchResult.type === 'partial' && (
                                             <div className="p-2.5 bg-amber-50 border border-amber-300 rounded-xl space-y-1.5 fade-up">
-                                                <div className="text-[10px] font-black text-amber-900 uppercase flex items-center gap-1">
+                                                <div className="text-[10px] font-medium text-amber-900 uppercase flex items-center gap-1">
                                                     <Icon name="help-circle" size={12}/> Possible existing attendee found — Is this the same person?
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-1.5">
@@ -4559,7 +4557,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                 setNewAttName('');
                                                                 setNewAttDesig('');
                                                             }}
-                                                            className="bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
+                                                            className="bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 px-2.5 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
                                                         >
                                                             <span>Use <b>{m.name}</b> ({m.designation})</span>
                                                         </button>
@@ -4567,7 +4565,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     <button
                                                         type="button"
                                                         onClick={handleAddAttendee}
-                                                        className="bg-amber-800 hover:bg-amber-900 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all shadow-2xs"
+                                                        className="bg-amber-800 hover:bg-amber-900 text-white px-2.5 py-1 rounded-lg text-[10px] font-medium cursor-pointer transition-all shadow-2xs"
                                                     >
                                                         Keep as New: "{newAttName.trim()}"
                                                     </button>
@@ -4578,7 +4576,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                         <button
                                             type="button"
                                             onClick={handleAddAttendee}
-                                            className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                            className="bg-[#0B6B63] hover:bg-[#09544E] text-white px-4 py-2 rounded-xl font-medium text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                                         >
                                             <Icon name="plus" size={13}/> Add to Day {trainingDay} Attendance
                                         </button>
@@ -4590,10 +4588,10 @@ ON CONFLICT (id) DO NOTHING;`;
                                             <div className="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl border border-slate-200 space-y-3 text-slate-800 modal-animate">
                                                 <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                                                     <div>
-                                                        <h4 className="text-xs font-black uppercase text-slate-900">Attendance Timeline</h4>
-                                                        <p className="text-[10px] font-bold text-slate-400">{selectedAttendeeHistory.name} · {selectedAttendeeHistory.designation}</p>
+                                                        <h4 className="text-xs font-semibold uppercase text-slate-900">Attendance Timeline</h4>
+                                                        <p className="text-[10px] font-normal text-slate-500">{selectedAttendeeHistory.name} · {selectedAttendeeHistory.designation}</p>
                                                     </div>
-                                                    <button onClick={() => setSelectedAttendeeHistory(null)} className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-black cursor-pointer">&times;</button>
+                                                    <button onClick={() => setSelectedAttendeeHistory(null)} className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-medium cursor-pointer">&times;</button>
                                                 </div>
                                                 <div className="space-y-1.5">
                                                     {Array.from({ length: trainingDays }, (_, i) => {
@@ -4605,10 +4603,10 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         return (
                                                             <div key={d} className="flex justify-between items-center p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs">
                                                                 <div>
-                                                                    <span className="font-black text-emerald-950">Day {d}</span>
+                                                                    <span className="font-medium text-emerald-950">Day {d}</span>
                                                                     <span className="text-[10px] text-emerald-700 ml-2">({formatTrainingDateText(dDate)})</span>
                                                                 </div>
-                                                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-600 text-white">
+                                                                <span className="text-[9px] font-medium uppercase px-2 py-0.5 rounded-md bg-emerald-600 text-white">
                                                                     ✓ Attended
                                                                 </span>
                                                             </div>
@@ -4616,7 +4614,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     })}
                                                 </div>
                                                 <div className="pt-2 flex justify-end">
-                                                    <button onClick={() => setSelectedAttendeeHistory(null)} className="bg-slate-900 text-white px-4 py-1.5 rounded-xl font-black text-xs uppercase cursor-pointer">Close</button>
+                                                    <button onClick={() => setSelectedAttendeeHistory(null)} className="bg-slate-900 text-white px-4 py-1.5 rounded-xl font-medium text-xs uppercase cursor-pointer">Close</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -4631,15 +4629,15 @@ ON CONFLICT (id) DO NOTHING;`;
                                 <div className="space-y-3.5 fade-up">
                                     <div className="flex justify-between items-center bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200">
                                         <div>
-                                            <h4 className="text-xs font-black uppercase text-emerald-900 flex items-center gap-1.5">
+                                            <h4 className="text-xs font-semibold uppercase text-emerald-900 flex items-center gap-1.5">
                                                 <Icon name="clipboard-check" size={14}/> Cumulative Training Checklist &amp; Progress
                                             </h4>
-                                            <p className="text-[10px] font-bold text-emerald-700 mt-0.5">
+                                            <p className="text-[10px] font-normal text-emerald-800 mt-0.5">
                                                 Check off items completed on Day {trainingDay}. Checklist accumulates across all days without resetting.
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <span className={'text-xs font-black px-2.5 py-1 rounded-lg ' + (completionPct === 100 ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-900')}>
+                                            <span className={'text-xs font-medium px-2.5 py-1 rounded-lg ' + (completionPct === 100 ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-900')}>
                                                 {completedCount}/{totalCount} ({completionPct}%)
                                             </span>
                                         </div>
@@ -4647,7 +4645,7 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                     {/* Cumulative Progress Bar */}
                                     <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs space-y-1.5">
-                                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                                        <div className="flex justify-between items-center text-[10px] font-medium uppercase text-slate-500 tracking-wider">
                                             <span>Overall Program Progress</span>
                                             <span>{completionPct}% Complete</span>
                                         </div>
@@ -4679,14 +4677,14 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                                         <div className="flex-1 space-y-1">
                                                             <div className="flex items-center gap-2 flex-wrap">
-                                                                <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-50 text-amber-900 border border-amber-200 rounded-md">
+                                                                <span className="text-[9px] font-medium uppercase px-2 py-0.5 bg-amber-50 text-amber-900 border border-amber-200 rounded-md">
                                                                     {q.category || 'Test'}
                                                                 </span>
-                                                                <span className={'font-bold text-xs ' + (isDone ? 'text-emerald-950 font-black' : 'text-slate-900')}>
+                                                                <span className={'font-medium text-xs ' + (isDone ? 'text-emerald-950 font-medium' : 'text-slate-900')}>
                                                                     {idx + 1}. {q.question}
                                                                 </span>
                                                                 {isDone && (
-                                                                    <span className="bg-emerald-200/80 text-emerald-900 text-[8px] font-black uppercase px-2 py-0.5 rounded-md">
+                                                                    <span className="bg-emerald-200/80 text-emerald-900 text-[8px] font-medium uppercase px-2 py-0.5 rounded-md">
                                                                         ✓ Cleared on Day {q.completedOnDay || trainingDay} {q.completedDate ? ('(' + formatTrainingDateText(q.completedDate) + ')') : ''}
                                                                     </span>
                                                                 )}
@@ -4707,14 +4705,14 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                     {/* Add Custom Question Form */}
                                     <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                                             <Icon name="plus-circle" size={13}/> Add Custom Training Point / Question
                                         </span>
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                            <input type="text" placeholder="Category (e.g. Hydro-Test)" value={newQuestionCategory} onChange={e => setNewQuestionCategory(e.target.value)} className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
-                                            <input type="text" placeholder="Training Point Description *" value={newQuestionText} onChange={e => setNewQuestionText(e.target.value)} className="sm:col-span-2 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
+                                            <input type="text" placeholder="Category (e.g. Hydro-Test)" value={newQuestionCategory} onChange={e => setNewQuestionCategory(e.target.value)} className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
+                                            <input type="text" placeholder="Training Point Description *" value={newQuestionText} onChange={e => setNewQuestionText(e.target.value)} className="sm:col-span-2 border border-slate-200 rounded-xl px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900 bg-white" />
                                         </div>
-                                        <button type="button" onClick={handleAddCustomQuestion} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-xs">
+                                        <button type="button" onClick={handleAddCustomQuestion} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-medium text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-xs">
                                             <Icon name="plus" size={13}/> Add to Checklist
                                         </button>
                                     </div>
@@ -4744,14 +4742,14 @@ ON CONFLICT (id) DO NOTHING;`;
                                 <div className="space-y-3.5 fade-up">
                                     <div className="flex justify-between items-center bg-violet-50/70 p-3 rounded-2xl border border-violet-200">
                                         <div>
-                                            <h4 className="text-xs font-black uppercase text-violet-900 flex items-center gap-1.5">
+                                            <h4 className="text-xs font-semibold uppercase text-violet-900 flex items-center gap-1.5">
                                                 <Icon name="file-text" size={14}/> Step 4 — Photographs, Handover Documents &amp; Certificate Review
                                             </h4>
-                                            <p className="text-[10px] font-bold text-violet-700 mt-0.5">
-                                                Select the exact documents and manuals handed over to the client, upload group photos, and review final attendance.
+                                            <p className="text-[10px] font-normal text-violet-800 mt-0.5">
+                                                Select the exact documents and manuals handed over to the client, upload group photos (optional), and review final attendance.
                                             </p>
                                         </div>
-                                        <span className="text-[9px] font-extrabold text-violet-900 bg-white px-2.5 py-1 rounded-xl border border-violet-200 shadow-2xs">
+                                        <span className="text-[9px] font-medium text-violet-900 bg-white px-2.5 py-1 rounded-xl border border-violet-200 shadow-2xs">
                                             {selectedDocsList.length} of {masterHandoverDocs.length} Docs Selected
                                         </span>
                                     </div>
@@ -4760,14 +4758,14 @@ ON CONFLICT (id) DO NOTHING;`;
                                     <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm space-y-3">
                                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-black">
+                                                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-medium">
                                                     📄
                                                 </div>
                                                 <div>
-                                                    <h5 className="text-xs font-black uppercase text-slate-900 tracking-tight flex items-center gap-1.5">
+                                                    <h5 className="text-xs font-semibold uppercase text-slate-900 tracking-tight flex items-center gap-1.5">
                                                         Documents &amp; Technical Manuals Handed Over
                                                     </h5>
-                                                    <p className="text-[10px] font-bold text-slate-400">
+                                                    <p className="text-[10px] font-normal text-slate-500">
                                                         Only selected items will appear in the final printed Certificate.
                                                     </p>
                                                 </div>
@@ -4778,7 +4776,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 <button
                                                     type="button"
                                                     onClick={() => setDocSelectionMode('checklist')}
-                                                    className={'px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ' + (
+                                                    className={'px-2.5 py-1 rounded-lg text-[9px] font-medium uppercase tracking-wider transition-all cursor-pointer ' + (
                                                         docSelectionMode === 'checklist' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
                                                     )}
                                                 >
@@ -4787,7 +4785,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 <button
                                                     type="button"
                                                     onClick={() => setDocSelectionMode('step_by_step')}
-                                                    className={'px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ' + (
+                                                    className={'px-2.5 py-1 rounded-lg text-[9px] font-medium uppercase tracking-wider transition-all cursor-pointer ' + (
                                                         docSelectionMode === 'step_by_step' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
                                                     )}
                                                 >
@@ -4800,11 +4798,11 @@ ON CONFLICT (id) DO NOTHING;`;
                                         {docSelectionMode === 'step_by_step' && currentStepDoc && (
                                             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 fade-up">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">
+                                                    <span className="text-[10px] font-medium uppercase text-amber-800 tracking-wider">
                                                         Document {stepDocIndex + 1} of {masterHandoverDocs.length}
                                                     </span>
                                                     {currentStepDoc.mandatory && (
-                                                        <span className="text-[8.5px] font-black uppercase px-2 py-0.5 rounded bg-rose-100 text-rose-800">
+                                                        <span className="text-[8.5px] font-medium uppercase px-2 py-0.5 rounded bg-rose-100 text-rose-800">
                                                             ● Mandatory Document
                                                         </span>
                                                     )}
@@ -4812,14 +4810,14 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                                 <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between gap-3">
                                                     <div>
-                                                        <h6 className="font-extrabold text-slate-900 text-xs">
+                                                        <h6 className="font-semibold text-slate-900 text-xs">
                                                             {currentStepDoc.name}
                                                         </h6>
                                                         <p className="text-[9.5px] font-medium text-slate-500 mt-0.5">
                                                             Official delivery and handover document for customer vehicle record.
                                                         </p>
                                                     </div>
-                                                    <span className={'px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ' + (
+                                                    <span className={'px-2.5 py-1 rounded-lg text-[9px] font-medium uppercase tracking-wider ' + (
                                                         isCurrentStepDocSelected ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
                                                     )}>
                                                         {isCurrentStepDocSelected ? '✓ Selected' : 'Not Selected'}
@@ -4835,7 +4833,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                             const val = e.target.value;
                                                             setDocRefNos(prev => ({ ...prev, [currentStepDoc.id]: val }));
                                                         }}
-                                                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900"
+                                                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-normal text-slate-800 outline-none focus:ring-2 focus:ring-slate-900"
                                                     />
                                                 </div>
 
@@ -4845,7 +4843,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         type="button"
                                                         disabled={stepDocIndex === 0}
                                                         onClick={() => setStepDocIndex(prev => Math.max(0, prev - 1))}
-                                                        className="bg-white disabled:opacity-40 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                                                        className="bg-white disabled:opacity-40 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-xl text-[10px] font-medium uppercase tracking-wider cursor-pointer"
                                                     >
                                                         ← Previous
                                                     </button>
@@ -4858,7 +4856,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                 if (isCurrentStepDocSelected) toggleDocSelection(currentStepDoc.id);
                                                                 if (stepDocIndex < masterHandoverDocs.length - 1) setStepDocIndex(prev => prev + 1);
                                                             }}
-                                                            className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all"
+                                                            className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-1.5 rounded-xl text-[10px] font-medium uppercase tracking-wider cursor-pointer transition-all"
                                                         >
                                                             → Skip
                                                         </button>
@@ -4869,7 +4867,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                 if (!isCurrentStepDocSelected) toggleDocSelection(currentStepDoc.id);
                                                                 if (stepDocIndex < masterHandoverDocs.length - 1) setStepDocIndex(prev => prev + 1);
                                                             }}
-                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md cursor-pointer transition-all flex items-center gap-1.5"
+                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-1.5 rounded-xl text-[10px] font-medium uppercase tracking-wider shadow-md cursor-pointer transition-all flex items-center gap-1.5"
                                                         >
                                                             ✓ Handed Over
                                                         </button>
@@ -4879,7 +4877,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         type="button"
                                                         disabled={stepDocIndex >= masterHandoverDocs.length - 1}
                                                         onClick={() => setStepDocIndex(prev => Math.min(masterHandoverDocs.length - 1, prev + 1))}
-                                                        className="bg-white disabled:opacity-40 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                                                        className="bg-white disabled:opacity-40 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-xl text-[10px] font-medium uppercase tracking-wider cursor-pointer"
                                                     >
                                                         Next →
                                                     </button>
@@ -4890,7 +4888,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                         {/* OPTION B: CHECKLIST VIEW */}
                                         {docSelectionMode === 'checklist' && (
                                             <div className="space-y-2">
-                                                <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 px-1">
+                                                <div className="flex justify-between items-center text-[10px] font-normal text-slate-500 px-1">
                                                     <span>Click to toggle items handed over on site:</span>
                                                     <button
                                                         type="button"
@@ -4898,7 +4896,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                             const allIds = masterHandoverDocs.map(d => d.id);
                                                             setSelectedDocIds(allIds);
                                                         }}
-                                                        className="text-amber-700 font-black hover:underline cursor-pointer"
+                                                        className="text-amber-700 font-medium hover:underline cursor-pointer"
                                                     >
                                                         + Select All ({masterHandoverDocs.length})
                                                     </button>
@@ -4924,11 +4922,11 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                 </div>
                                                                 <div className="flex-1 min-w-0">
                                                                     <div className="flex items-center gap-1.5">
-                                                                        <span className={'text-xs font-bold truncate ' + (isSelected ? 'text-emerald-950 font-black' : 'text-slate-800')}>
+                                                                        <span className={'text-xs font-medium truncate ' + (isSelected ? 'text-emerald-950 font-medium' : 'text-slate-800')}>
                                                                             {doc.name}
                                                                         </span>
                                                                         {doc.mandatory && (
-                                                                            <span className="text-[7.5px] font-black uppercase px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 shrink-0">
+                                                                            <span className="text-[7.5px] font-medium uppercase px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 shrink-0">
                                                                                 Req
                                                                             </span>
                                                                         )}
@@ -4956,21 +4954,21 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                         {/* SUMMARY OF SELECTED DOCUMENTS */}
                                         <div className="p-3 bg-amber-50/60 rounded-2xl border border-amber-200/80 space-y-1.5">
-                                            <div className="flex justify-between items-center text-[10px] font-black uppercase text-amber-900">
+                                            <div className="flex justify-between items-center text-[10px] font-medium uppercase text-amber-900">
                                                 <span>✓ Handover Document Review List ({selectedDocsList.length} Selected)</span>
-                                                <span className="text-emerald-700 font-extrabold">Ready for Certificate</span>
+                                                <span className="text-emerald-700 font-medium">Ready for Certificate</span>
                                             </div>
                                             {selectedDocsList.length > 0 ? (
                                                 <div className="flex flex-wrap gap-1.5 pt-1">
                                                     {selectedDocsList.map((d, i) => (
-                                                        <span key={d.id || i} className="bg-white border border-amber-300 text-slate-800 text-[9.5px] font-bold px-2.5 py-1 rounded-xl shadow-2xs flex items-center gap-1">
-                                                            <span className="text-emerald-600 font-black">✓</span>
+                                                        <span key={d.id || i} className="bg-white border border-amber-300 text-slate-800 text-[9.5px] font-medium px-2.5 py-1 rounded-xl shadow-2xs flex items-center gap-1">
+                                                            <span className="text-emerald-600 font-medium">✓</span>
                                                             <span>{i+1}. {d.name}</span>
                                                         </span>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <p className="text-[10px] font-bold text-amber-800 italic">
+                                                <p className="text-[10px] font-normal text-amber-900 italic">
                                                     No documents selected yet. Click items above to confirm handover.
                                                 </p>
                                             )}
@@ -4980,16 +4978,16 @@ ON CONFLICT (id) DO NOTHING;`;
                                     {/* ── FINAL ATTENDEE SUMMARY TABLE ── */}
                                     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs space-y-2 p-3">
                                         <div className="flex justify-between items-center">
-                                            <h5 className="text-[10px] font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                                            <h5 className="text-[10px] font-semibold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
                                                 <Icon name="users" size={13}/> Training Attendee Summary ({summaryList.length} Certified Officers)
                                             </h5>
-                                            <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                            <span className="text-[9px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
                                                 Date Ranges Calculated
                                             </span>
                                         </div>
 
                                         <table className="w-full text-left text-xs">
-                                            <thead className="bg-slate-100 text-[9px] font-black uppercase text-slate-500 border-b border-slate-200">
+                                            <thead className="bg-slate-100 text-[9px] font-medium uppercase text-slate-500 border-b border-slate-200">
                                                 <tr>
                                                     <th className="p-2 w-8">#</th>
                                                     <th className="p-2">Trainee Name</th>
@@ -5000,15 +4998,15 @@ ON CONFLICT (id) DO NOTHING;`;
                                             <tbody className="divide-y divide-slate-100">
                                                 {summaryList.map((att, idx) => (
                                                     <tr key={att.attendeeId || idx} className="hover:bg-slate-50/80">
-                                                        <td className="p-2 font-black text-slate-400 text-[10px]">{idx + 1}</td>
-                                                        <td className="p-2 font-bold text-slate-900">{att.name}</td>
+                                                        <td className="p-2 font-medium text-slate-400 text-[10px]">{idx + 1}</td>
+                                                        <td className="p-2 font-normal text-slate-800">{att.name}</td>
                                                         <td className="p-2 text-slate-600">{att.designation}</td>
-                                                        <td className="p-2 font-extrabold text-emerald-800">{att.attendanceDisplay}</td>
+                                                        <td className="p-2 font-medium text-emerald-800">{att.attendanceDisplay}</td>
                                                     </tr>
                                                 ))}
                                                 {summaryList.length === 0 && (
                                                     <tr>
-                                                        <td colSpan="4" className="p-4 text-center text-slate-400 font-bold">
+                                                        <td colSpan="4" className="p-4 text-center text-slate-400 font-medium">
                                                             No attendees recorded yet. Go to Step 2 to add crew members.
                                                         </td>
                                                     </tr>
@@ -5026,24 +5024,24 @@ ON CONFLICT (id) DO NOTHING;`;
                                             return (
                                                 <div key={d} className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2 text-center">
                                                     <div className="flex justify-between items-center">
-                                                        <span className="text-[10px] font-black uppercase text-slate-800">Day {d} Photo</span>
-                                                        <span className="text-[9px] font-bold text-slate-400">{formatTrainingDateText(dDate)}</span>
+                                                        <span className="text-[10px] font-medium uppercase text-slate-800">Day {d} Photo <span className="text-slate-400 font-normal lowercase text-[8.5px]">(optional)</span></span>
+                                                        <span className="text-[9px] font-normal text-slate-500">{formatTrainingDateText(dDate)}</span>
                                                     </div>
 
                                                     {photo ? (
                                                         <div className="space-y-1.5">
                                                             <img src={photo} alt={'Day ' + d + ' Training'} className="w-full h-28 object-cover rounded-xl border border-slate-300 shadow-xs" />
                                                             <div className="flex justify-between items-center">
-                                                                <span className="text-[8px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">✓ Uploaded</span>
-                                                                <button type="button" onClick={() => handleRemovePhoto(d)} className="text-[9px] font-bold text-rose-600 hover:underline cursor-pointer">Remove</button>
+                                                                <span className="text-[8px] font-medium text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">✓ Uploaded</span>
+                                                                <button type="button" onClick={() => handleRemovePhoto(d)} className="text-[9px] font-medium text-rose-600 hover:underline cursor-pointer">Remove</button>
                                                             </div>
                                                         </div>
                                                     ) : (
                                                         <div className="h-28 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center p-2 bg-white/50">
                                                             <Icon name="camera" size={22} className="text-slate-400 mb-1"/>
-                                                            <span className="text-[9px] font-bold text-slate-400 mb-1.5">No Day {d} Photo</span>
-                                                            <label className="text-[8.5px] font-black uppercase bg-violet-600 hover:bg-violet-700 text-white px-2.5 py-1 rounded-lg cursor-pointer transition-all">
-                                                                📷 Take / Upload
+                                                            <span className="text-[9px] font-normal text-slate-400 mb-1.5">No Day {d} Photo (Optional)</span>
+                                                            <label className="text-[8.5px] font-medium uppercase bg-slate-700 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg cursor-pointer transition-all">
+                                                                📷 Take / Upload (Optional)
                                                                 <input type="file" accept="image/*" capture="environment" onChange={e => handlePhotoUpload(e, d)} className="hidden" />
                                                             </label>
                                                         </div>
@@ -5055,30 +5053,30 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                     {/* Comprehensive Multi-Day Validation Status Box */}
                                     <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-                                        <h5 className="text-[10px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                                        <h5 className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
                                             <Icon name="check-circle" size={13}/> Final Certificate Audit Checklist
                                         </h5>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
                                             <div className="p-2 bg-white rounded-xl border border-slate-200">
-                                                <span className="text-slate-400 font-bold block text-[8.5px]">PROGRAM:</span>
-                                                <span className="font-extrabold text-emerald-700">✓ Valid</span>
+                                                <span className="text-slate-400 font-medium block text-[8.5px]">PROGRAM:</span>
+                                                <span className="font-medium text-emerald-700">✓ Valid</span>
                                             </div>
                                             <div className="p-2 bg-white rounded-xl border border-slate-200">
-                                                <span className="text-slate-400 font-bold block text-[8.5px]">ATTENDANCE:</span>
-                                                <span className={'font-extrabold ' + (Object.keys(attendanceByDay).length >= trainingDays ? 'text-emerald-700' : 'text-amber-600')}>
+                                                <span className="text-slate-400 font-medium block text-[8.5px]">ATTENDANCE:</span>
+                                                <span className={'font-medium ' + (Object.keys(attendanceByDay).length >= trainingDays ? 'text-emerald-700' : 'text-amber-600')}>
                                                     {Object.keys(attendanceByDay).length}/{trainingDays} Days Recorded
                                                 </span>
                                             </div>
                                             <div className="p-2 bg-white rounded-xl border border-slate-200">
-                                                <span className="text-slate-400 font-bold block text-[8.5px]">CHECKLIST:</span>
-                                                <span className={'font-extrabold ' + (completionPct === 100 ? 'text-emerald-700' : 'text-rose-600')}>
+                                                <span className="text-slate-400 font-medium block text-[8.5px]">CHECKLIST:</span>
+                                                <span className={'font-medium ' + (completionPct === 100 ? 'text-emerald-700' : 'text-rose-600')}>
                                                     {completionPct === 100 ? '✓ 100% Cleared' : (completedCount + '/' + totalCount + ' Done')}
                                                 </span>
                                             </div>
                                             <div className="p-2 bg-white rounded-xl border border-slate-200">
-                                                <span className="text-slate-400 font-bold block text-[8.5px]">PHOTOS:</span>
-                                                <span className={'font-extrabold ' + (Object.keys(photosByDay).length > 0 ? 'text-emerald-700' : 'text-amber-600')}>
-                                                    {Object.keys(photosByDay).length} Day Photos
+                                                <span className="text-slate-400 font-medium block text-[8.5px]">PHOTOS (OPTIONAL):</span>
+                                                <span className={'font-medium ' + (Object.keys(photosByDay).length > 0 ? 'text-emerald-700' : 'text-slate-500')}>
+                                                    {Object.keys(photosByDay).length > 0 ? (Object.keys(photosByDay).length + ' Day Photos') : 'None (Optional)'}
                                                 </span>
                                             </div>
                                         </div>
@@ -5097,7 +5095,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                     <button
                                         type="button"
                                         onClick={() => setWizardStep(prev => Math.max(1, prev - 1))}
-                                        className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-2xl font-black text-xs uppercase tracking-wider cursor-pointer transition-all"
+                                        className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-2xl font-medium text-xs uppercase tracking-wider cursor-pointer transition-all"
                                     >
                                         <Icon name="arrow-left" size={13}/> Back
                                     </button>
@@ -5105,7 +5103,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                 <button
                                     type="button"
                                     onClick={() => handleSave('Draft', true)}
-                                    className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-wider cursor-pointer transition-all"
+                                    className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-4 py-2 rounded-2xl font-medium text-xs uppercase tracking-wider cursor-pointer transition-all"
                                     title="Save current day progress and close"
                                 >
                                     <Icon name="save" size={13}/> 💾 Save Day {trainingDay} &amp; Exit
@@ -5125,7 +5123,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 setWizardStep(prev => prev + 1);
                                             }
                                         }}
-                                        className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-2xl font-black text-xs uppercase tracking-wider cursor-pointer transition-all shadow-md"
+                                        className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-2xl font-medium text-xs uppercase tracking-wider cursor-pointer transition-all shadow-md"
                                     >
                                         Save &amp; Next <Icon name="arrow-right" size={14}/>
                                     </button>
@@ -5134,14 +5132,14 @@ ON CONFLICT (id) DO NOTHING;`;
                                         <button
                                             type="button"
                                             onClick={handlePrintDirect}
-                                            className="flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-wider cursor-pointer transition-all shadow-xs"
+                                            className="flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-2xl font-medium text-xs uppercase tracking-wider cursor-pointer transition-all shadow-xs"
                                         >
                                             <Icon name="printer" size={13}/> Print PDF
                                         </button>
                                         <button
                                             type="button"
                                             onClick={handleAttemptFinalize}
-                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-2xl font-black text-xs uppercase tracking-wider cursor-pointer transition-all shadow-lg"
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-2xl font-medium text-xs uppercase tracking-wider cursor-pointer transition-all shadow-lg"
                                         >
                                             <Icon name="check-circle" size={13}/> 🎓 Complete &amp; Issue Certificate
                                         </button>
@@ -5198,8 +5196,8 @@ ON CONFLICT (id) DO NOTHING;`;
             const completedCount = questionsList.filter(q => q.completed).length;
 
             return (
-                <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-xs">
-                    <div className="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl border-2 border-amber-500/40 modal-animate space-y-4 max-h-[92vh] flex flex-col text-slate-800 relative overflow-hidden">
+                <div className="fixed inset-0 z-60 bg-white flex flex-col text-slate-800 overflow-hidden">
+                    <div className="bg-white w-full h-full p-4 sm:p-6 space-y-4 flex flex-col text-slate-800 relative overflow-hidden max-w-6xl mx-auto">
                         {/* Certificate Decorative Border Accents */}
                         <div className="absolute inset-2 border border-amber-400/30 rounded-2xl pointer-events-none z-0"></div>
 
@@ -5941,89 +5939,91 @@ ON CONFLICT (id) DO NOTHING;`;
                         />
                     </div>
 
-                    {/* Portal Header */}
-                    <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col justify-center relative z-10">
-                        <div className="text-center mb-2 sm:mb-2.5 fade-up">
-                            <div className="flex justify-center mb-1 relative">
-                                <div className="relative inline-flex items-center justify-center">
-                                    <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-amber-500/20 via-red-500/20 to-teal-500/20 blur-md opacity-75"></div>
-                                    <img 
-                                        src="./logo.png" 
-                                        alt="Indus Fire Safety Logo" 
-                                        className="w-10 h-10 rounded-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.15)] relative z-10 transition-transform duration-300 hover:scale-105" 
-                                    />
+                    {/* Portal Header & Body Container */}
+                    <div className={`mx-auto w-full flex-1 flex flex-col relative z-10 ${isTrainerMode ? 'max-w-5xl justify-start pt-1 sm:pt-2' : 'max-w-4xl justify-center'}`}>
+                        {!isTrainerMode && (
+                            <div className="text-center mb-2 sm:mb-2.5 fade-up">
+                                <div className="flex justify-center mb-1 relative">
+                                    <div className="relative inline-flex items-center justify-center">
+                                        <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-amber-500/20 via-red-500/20 to-teal-500/20 blur-md opacity-75"></div>
+                                        <img 
+                                            src="./logo.png" 
+                                            alt="Indus Fire Safety Logo" 
+                                            className="w-10 h-10 rounded-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.15)] relative z-10 transition-transform duration-300 hover:scale-105" 
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex justify-center items-center gap-1.5 mb-1.5 flex-wrap">
-                                <button
-                                    type="button"
-                                    onClick={() => { setPortalMode('portal'); setIsTrainerMode(false); }}
-                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
-                                        portalMode === 'portal' && !isTrainerMode
-                                            ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
-                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
-                                    }`}
-                                >
-                                    <div className={`w-1.5 h-1.5 rounded-full ${portalMode === 'portal' && !isTrainerMode ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`}></div>
-                                    <span>Customer Portal</span>
-                                </button>
+                                <div className="flex justify-center items-center gap-1.5 mb-1.5 flex-wrap">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setPortalMode('portal'); setIsTrainerMode(false); }}
+                                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+                                            portalMode === 'portal' && !isTrainerMode
+                                                ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
+                                        }`}
+                                    >
+                                        <div className={`w-1.5 h-1.5 rounded-full ${portalMode === 'portal' && !isTrainerMode ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`}></div>
+                                        <span>Customer Portal</span>
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (isTrainerMode) {
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (isTrainerMode) {
+                                                setIsTrainerMode(false);
+                                            } else {
+                                                setTrainerPassInput('');
+                                                setTrainerPassError(false);
+                                                setShowTrainerAuthModal(true);
+                                            }
+                                        }}
+                                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+                                            isTrainerMode
+                                                ? 'bg-amber-600 border-amber-600 text-white shadow-xs'
+                                                : 'bg-white border-slate-200 text-slate-700 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 shadow-2xs'
+                                        }`}
+                                        title="Access Commissioning & Training Wizard for Field Engineers"
+                                    >
+                                        <Icon name="award" size={10} className={isTrainerMode ? 'text-white' : 'text-amber-500'}/>
+                                        <span>Training / Commissioning</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
                                             setIsTrainerMode(false);
-                                        } else {
-                                            setTrainerPassInput('');
-                                            setTrainerPassError(false);
-                                            setShowTrainerAuthModal(true);
-                                        }
-                                    }}
-                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
-                                        isTrainerMode
-                                            ? 'bg-amber-600 border-amber-600 text-white shadow-xs'
-                                            : 'bg-white border-slate-200 text-slate-700 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 shadow-2xs'
-                                    }`}
-                                    title="Access Commissioning & Training Wizard for Field Engineers"
-                                >
-                                    <Icon name="award" size={10} className={isTrainerMode ? 'text-white' : 'text-amber-500'}/>
-                                    <span>Training / Commissioning</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsTrainerMode(false);
-                                        setPortalMode(portalMode === 'login' ? 'portal' : 'login');
-                                    }}
-                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
-                                        portalMode === 'login'
-                                            ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
-                                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
-                                    }`}
-                                    title="Authorized Staff & Executive Sign-In"
-                                >
-                                    <Icon name="lock" size={10} className={portalMode === 'login' ? 'text-amber-400' : 'text-slate-500'}/>
-                                    <span>Staff Login</span>
-                                </button>
+                                            setPortalMode(portalMode === 'login' ? 'portal' : 'login');
+                                        }}
+                                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+                                            portalMode === 'login'
+                                                ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
+                                        }`}
+                                        title="Authorized Staff & Executive Sign-In"
+                                    >
+                                        <Icon name="lock" size={10} className={portalMode === 'login' ? 'text-amber-400' : 'text-slate-500'}/>
+                                        <span>Staff Login</span>
+                                    </button>
+                                </div>
+                                <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight mb-0.5">
+                                    {portalMode === 'login' ? (
+                                        <>FireFlow Enterprise <span className="text-amber-600">Access</span></>
+                                    ) : isTrainerMode ? (
+                                        <>Field Trainer <span className="text-amber-600">Commissioning Hub</span></>
+                                    ) : (
+                                        <>FireFlow Warranty <span className="text-amber-600">Support Hub</span></>
+                                    )}
+                                </h1>
+                                <p className="text-slate-500 text-[10.5px] sm:text-[11.5px] font-semibold">
+                                    {portalMode === 'login'
+                                        ? 'Authorized Staff & Executive Credentials Gateway • Auto-Unlock Terminal'
+                                        : isTrainerMode
+                                            ? 'Multi-Day Operator Training & Apparatus Handover System'
+                                            : 'Look up warranty status • Log complaints • Track ticket progress • Self-help guides'}
+                                </p>
                             </div>
-                            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight mb-0.5">
-                                {portalMode === 'login' ? (
-                                    <>FireFlow Enterprise <span className="text-amber-600">Access</span></>
-                                ) : isTrainerMode ? (
-                                    <>Field Trainer <span className="text-amber-600">Commissioning Hub</span></>
-                                ) : (
-                                    <>FireFlow Warranty <span className="text-amber-600">Support Hub</span></>
-                                )}
-                            </h1>
-                            <p className="text-slate-500 text-[10.5px] sm:text-[11.5px] font-semibold">
-                                {portalMode === 'login'
-                                    ? 'Authorized Staff & Executive Credentials Gateway • Auto-Unlock Terminal'
-                                    : isTrainerMode
-                                        ? 'Multi-Day Operator Training & Apparatus Handover System'
-                                        : 'Look up warranty status • Log complaints • Track ticket progress • Self-help guides'}
-                            </p>
-                        </div>
+                        )}
 
                         {/* ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? */}
                         {/* TRAINER MODE DASHBOARD (ISOLATED & RESTRICTED ACCESS)  */}
@@ -6037,7 +6037,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                     </div>
 
                                     <div>
-                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm sm:text-base">
+                                        <h3 className="font-semibold text-slate-900 uppercase tracking-tight text-sm sm:text-base">
                                             Secure Access Terminal
                                         </h3>
                                         <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">
@@ -6061,7 +6061,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 placeholder="••••"
                                                 autoFocus
                                                 maxLength={4}
-                                                className="w-full bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl px-3 py-2 text-base font-black text-slate-900 outline-none text-center tracking-[0.35em] transition-all"
+                                                className="w-full bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl px-3 py-2 text-base font-medium text-slate-900 outline-none text-center tracking-[0.35em] transition-all"
                                             />
                                             <button
                                                 type="button"
@@ -6074,7 +6074,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                         </div>
 
                                         {loginError && (
-                                            <p className="text-rose-600 text-[11px] font-black uppercase tracking-wider animate-pulse">
+                                            <p className="text-rose-600 text-[11px] font-medium uppercase tracking-wider animate-pulse">
                                                 Invalid passcode. Access denied.
                                             </p>
                                         )}
@@ -6083,44 +6083,39 @@ ON CONFLICT (id) DO NOTHING;`;
                                             <button
                                                 type="button"
                                                 onClick={() => { setPortalMode('portal'); setLoginInput(''); setLoginError(false); }}
-                                                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-[11px] font-medium uppercase tracking-wider transition-all cursor-pointer"
                                             >
                                                 ← Customer
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={isVerifying}
-                                                className="flex-1 bg-slate-900 hover:bg-black text-white py-2 rounded-xl text-[11px] font-black uppercase tracking-wider shadow-sm transition-all cursor-pointer disabled:opacity-60"
+                                                className="flex-1 bg-slate-900 hover:bg-black text-white py-2 rounded-xl text-[11px] font-medium uppercase tracking-wider shadow-sm transition-all cursor-pointer disabled:opacity-60"
                                             >
                                                 {isVerifying ? 'Verifying...' : 'Unlock →'}
                                             </button>
                                         </div>
                                     </form>
-
-                                    
-                                    </div>
                                 </div>
                             </div>
                         ) : isTrainerMode ? (
-                            <div className="space-y-2.5 fade-up text-left max-w-4xl mx-auto w-full overflow-y-auto max-h-[calc(100vh-170px)] pr-1 custom-scrollbar">
-                                {/* Compact Executive Session Strip */}
+                            <div className="space-y-2.5 fade-up text-left max-w-5xl mx-auto w-full flex-1 flex flex-col justify-start overflow-y-auto max-h-[calc(100vh-30px)] pr-1 custom-scrollbar">
+                                {/* Compact Executive Session Navbar */}
                                 <div className="bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/90 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
                                     <div className="flex items-center gap-2.5">
-                                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center shrink-0">
-                                            <Icon name="award" size={16} className="text-amber-600"/>
-                                        </div>
+                                        <img src="./logo.png" alt="Indus Fire Safety Logo" className="w-8 h-8 rounded-full object-contain border border-amber-300 shadow-2xs bg-white shrink-0" />
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <h2 className="text-xs font-black text-slate-900 uppercase tracking-tight">
-                                                    Active Commissioning Session
+                                                <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-tight">
+                                                    Field Trainer Commissioning Hub
                                                 </h2>
-                                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <span className="inline-flex items-center gap-1 text-[9px] font-medium uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                    Authorized
+                                                    Authorized Session
                                                 </span>
                                             </div>
-                                            <p className="text-[10px] font-semibold text-slate-400">
-                                                Logged in as Field Trainer &bull; Apparatus Handover &amp; Commissioning Mode
+                                            <p className="text-[10px] font-medium text-slate-500">
+                                                Multi-Day Operator Training &amp; Apparatus Handover System
                                             </p>
                                         </div>
                                     </div>
@@ -6131,9 +6126,9 @@ ON CONFLICT (id) DO NOTHING;`;
                                             setSelectedTrainerCustomer(null);
                                             setSelectedTrainerTruck(null);
                                         }}
-                                        className="inline-flex items-center gap-1 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded-lg text-[10.5px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
+                                        className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded-lg text-[10.5px] font-medium uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
                                     >
-                                        <Icon name="log-out" size={12} className="text-slate-400"/> Exit Session
+                                        <Icon name="log-out" size={12} className="text-slate-500"/> Exit Session
                                     </button>
                                 </div>
 
@@ -6154,8 +6149,8 @@ ON CONFLICT (id) DO NOTHING;`;
                                         <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5">
                                             <div className="flex flex-wrap justify-between items-center gap-2">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-black">1</span>
-                                                    <label className="text-[11px] font-black uppercase text-slate-800 tracking-wider">
+                                                    <span className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-medium">1</span>
+                                                    <label className="text-[11px] font-medium uppercase text-slate-800 tracking-wider">
                                                         Select Customer Organization
                                                     </label>
                                                 </div>
@@ -6164,7 +6159,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowCompletedCustomers(!showCompletedCustomers)}
-                                                            className="inline-flex items-center gap-1 text-[9.5px] font-extrabold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-2 py-0.5 rounded-md cursor-pointer transition-all"
+                                                            className="inline-flex items-center gap-1 text-[9.5px] font-medium text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-2 py-0.5 rounded-md cursor-pointer transition-all"
                                                         >
                                                             <Icon name={showCompletedCustomers ? "eye-off" : "eye"} size={10}/>
                                                             {showCompletedCustomers ? 'Hide Trained' : (`Show All (${completedOnlyCustomers.length} Trained)`)}
@@ -6231,8 +6226,8 @@ ON CONFLICT (id) DO NOTHING;`;
                                         <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5 fade-up">
                                             <div className="flex flex-wrap justify-between items-center gap-2">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-black">2</span>
-                                                    <label className="text-[11px] font-black uppercase text-slate-800 tracking-wider">
+                                                    <span className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-medium">2</span>
+                                                    <label className="text-[11px] font-medium uppercase text-slate-800 tracking-wider">
                                                         Select Vehicle / Tender Apparatus
                                                     </label>
                                                 </div>
@@ -6241,7 +6236,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowCompletedTrucks(!showCompletedTrucks)}
-                                                            className="inline-flex items-center gap-1 text-[9.5px] font-extrabold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-2 py-0.5 rounded-md cursor-pointer transition-all"
+                                                            className="inline-flex items-center gap-1 text-[9.5px] font-medium text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-2 py-0.5 rounded-md cursor-pointer transition-all"
                                                         >
                                                             <Icon name={showCompletedTrucks ? "eye-off" : "eye"} size={10}/>
                                                             {showCompletedTrucks ? 'Hide Completed' : (`View Completed (${completedTrucks.length})`)}
@@ -6259,10 +6254,10 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 </div>
                                             ) : visibleTrucks.length === 0 ? (
                                                 <div className="p-4 text-center bg-emerald-50/60 rounded-lg border border-emerald-200 space-y-1.5 fade-up">
-                                                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto text-xs font-black">
+                                                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto text-xs font-medium">
                                                         <Icon name="check-circle" size={16} className="text-emerald-600"/>
                                                     </div>
-                                                    <h5 className="text-xs font-black uppercase text-emerald-950">
+                                                    <h5 className="text-xs font-semibold uppercase text-emerald-950">
                                                         All Vehicles Commissioned &amp; Trained
                                                     </h5>
                                                     <p className="text-[10px] font-bold text-emerald-700">
@@ -6271,7 +6266,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowCompletedTrucks(true)}
-                                                        className="mt-1 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-md text-[9.5px] font-black uppercase tracking-wider cursor-pointer shadow-2xs transition-all"
+                                                        className="mt-1 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-md text-[9.5px] font-medium uppercase tracking-wider cursor-pointer shadow-2xs transition-all"
                                                     >
                                                         View Certificates ({completedTrucks.length})
                                                     </button>
@@ -6297,11 +6292,11 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                 }`}
                                                             >
                                                                 <div className="flex justify-between items-start gap-1.5">
-                                                                    <span className="font-black text-[11px] text-slate-900 uppercase tracking-tight">
+                                                                    <span className="font-medium text-[11px] text-slate-900 uppercase tracking-tight">
                                                                         {t.tenderType || 'Fire Tender'}
                                                                     </span>
                                                                     {existingCert ? (
-                                                                        <span className={'inline-flex items-center gap-0.5 text-[8px] font-black uppercase px-1.5 py-0.5 rounded ' + (
+                                                                        <span className={'inline-flex items-center gap-0.5 text-[8px] font-medium uppercase px-1.5 py-0.5 rounded ' + (
                                                                             existingCert.status === 'Finalized'
                                                                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                                                                 : 'bg-amber-100 text-amber-900 border border-amber-200'
@@ -6310,7 +6305,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                             {existingCert.status === 'Finalized' ? 'Done' : `Day ${existingCert.currentDay || 1}`}
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700">
+                                                                        <span className="text-[8px] font-medium uppercase px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700">
                                                                             Pending
                                                                         </span>
                                                                     )}
@@ -6318,7 +6313,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                 <div className="text-[9.5px] space-y-0.5 text-slate-600 font-semibold border-t border-slate-200/60 pt-1.5">
                                                                     <div className="flex justify-between">
                                                                         <span className="text-slate-400 font-bold">PO No:</span>
-                                                                        <span className="font-extrabold text-slate-800">{t.poNo || 'N/A'}</span>
+                                                                        <span className="font-medium text-slate-800">{t.poNo || 'N/A'}</span>
                                                                     </div>
                                                                     <div className="flex justify-between">
                                                                         <span className="text-slate-400 font-bold">Chassis:</span>
@@ -6351,9 +6346,9 @@ ON CONFLICT (id) DO NOTHING;`;
                                         <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-3 fade-up">
                                             <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 pb-2">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-black">3</span>
+                                                    <span className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-medium">3</span>
                                                     <div>
-                                                        <h3 className="text-[11px] font-black uppercase text-slate-900 tracking-wider">
+                                                        <h3 className="text-[11px] font-semibold uppercase text-slate-900 tracking-wider">
                                                             Verified Apparatus Specifications
                                                         </h3>
                                                         <p className="text-[9.5px] font-semibold text-slate-400">
@@ -6361,7 +6356,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <span className="inline-flex items-center gap-1 text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                                <span className="inline-flex items-center gap-1 text-[8.5px] font-medium uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                                                     <Icon name="lock" size={9} className="text-slate-400"/> Snapshot Protected
                                                 </span>
                                             </div>
@@ -6369,35 +6364,35 @@ ON CONFLICT (id) DO NOTHING;`;
                                             {/* Specification Grid */}
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50/80 p-2.5 rounded-lg border border-slate-200/80 text-[10px]">
                                                 <div>
-                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Customer</span>
-                                                    <span className="font-extrabold text-slate-900 truncate block">{selectedTrainerCustomer.name}</span>
+                                                    <span className="text-[8.5px] font-medium uppercase text-slate-400 block">Customer</span>
+                                                    <span className="font-medium text-slate-900 truncate block">{selectedTrainerCustomer.name}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">PO Number</span>
-                                                    <span className="font-extrabold text-slate-900 block">{selectedTrainerTruck.poNo || 'N/A'}</span>
+                                                    <span className="text-[8.5px] font-medium uppercase text-slate-400 block">PO Number</span>
+                                                    <span className="font-medium text-slate-900 block">{selectedTrainerTruck.poNo || 'N/A'}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Tender Type</span>
-                                                    <span className="font-extrabold text-slate-900 block">{selectedTrainerTruck.tenderType || 'Fire Tender'}</span>
+                                                    <span className="text-[8.5px] font-medium uppercase text-slate-400 block">Tender Type</span>
+                                                    <span className="font-medium text-slate-900 block">{selectedTrainerTruck.tenderType || 'Fire Tender'}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Delivery Date</span>
-                                                    <span className="font-extrabold text-slate-900 block">{formatDate(selectedTrainerTruck.deliveryDate)}</span>
+                                                    <span className="text-[8.5px] font-medium uppercase text-slate-400 block">Delivery Date</span>
+                                                    <span className="font-medium text-slate-900 block">{formatDate(selectedTrainerTruck.deliveryDate)}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Chassis</span>
+                                                    <span className="text-[8.5px] font-medium uppercase text-slate-400 block">Chassis</span>
                                                     <span className="font-bold text-slate-800 block">{selectedTrainerTruck.chassisMake || chassisOem.brand} {selectedTrainerTruck.chassisModel || ''}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Fire Pump</span>
+                                                    <span className="text-[8.5px] font-medium uppercase text-slate-400 block">Fire Pump</span>
                                                     <span className="font-bold text-slate-800 block">{selectedTrainerTruck.pumpMake || pumpOem.brand}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Pump Serial</span>
+                                                    <span className="text-[8.5px] font-medium uppercase text-slate-400 block">Pump Serial</span>
                                                     <span className="font-bold text-slate-800 block">{selectedTrainerTruck.pumpSrNo || 'N/A'}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[8.5px] font-black uppercase text-slate-400 block">Capacity</span>
+                                                    <span className="text-[8.5px] font-medium uppercase text-slate-400 block">Capacity</span>
                                                     <span className="font-bold text-slate-800 block">{selectedTrainerTruck.waterCapacity || 'Std'}L / {selectedTrainerTruck.foamCapacity || 'Std'}L</span>
                                                 </div>
                                             </div>
@@ -6407,8 +6402,8 @@ ON CONFLICT (id) DO NOTHING;`;
                                                 <div className="bg-amber-500/10 p-3 rounded-lg border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                                                     <div>
                                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                                            <span className="text-[11px] font-black uppercase text-amber-950">Existing Record Found</span>
-                                                            <span className={'inline-flex items-center gap-0.5 text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded ' + (
+                                                            <span className="text-[11px] font-medium uppercase text-amber-950">Existing Record Found</span>
+                                                            <span className={'inline-flex items-center gap-0.5 text-[8.5px] font-medium uppercase px-1.5 py-0.5 rounded ' + (
                                                                 existingCert.status === 'Finalized' ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
                                                             )}>
                                                                 <Icon name={existingCert.status === 'Finalized' ? "check-circle" : "clock"} size={9}/>
@@ -6427,7 +6422,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         <button
                                                             type="button"
                                                             onClick={() => setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: existingCert })}
-                                                            className="bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-lg text-[10.5px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all"
+                                                            className="bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-lg text-[10.5px] font-medium uppercase tracking-wider flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all"
                                                         >
                                                             <Icon name="play" size={12} className="text-amber-400"/> Continue Day {existingCert.currentDay || 1}
                                                         </button>
@@ -6447,7 +6442,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                             ) : (
                                                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                                                     <div>
-                                                        <h4 className="text-[11px] font-black uppercase text-slate-800">
+                                                        <h4 className="text-[11px] font-semibold uppercase text-slate-800">
                                                             Ready to Initiate Handover &amp; Training
                                                         </h4>
                                                         <p className="text-[9.5px] font-semibold text-slate-500 mt-0.5">
@@ -6457,7 +6452,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelectedCommissioningTruck({ truck: selectedTrainerTruck, customer: selectedTrainerCustomer, cert: null })}
-                                                        className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-[10.5px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 shadow-xs shadow-amber-600/20 cursor-pointer transition-all shrink-0"
+                                                        className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-[10.5px] font-medium uppercase tracking-wider inline-flex items-center gap-1.5 shadow-xs shadow-amber-600/20 cursor-pointer transition-all shrink-0"
                                                     >
                                                         <Icon name="award" size={13}/> Launch Training Wizard <Icon name="arrow-right" size={12}/>
                                                     </button>
@@ -6704,6 +6699,18 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                                                         {existingCert && (
                                                                             <div className="flex items-center gap-2 shrink-0">
+                                {deliverySubmissions.filter(s => s.status === 'Pending Approval').length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPendingSubmissionsModal(true)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-xs transition-colors cursor-pointer text-xs font-bold animate-pulse"
+                                        title="New vehicle registrations submitted awaiting approval"
+                                    >
+                                        <span>🔔</span>
+                                        <span>{deliverySubmissions.filter(s => s.status === 'Pending Approval').length} Pending Approval</span>
+                                    </button>
+                                )}
+
                                                                                 <button
                                                                                     type="button"
                                                                                     onClick={() => printCommissioningCertificatePdf(existingCert, foundTruck, cust)}
@@ -10338,6 +10345,114 @@ ON CONFLICT (id) DO NOTHING;`;
                         {/* ── TAB 1: DASHBOARD ── */}
                         {activeTab === 'dashboard' && (
                             <div className="space-y-4 fade-up">
+                                {/* 🔔 PENDING DELIVERY SUBMISSIONS APPROVAL SECTION (IN MAIN DASHBOARD) */}
+                                {(() => {
+                                    const pendingSubs = deliverySubmissions.filter(s => s.status === 'Pending Approval');
+                                    if (pendingSubs.length === 0) return null;
+                                    return (
+                                        <div className="bg-gradient-to-r from-amber-50 via-orange-50/40 to-white border border-amber-300 rounded-2xl p-4 shadow-2xs space-y-3">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-amber-200/70">
+                                                <div className="flex items-center gap-2.5">
+                                                    <span className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-sm font-bold shadow-xs">
+                                                        🔔
+                                                    </span>
+                                                    <div>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight">
+                                                                New Vehicle Deliveries Awaiting Approval
+                                                            </h2>
+                                                            <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                                                                {pendingSubs.length} Action Required
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[11px] text-slate-500 font-normal mt-0.5">
+                                                            Submitted via Dispatch Entry. Review, edit any specifications, and approve to save into the live system.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPendingSubmissionsModal(true)}
+                                                    className="h-8 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
+                                                >
+                                                    <span>📋 View Queue ({pendingSubs.length})</span>
+                                                </button>
+                                            </div>
+
+                                            {/* Cards Grid */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                                                {pendingSubs.map((sub, idx) => (
+                                                    <div key={sub.id || idx} className="bg-white border border-slate-200/90 rounded-xl p-3 shadow-2xs hover:border-amber-400 transition-all space-y-2.5 flex flex-col justify-between">
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <span className="font-bold text-xs text-slate-900 uppercase tracking-tight line-clamp-1" title={sub.customerName || sub.customer_name}>
+                                                                    {sub.customerName || sub.customer_name}
+                                                                </span>
+                                                                <span className="text-[10px] font-mono font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.2 rounded shrink-0">
+                                                                    PO: {sub.poNo || sub.po_no}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="text-[11px] text-slate-600 space-y-0.5 bg-slate-50/80 p-2 rounded-lg border border-slate-100">
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-slate-400 font-normal">Tender Type:</span>
+                                                                    <span className="font-medium text-slate-800 uppercase">{sub.tenderType || 'Fire Tender'}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-slate-400 font-normal">Pump Specs:</span>
+                                                                    <span className="font-medium text-slate-800">{sub.pumpMake || '—'} {sub.pumpSrNo ? `(${sub.pumpSrNo})` : ''} · {sub.pumpLpm || '—'} LPM</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-slate-400 font-normal">PTO Specs:</span>
+                                                                    <span className="font-medium text-slate-800">{sub.ptoMake || '—'} {sub.ptoRatio ? `(${sub.ptoRatio})` : ''}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-slate-400 font-normal">Capacities:</span>
+                                                                    <span className="font-medium text-slate-800">{sub.waterCapacity || 0}W / {sub.foamCapacity || 0}F</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Action Buttons */}
+                                                        <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setEditingSubmission(sub)}
+                                                                className="flex-1 h-7 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                                                                title="Edit all fields and review"
+                                                            >
+                                                                <span>✏️</span> Review &amp; Edit
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleApproveSubmission(sub)}
+                                                                className="flex-1 h-7 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[11px] font-semibold flex items-center justify-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                                                                title="Approve and save to live system"
+                                                            >
+                                                                <span>✓</span> Approve
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (confirm(`Reject and delete submission for "${sub.customerName || sub.customer_name}"?`)) {
+                                                                        const updated = deliverySubmissions.filter(s => s.id !== sub.id);
+                                                                        setDeliverySubmissions(updated);
+                                                                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(updated)); } catch(e){}
+                                                                    }
+                                                                }}
+                                                                className="h-7 w-7 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md flex items-center justify-center transition-colors cursor-pointer text-xs"
+                                                                title="Reject and delete"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
                                 {/* ═══ ENTERPRISE COMPACT KPI GRID (Matching Reference) ═══ */}
                                 <div className="space-y-2.5">
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
@@ -11995,7 +12110,7 @@ ON CONFLICT (id) DO NOTHING;`;
 
                                 <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs flex justify-between items-center">
                                     <span className="font-bold text-slate-500">Current Password:</span>
-                                    <span className="font-black text-slate-900 font-mono tracking-widest">{currentTrainerPass}</span>
+                                    <span className="font-black text-slate-900 font-mono tracking-widest">••••••</span>
                                 </div>
 
                                 <div className="space-y-2">
@@ -13353,6 +13468,285 @@ ON CONFLICT (id) DO NOTHING;`;
         // ══════════════════════════════════════════════════════════════════════════════
         // 🚚 CLEAN FULL-SCREEN LANDSCAPE REGISTER CLIENT TO DELIVERY (PIN: 2038)
         // ══════════════════════════════════════════════════════════════════════════════
+        
+        // ══════════════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════════════════
+        // ⚡ COGNITIVE AI DOCUMENT INTELLIGENCE ENGINE (FIRE TENDER FLEET SPECS & PO)
+        // ══════════════════════════════════════════════════════════════════════════════
+
+        const normalizeDateForInput = (dStr) => {
+            if (!dStr) return '';
+            const clean = String(dStr).trim().replace(/\./g, '-').replace(/\//g, '-');
+            const parts = clean.split('-');
+            if (parts.length === 3) {
+                let [d, m, y] = parts;
+                if (d.length === 4) {
+                    return `${d}-${m.padStart(2, '0')}-${y.padStart(2, '0')}`;
+                }
+                if (y.length === 2) y = '20' + y;
+                return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            }
+            return '';
+        };
+
+        const isIndusVendor = (text) => {
+            if (!text) return false;
+            const s = String(text).toUpperCase();
+            return /\bINDUS\s*FIRE\b/i.test(s) ||
+                   /\bIFSPL\b/i.test(s) ||
+                   /\bINDUS\s*HOUSE\b/i.test(s) ||
+                   /\bDAS[HA]RATH\b/i.test(s) ||
+                   /@INDUSFIRE\.COM/i.test(s) ||
+                   /\b234344[12]\b/.test(s) ||
+                   /\b7574000348\b/.test(s);
+        };
+
+        const cleanStr = s => s ? String(s).trim().replace(/^[:\-–=\/\\\|]\s*/, '').replace(/\s+/g, ' ') : '';
+
+        // ── ADVANCED COGNITIVE REASONER FOR FIRE TENDER FLEET DOCUMENTS ──
+        // STRICT EXTRACTION RULES (PER USER SPECIFICATION):
+        // 1. PO Copy: Extracts ONLY Client Name, Purchase Order Number & Date
+        // 2. Insurance Copy: Extracts ONLY Insurance Company, Insurance Number, and Expire Date
+        // 3. Standard Card: Extracts ONLY Pump, PTO, Water & Foam, DCP & Auxiliary Details
+        // All remaining details: Filled by manual entry!
+        const parseCognitiveFireTenderDocuments = (text, docHint = 'auto') => {
+            if (!text) return {};
+            const t = text.replace(/\r\n/g, '\n');
+            const result = {};
+
+            const isStandardCard = docHint === 'standardCard' || /FIRE\s*TENDER\s*SPECIFICATION/i.test(t) || /Pump\s*Model\s*No/i.test(t) || (/P\.?\s*T\.?\s*O/i.test(t) && /Ratio/i.test(t) && /Water\s*Tank\s*Capacity/i.test(t));
+            const isPO = docHint === 'po' || docHint === 'poCopy' || /PURCHASE\s*ORDER/i.test(t) || /WORK\s*ORDER/i.test(t) || (/Purchase\s*Order\s*No/i.test(t) && !/POLICY/i.test(t));
+            const isInsurance = docHint === 'insurance' || docHint === 'insuranceCopy' || /POLICY\s*SCHEDULE/i.test(t) || /CERTIFICATE\s*OF\s*INSURANCE/i.test(t) || /Period\s*of\s*cover/i.test(t) || /INSURED\s*DETAILS/i.test(t);
+
+            // 1. STANDARD CARD / NAME PLATE (Extract ONLY: Pump, PTO, Water & Foam, DCP & Details)
+            if (isStandardCard) {
+                // Pump LPM
+                const pumpCapMatch = t.match(/Pump\s*(?:Capacity)?[:\-–\s]*(?:Capacity[:\-–\s]*)?(\d{3,5})\s*LPM/i);
+                if (pumpCapMatch) result.pumpLpm = pumpCapMatch[1];
+
+                // Pump Make
+                const pumpMakeMatch = t.match(/Pump\s*Model\s*No\.?\s*(?:Make[:\-–\s]*)?([A-Za-z0-9\s]+?)(?=\n|Model|$)/i) ||
+                                      t.match(/Make[:\-–\s]*(FIREFLY|FIRE\s*FLY|GODIVA|ROSENBAUER|ZIEGLER|DARLEY|WATEROUS|HALE)/i);
+                if (pumpMakeMatch) {
+                    let mk = cleanStr(pumpMakeMatch[1]).replace(/Make\s*[:\-–]/i, '').trim();
+                    if (mk.length > 2) result.pumpMake = mk.toUpperCase();
+                }
+
+                // Pump Serial No (Extracts complete V11517 even if PDF has intra-string spacing "V11 517")
+                const pumpSrMatch = t.match(/Pump\s*Serial\s*No\.?\s*(?:Serial\s*No[:\-–\s]*)?([A-Z0-9\/\-\s]{3,25})(?=\s*Year|\s*P\.?\s*T|\s*$)/i);
+                if (pumpSrMatch) {
+                    let val = cleanStr(pumpSrMatch[1]).replace(/^(?:SERIAL\s*NO|SR\s*NO|NO|NUMBER)\s*[:\-–]?\s*/i, '').trim();
+                    val = val.replace(/\s+/g, '');
+                    if (val && !/^(SERIAL|NUMBER|YEAR)$/i.test(val)) result.pumpSrNo = val.toUpperCase();
+                }
+
+                // PTO Make, Ratio, Serial (Extracts FIRE HAWK, 1:1.48, H35761 even with PDF spacing "P.T. O")
+                const ptoBlock = t.match(/P\.?\s*T\.?\s*O[\s\S]*?(?=UHP|Water\s*Tank|$)/i);
+                if (ptoBlock) {
+                    const ptoText = ptoBlock[0];
+                    const ptoMakeMatch = ptoText.match(/Make[:\-–\s]*([A-Za-z0-9\s\-]+?)(?=\s*Model|\s*Ratio|$)/i);
+                    if (ptoMakeMatch) result.ptoMake = cleanStr(ptoMakeMatch[1]).toUpperCase();
+
+                    const ptoRatioMatch = ptoText.match(/Ratio[\s\-–:]*([0-9\s.:]+?)(?=\s*Serial|\s*Model|$)/i);
+                    if (ptoRatioMatch) result.ptoRatio = cleanStr(ptoRatioMatch[1]).replace(/\s+/g, '');
+
+                    const ptoSrMatch = ptoText.match(/Serial\s*No[:\-–\s]*([A-Z0-9\/\-\s]{3,20})(?=\s*Model|\s*UHP|\s*$)/i);
+                    if (ptoSrMatch) result.ptoSrNo = cleanStr(ptoSrMatch[1]).replace(/\s+/g, '').toUpperCase();
+                }
+
+                // Water Tank Capacity
+                const waterMatch = t.match(/Water\s*Tank\s*Capacity\s*[:\-–\s]*(\d{3,5})/i);
+                if (waterMatch) result.waterCapacity = waterMatch[1];
+
+                // Foam Tank Capacity
+                const foamMatch = t.match(/Foam\s*Tank\s*Capacity\s*[:\-–\s]*(\d{2,4})/i);
+                if (foamMatch) result.foamCapacity = foamMatch[1];
+
+                // DCP Vessel Capacity
+                const dcpMatch = t.match(/DCP\s*Vessel\s*Capacity\s*[:\-–\s]*(\d{2,4})/i);
+                if (dcpMatch) result.dcpCapacity = dcpMatch[1];
+
+                // Auxiliary UHP Pump Specs (from standard card)
+                const uhpBlock = t.match(/UHP\s*PUMP[\s\S]*?(?=Water\s*Tank|Foam\s*Tank|$)/i);
+                if (uhpBlock) {
+                    const uhpText = uhpBlock[0];
+                    const uhpMakeMatch = uhpText.match(/Make[:\-–\s]*([A-Za-z0-9\s\-()]+?)(?=\s*COD|\s*Serial|$)/i);
+                    if (uhpMakeMatch) result.uhpPumpMake = cleanStr(uhpMakeMatch[1]).toUpperCase();
+
+                    const uhpSrMatch = uhpText.match(/Serial\s*No[:\-–\s]*([A-Z0-9\/\-\s]{3,30})(?=\s*Water|\s*Foam|\s*$)/i);
+                    if (uhpSrMatch) result.uhpPumpSrNo = cleanStr(uhpSrMatch[1]).replace(/\s+/g, '').toUpperCase();
+
+                    const uhpModelMatch = uhpText.match(/Model[:\-–\s]*([^\n\r]+)/i);
+                    if (uhpModelMatch) {
+                        const m = uhpModelMatch[1];
+                        const lpmBar = m.match(/(\d{2,3})\s*\/\s*(\d{2,3})/);
+                        if (lpmBar) result.uhpPumpLpm = `${lpmBar[1]} LPM @ ${lpmBar[2]} BAR`;
+                    }
+                }
+                // NOTE: Chassis Make and Tender Type intentionally NOT extracted - manual entry!
+            }
+
+            // 2. PURCHASE ORDER (Extract ONLY: Client Name, Purchase Order Number & Date)
+            if (isPO) {
+                // Client / Organization Name (Strictly exclude Indus Fire Safety vendor)
+                const consigneeMatch = t.match(/Address\s*of\s*Delivery\s*\((?:Consignee)\)\s*[:\-–\s]*([^\n\r,]+)/i) ||
+                                       t.match(/Consignee\s*[:\-–\s]*([^\n\r,]+)/i);
+                if (consigneeMatch && !isIndusVendor(consigneeMatch[1])) {
+                    result.organization = cleanStr(consigneeMatch[1]).replace(/^[):\-–\s]+/, '').toUpperCase();
+                } else {
+                    const headerMatch = t.match(/(?:SOLAR\s*INDUSTRIES|INDIAN\s*OIL|IOCL|ONGC|GAIL|BPCL|HPCL|NTPC|TATA\s*(?:STEEL|MOTORS)?|RELIANCE|L&T|JINDAL|VEDANTA)[A-Za-z0-9\s.,&-]*(?:LTD|LIMITED|PVT|CORPORATION)?/i);
+                    if (headerMatch && !isIndusVendor(headerMatch[0])) {
+                        result.organization = cleanStr(headerMatch[0]).toUpperCase();
+                    } else {
+                        const buyerMatch = t.match(/(?:Buyer|Purchaser|Customer|Client)\s*[:\-–\s]*([^\n\r,]+)/i);
+                        if (buyerMatch && !isIndusVendor(buyerMatch[1])) {
+                            result.organization = cleanStr(buyerMatch[1]).toUpperCase();
+                        }
+                    }
+                }
+
+                // Purchase Order Number
+                const poNumMatch = t.match(/Purchase\s*Order\s*No\.?\s*[:\-–\s]*([A-Z0-9\/-]{4,30})/i) ||
+                                   t.match(/P\.?O\.?\s*(?:NO|NUMBER)[:\-–\s]*([A-Z0-9\/-]{4,30})/i) ||
+                                   t.match(/Work\s*Order\s*No\.?\s*[:\-–\s]*([A-Z0-9\/-]{4,30})/i);
+                if (poNumMatch && !/policy/i.test(poNumMatch[0])) {
+                    result.poNo = cleanStr(poNumMatch[1]);
+                }
+
+                // Purchase Order Date
+                const poDateMatch = t.match(/Purchase\s*Order\s*No[\s\S]*?Date\s*[:\-–\s]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i) ||
+                                    t.match(/(?:PO|ORDER)\s*DATE\s*[:\-–\s]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i);
+                if (poDateMatch) {
+                    const nd = normalizeDateForInput(poDateMatch[1]);
+                    if (nd) result.poDate = nd;
+                }
+                // NOTE: Address, Contact Person, Phone, Email, Chassis, Delivery Date, Warranty are manual!
+            }
+
+            // 3. INSURANCE CERTIFICATE (Extract ONLY: Insurance Company, Insurance Number, and Expire Date)
+            if (isInsurance) {
+                // Insurance Company Name
+                const insCoMatch = t.match(/\b(THE\s*NEW\s*INDIA\s*ASSURANCE\s*CO\.?\s*LTD\.?|UNITED\s*INDIA\s*INSURANCE\s*CO\.?\s*LTD\.?|NATIONAL\s*INSURANCE\s*COMPANY\s*LTD\.?|THE\s*ORIENTAL\s*INSURANCE\s*COMPANY\s*LTD\.?|ICICI\s*LOMBARD\s*GENERAL\s*INSURANCE|HDFC\s*ERGO\s*GENERAL\s*INSURANCE|BAJAJ\s*ALLIANZ\s*GENERAL\s*INSURANCE|TATA\s*AIG\s*GENERAL\s*INSURANCE|SBI\s*GENERAL\s*INSURANCE|IFFCO\s*TOKIO\s*GENERAL\s*INSURANCE|CHOLAMANDALAM\s*MS|GO\s*DIGIT\s*GENERAL\s*INSURANCE)\b/i) ||
+                                   t.match(/([A-Z\s]+(?:ASSURANCE|INSURANCE)\s*(?:CO\.?|COMPANY)?\s*(?:LTD\.?|LIMITED)?)/i);
+                if (insCoMatch) result.insuranceCompany = cleanStr(insCoMatch[1]).toUpperCase();
+
+                // Insurance / Policy Number
+                const polMatch = t.match(/Policy\s*Number\s*[:\-–\s]*([0-9A-Z\/-]{8,35})/i) ||
+                                 t.match(/Policy\s*No\.?\s*[:\-–\s]*([0-9A-Z\/-]{8,35})/i);
+                if (polMatch) result.insurancePolicyNo = cleanStr(polMatch[1]).toUpperCase();
+
+                // Insurance Expiry Date
+                const expMatch = t.match(/Period\s*of\s*cover[\s\S]*?\bto\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i) ||
+                                 t.match(/(?:Expiry\s*Date|Valid\s*Thru|Valid\s*Up\s*To)\s*[:\-–\s]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i);
+                if (expMatch) {
+                    const nd = normalizeDateForInput(expMatch[1]);
+                    if (nd) result.insuranceExpiryDate = nd;
+                }
+                // NOTE: Insured Name, Address, Contact, Phone, Email, Chassis are manual!
+            }
+
+            return result;
+        };
+
+        // Multimodal Gemini Cloud AI Extractor (Strictly Aligned)
+        const callGeminiDocumentAI = async (text, apiKey) => {
+            if (!apiKey) throw new Error('No Gemini API key provided.');
+            const systemPrompt = `You are an expert AI Technical Data Extractor for fire engine fleet registration.
+CRITICAL EXTRACTION BOUNDARIES (STRICT USER SPECIFICATION):
+Indus Fire Safety Pvt Ltd is the VENDOR/SELLER. NEVER extract Indus Fire Safety as the client.
+You MUST follow these strict extraction boundaries based on user requirements:
+1. PO / WORK ORDER: Extract ONLY:
+   - "organization": Client / Buyer / Consignee company name (e.g. SOLAR INDUSTRIES INDIA LIMITED)
+   - "poNo": Purchase Order number
+   - "poDate": PO Date in YYYY-MM-DD
+2. INSURANCE CERTIFICATE: Extract ONLY:
+   - "insuranceCompany": Insurance Company name
+   - "insurancePolicyNo": Policy number
+   - "insuranceExpiryDate": Expiry Date in YYYY-MM-DD
+3. STANDARD CARD / NAME PLATE: Extract ONLY:
+   - "pumpMake", "pumpSrNo", "pumpLpm"
+   - "ptoMake", "ptoRatio", "ptoSrNo"
+   - "waterCapacity", "foamCapacity"
+   - "dcpCapacity", "uhpPumpMake", "uhpPumpLpm", "uhpPumpSrNo"
+DO NOT EXTRACT ANY OTHER FIELDS (such as site address, contact person, phone, email, chassis make, tender type, delivery date, warranty). All remaining details are filled manually by the operator.
+Return ONLY a valid JSON object with the allowed keys found.`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: systemPrompt },
+                            { text: "DOCUMENT CONTENT:\n" + text.substring(0, 15000) }
+                        ]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json"
+                    }
+                })
+            });
+
+            if (!resp.ok) {
+                const errData = await resp.json().catch(() => ({}));
+                throw new Error(errData?.error?.message || 'Gemini API call failed (' + resp.status + ')');
+            }
+
+            const data = await resp.json();
+            const textResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!textResponse) throw new Error('No response content from Gemini.');
+            return JSON.parse(textResponse);
+        };
+
+        const extractRawTextFromDocument = async (file) => {
+            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+            const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|bmp)$/i.test(file.name);
+
+            if (isPdf) {
+                if (!window.pdfjsLib) {
+                    throw new Error('PDF reader library not loaded yet. Please check internet connection.');
+                }
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let text = '';
+                for (let i = 1; i <= Math.min(pdf.numPages, 5); i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    text += content.items.map(item => item.str).join(' ') + '\n';
+                }
+
+                if (text.trim().length > 30) {
+                    return text;
+                }
+
+                // Fallback for scanned PDF: render first page to canvas and OCR
+                if (window.Tesseract && pdf.numPages > 0) {
+                    const page = await pdf.getPage(1);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    const ctx = canvas.getContext('2d');
+                    await page.render({ canvasContext: ctx, viewport }).promise;
+                    const ocrResult = await window.Tesseract.recognize(canvas, 'eng');
+                    return ocrResult?.data?.text || '';
+                }
+                return text;
+            }
+
+            if (isImage) {
+                if (!window.Tesseract) {
+                    throw new Error('OCR engine library not loaded yet. Please check internet connection.');
+                }
+                const ocrResult = await window.Tesseract.recognize(file, 'eng');
+                return ocrResult?.data?.text || '';
+            }
+
+            return await file.text();
+        };
+
+
         const RegisterClientToDeliveryModal = ({ onClose, onSubmitted, existingCustomers = [] }) => {
             const [form, setForm] = useState({
                 // Client Fields
@@ -13391,6 +13785,152 @@ ON CONFLICT (id) DO NOTHING;`;
 
             const [submitting, setSubmitting] = useState(false);
             const [submittedRef, setSubmittedRef] = useState(null);
+
+            // ── SMART DOCUMENT UPLOAD & COGNITIVE AI STATE ──
+            const [uploadedDocs, setUploadedDocs] = useState({
+                poCopy: null,
+                insuranceCopy: null,
+                standardCard: null
+            });
+            const [isExtracting, setIsExtracting] = useState(false);
+            const [extractingMsg, setExtractingMsg] = useState('');
+            const [extractedSummary, setExtractedSummary] = useState(null);
+            const [showPasteModal, setShowPasteModal] = useState(false);
+            const [pasteText, setPasteText] = useState('');
+            const [geminiApiKey, setGeminiApiKey] = useState(() => {
+                try { return localStorage.getItem('fireflow_gemini_api_key') || ''; } catch(e) { return ''; }
+            });
+            const [showAiKeyModal, setShowAiKeyModal] = useState(false);
+            const [aiKeyInput, setAiKeyInput] = useState('');
+
+            const processDocumentText = (rawText, docLabel = 'Document', docSlot = 'auto', preExtracted = null) => {
+                if (!rawText || !rawText.trim()) return;
+                const extracted = preExtracted || parseCognitiveFireTenderDocuments(rawText, docSlot);
+                const populatedKeys = Object.keys(extracted).filter(k => extracted[k] !== undefined && extracted[k] !== null && extracted[k] !== '');
+
+                if (populatedKeys.length > 0) {
+                    setForm(prev => {
+                        const next = { ...prev };
+                        populatedKeys.forEach(k => {
+                            if (['waterCapacity', 'foamCapacity', 'dcpCapacity', 'warrantyMonths', 'pumpLpm'].includes(k)) {
+                                next[k] = String(extracted[k]).replace(/[^0-9]/g, '');
+                            } else if (['poDate', 'deliveryDate', 'insuranceExpiryDate', 'dcpHptDueDate'].includes(k)) {
+                                next[k] = extracted[k];
+                            } else {
+                                next[k] = String(extracted[k]).toUpperCase();
+                            }
+                        });
+                        return next;
+                    });
+
+                    const fieldLabelsMap = {
+                        organization: 'Client',
+                        address: 'Site Address',
+                        contactPerson: 'Contact Person',
+                        phone: 'Phone',
+                        email: 'Email',
+                        poNo: 'PO / WO No',
+                        poDate: 'PO Date',
+                        tenderType: 'Tender Type',
+                        chassisMake: 'Chassis',
+                        deliveryDate: 'Delivery Date',
+                        pumpMake: 'Pump Make',
+                        pumpSrNo: 'Pump Sr No',
+                        pumpLpm: 'Pump LPM',
+                        ptoMake: 'PTO Make',
+                        ptoRatio: 'PTO Ratio',
+                        ptoSrNo: 'PTO Sr No',
+                        waterCapacity: 'Water Cap',
+                        foamCapacity: 'Foam Cap',
+                        warrantyMonths: 'Warranty',
+                        insuranceCompany: 'Insurance Co',
+                        insurancePolicyNo: 'Policy No',
+                        insuranceExpiryDate: 'Insurance Expiry',
+                        uhpPumpMake: 'UHP Make',
+                        uhpPumpLpm: 'UHP LPM',
+                        uhpPumpSrNo: 'UHP Sr No',
+                        dcpCapacity: 'DCP Cap',
+                        dcpHptDueDate: 'DCP HPT Due'
+                    };
+                    const humanLabels = populatedKeys.map(k => fieldLabelsMap[k] || k);
+                    setExtractedSummary(prev => {
+                        const merged = Array.from(new Set([...(prev?.fields || []), ...humanLabels]));
+                        return {
+                            count: merged.length,
+                            fields: merged,
+                            lastDoc: docLabel
+                        };
+                    });
+                }
+            };
+
+            const handleDocFile = async (file, targetSlot = 'auto') => {
+                if (!file) return;
+                setIsExtracting(true);
+                setExtractingMsg(`Reading ${file.name}...`);
+                try {
+                    const rawText = await extractRawTextFromDocument(file);
+                    if (!rawText || rawText.trim().length < 8) {
+                        alert(`Could not extract text from "${file.name}". If this is a photo or scanned image, please ensure text is clearly legible.`);
+                        return;
+                    }
+
+                    // Intelligent Slot Auto-Detection from document content
+                    let actualSlot = targetSlot;
+                    if (actualSlot === 'auto') {
+                        if (/FIRE\s*TENDER\s*SPECIFICATION/i.test(rawText) || (/Pump\s*Model\s*No/i.test(rawText) && /P\.?T\.?O/i.test(rawText))) {
+                            actualSlot = 'standardCard';
+                        } else if (/POLICY\s*SCHEDULE/i.test(rawText) || /CERTIFICATE\s*OF\s*INSURANCE/i.test(rawText) || /Period\s*of\s*cover/i.test(rawText) || /INSURED\s*DETAILS/i.test(rawText)) {
+                            actualSlot = 'insuranceCopy';
+                        } else if (/PURCHASE\s*ORDER/i.test(rawText) || /WORK\s*ORDER/i.test(rawText) || /Purchase\s*Order\s*No/i.test(rawText)) {
+                            actualSlot = 'poCopy';
+                        } else {
+                            actualSlot = 'standardCard';
+                        }
+                    }
+
+                    setUploadedDocs(prev => ({
+                        ...prev,
+                        [actualSlot]: { name: file.name, size: (file.size / 1024).toFixed(1) + ' KB', status: 'Thinking...' }
+                    }));
+
+                    let extracted = null;
+                    if (geminiApiKey) {
+                        try {
+                            setExtractingMsg(`Reasoning with Gemini 2.0 AI...`);
+                            extracted = await callGeminiDocumentAI(rawText, geminiApiKey);
+                        } catch(geminiErr) {
+                            console.warn('Gemini AI error, using Cognitive Engine fallback:', geminiErr);
+                        }
+                    }
+
+                    if (!extracted || Object.keys(extracted).length === 0) {
+                        setExtractingMsg(`Extracting with Cognitive AI Engine...`);
+                        extracted = parseCognitiveFireTenderDocuments(rawText, actualSlot);
+                    }
+
+                    const count = Object.keys(extracted).length;
+                    processDocumentText(rawText, file.name, actualSlot, extracted);
+
+                    setUploadedDocs(prev => ({
+                        ...prev,
+                        [actualSlot]: { name: file.name, size: (file.size / 1024).toFixed(1) + ' KB', status: `✓ ${count} details captured`, count }
+                    }));
+                } catch(err) {
+                    console.error('Extraction error:', err);
+                    alert(`Error processing "${file.name}": ` + err.message);
+                } finally {
+                    setIsExtracting(false);
+                    setExtractingMsg('');
+                }
+            };
+
+            const handleMultiFileUpload = async (files) => {
+                if (!files || files.length === 0) return;
+                for (let i = 0; i < files.length; i++) {
+                    await handleDocFile(files[i], 'auto');
+                }
+            };
 
             const handleTextChange = (field, val) => {
                 // Strict Numeric Enforcement: Capacity, Warranty, and LPM fields strip all alphabets & symbols (e.g. '1000 ltr' -> '1000')
@@ -13522,7 +14062,7 @@ ON CONFLICT (id) DO NOTHING;`;
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs sm:text-sm font-medium text-slate-100">Register Client to Delivery</span>
-                                <span className="text-[10px] font-normal text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded">Authorized Access (PIN: 2038)</span>
+                                <span className="text-[10px] font-normal text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded">Authorized Staff Access</span>
                                 <span className="text-[11px] font-normal text-slate-400 ml-2 hidden md:inline">· Landscape Tabular Dispatch View</span>
                             </div>
                         </div>
@@ -13572,6 +14112,161 @@ ON CONFLICT (id) DO NOTHING;`;
                             </div>
                         ) : (
                             <form onSubmit={handleSubmit} className="space-y-2">
+                                {/* ── SMART DOCUMENT AUTOFILL HUB (UPLOAD STANDARD CARD, INSURANCE & PO) ── */}
+                                <div className="bg-white rounded-lg border border-teal-600/30 shadow-2xs overflow-hidden">
+                                    <div className="bg-gradient-to-r from-teal-50 via-slate-50 to-white px-3 py-2 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-6 h-6 rounded-md bg-[#0B6B63] text-white flex items-center justify-center text-xs shadow-2xs">
+                                                ⚡
+                                            </span>
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-xs font-semibold text-slate-900 uppercase tracking-tight">Smart Document Autofill Hub</span>
+                                                    <span className="text-[9.5px] font-medium text-teal-800 bg-teal-100/80 border border-teal-300 px-2 py-0.2 rounded-full">
+                                                        OCR &amp; PDF Auto-Reader
+                                                    </span>
+                                                    {isExtracting && (
+                                                        <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.2 rounded animate-pulse flex items-center gap-1 font-medium">
+                                                            <span>⏳</span> {extractingMsg || 'Analyzing document...'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-[10.5px] text-slate-500 font-normal">
+                                                    Upload your <b>PO Copy</b> (Client, PO No, Date), <b>Insurance</b> (Company, Policy No, Expiry), or <b>Standard Card</b> (Pump, PTO, Water, Foam & DCP). All remaining details are filled manually.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setAiKeyInput(geminiApiKey); setShowAiKeyModal(true); }}
+                                                className={`h-7 px-2.5 rounded-md text-[11px] font-medium border transition-colors flex items-center gap-1.5 cursor-pointer ${geminiApiKey ? 'bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'}`}
+                                                title="Configure Gemini Cloud AI or use built-in Cognitive AI"
+                                            >
+                                                <span>{geminiApiKey ? '✨' : '🧠'}</span>
+                                                <span>{geminiApiKey ? 'Gemini 2.0 AI' : 'AI: Cognitive'}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPasteModal(true)}
+                                                className="h-7 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-medium border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                                title="Paste text directly from PO email or quotation"
+                                            >
+                                                <span>📋</span> Paste Document Text
+                                            </button>
+                                            <label className="h-7 px-3 bg-[#0B6B63] hover:bg-[#09544E] text-white rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer">
+                                                <span>📂</span> Upload All Documents
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    accept=".pdf,image/*,.txt"
+                                                    onChange={e => handleMultiFileUpload(e.target.files)}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* 3 Dedicated Upload Dropzone Slots */}
+                                    <div className="p-2.5 grid grid-cols-1 md:grid-cols-3 gap-2 bg-slate-50/50">
+                                        {/* Slot 1: PO Copy */}
+                                        <div className={`p-2 rounded-lg border transition-all ${uploadedDocs.poCopy?.status?.includes('✓') ? 'bg-emerald-50/70 border-emerald-300' : 'bg-white border-dashed border-slate-300 hover:border-teal-500'}`}>
+                                            <div className="flex items-start justify-between gap-1">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-sm">📄</span>
+                                                    <div>
+                                                        <div className="text-[11px] font-medium text-slate-800">1. PO / Work Order Copy</div>
+                                                        <div className="text-[9.5px] text-slate-400">Extracts: Client Name, PO Number & Date</div>
+                                                    </div>
+                                                </div>
+                                                {uploadedDocs.poCopy && (
+                                                    <button type="button" onClick={() => setUploadedDocs(prev => ({ ...prev, poCopy: null }))} className="text-slate-400 hover:text-rose-600 text-xs cursor-pointer" title="Remove file">✕</button>
+                                                )}
+                                            </div>
+                                            <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                                                {uploadedDocs.poCopy ? (
+                                                    <span className="text-emerald-700 font-medium truncate max-w-[180px]">{uploadedDocs.poCopy.name} ({uploadedDocs.poCopy.status})</span>
+                                                ) : (
+                                                    <label className="text-teal-700 hover:text-teal-900 font-medium cursor-pointer hover:underline flex items-center gap-1">
+                                                        <span>+ Choose PO (PDF/IMG)</span>
+                                                        <input type="file" accept=".pdf,image/*,.txt" onChange={e => e.target.files[0] && handleDocFile(e.target.files[0], 'poCopy')} className="hidden" />
+                                                    </label>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Slot 2: Insurance Policy */}
+                                        <div className={`p-2 rounded-lg border transition-all ${uploadedDocs.insuranceCopy?.status?.includes('✓') ? 'bg-emerald-50/70 border-emerald-300' : 'bg-white border-dashed border-slate-300 hover:border-teal-500'}`}>
+                                            <div className="flex items-start justify-between gap-1">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-sm">🛡️</span>
+                                                    <div>
+                                                        <div className="text-[11px] font-medium text-slate-800">2. Insurance Certificate</div>
+                                                        <div className="text-[9.5px] text-slate-400">Extracts: Insurance Co, Policy No & Expiry</div>
+                                                    </div>
+                                                </div>
+                                                {uploadedDocs.insuranceCopy && (
+                                                    <button type="button" onClick={() => setUploadedDocs(prev => ({ ...prev, insuranceCopy: null }))} className="text-slate-400 hover:text-rose-600 text-xs cursor-pointer" title="Remove file">✕</button>
+                                                )}
+                                            </div>
+                                            <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                                                {uploadedDocs.insuranceCopy ? (
+                                                    <span className="text-emerald-700 font-medium truncate max-w-[180px]">{uploadedDocs.insuranceCopy.name} ({uploadedDocs.insuranceCopy.status})</span>
+                                                ) : (
+                                                    <label className="text-teal-700 hover:text-teal-900 font-medium cursor-pointer hover:underline flex items-center gap-1">
+                                                        <span>+ Choose Insurance (PDF/IMG)</span>
+                                                        <input type="file" accept=".pdf,image/*,.txt" onChange={e => e.target.files[0] && handleDocFile(e.target.files[0], 'insuranceCopy')} className="hidden" />
+                                                    </label>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Slot 3: Standard Card / Specs */}
+                                        <div className={`p-2 rounded-lg border transition-all ${uploadedDocs.standardCard?.status?.includes('✓') ? 'bg-emerald-50/70 border-emerald-300' : 'bg-white border-dashed border-slate-300 hover:border-teal-500'}`}>
+                                            <div className="flex items-start justify-between gap-1">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-sm">🚒</span>
+                                                    <div>
+                                                        <div className="text-[11px] font-medium text-slate-800">3. Standard Card / Specs</div>
+                                                        <div className="text-[9.5px] text-slate-400">Extracts: Pump, PTO, Water, Foam & DCP</div>
+                                                    </div>
+                                                </div>
+                                                {uploadedDocs.standardCard && (
+                                                    <button type="button" onClick={() => setUploadedDocs(prev => ({ ...prev, standardCard: null }))} className="text-slate-400 hover:text-rose-600 text-xs cursor-pointer" title="Remove file">✕</button>
+                                                )}
+                                            </div>
+                                            <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                                                {uploadedDocs.standardCard ? (
+                                                    <span className="text-emerald-700 font-medium truncate max-w-[180px]">{uploadedDocs.standardCard.name} ({uploadedDocs.standardCard.status})</span>
+                                                ) : (
+                                                    <label className="text-teal-700 hover:text-teal-900 font-medium cursor-pointer hover:underline flex items-center gap-1">
+                                                        <span>+ Choose Specs Card (PDF/IMG)</span>
+                                                        <input type="file" accept=".pdf,image/*,.txt" onChange={e => e.target.files[0] && handleDocFile(e.target.files[0], 'standardCard')} className="hidden" />
+                                                    </label>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Extracted Status Banner */}
+                                    {extractedSummary && (
+                                        <div className="bg-emerald-50/90 border-t border-emerald-200 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                <span className="text-emerald-900 font-medium">
+                                                    ✨ {extractedSummary.count} fields auto-populated from {extractedSummary.lastDoc}!
+                                                </span>
+                                                <span className="text-emerald-700 text-[10px] hidden sm:inline">
+                                                    (Auto-filled: {extractedSummary.fields.join(', ')})
+                                                </span>
+                                            </div>
+                                            <span className="text-[10px] text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded font-normal">
+                                                Review below &amp; fill any minor remaining details
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
                                 {/* ── TABLE 1: CLIENT & ORGANIZATION DETAILS ── */}
                                 <div className="bg-white rounded-lg border border-slate-200/90 shadow-2xs overflow-hidden">
                                     <div className="bg-slate-50/80 px-3 py-1.5 border-b border-slate-200 flex items-center justify-between text-xs font-medium text-slate-700">
@@ -13976,6 +14671,132 @@ ON CONFLICT (id) DO NOTHING;`;
                                 </div>
                             </form>
                         )}
+                        {showAiKeyModal && (
+                            <div className="fixed inset-0 z-[10001] bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+                                <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-md w-full p-4 space-y-3">
+                                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xl">🤖</span>
+                                            <div>
+                                                <h4 className="text-xs font-semibold text-slate-900 uppercase">AI Document Intelligence Settings</h4>
+                                                <p className="text-[10.5px] text-slate-500">Google Gemini Multimodal AI &amp; Cognitive Reasoner</p>
+                                            </div>
+                                        </div>
+                                        <button type="button" onClick={() => setShowAiKeyModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+                                    </div>
+                                    <div className="space-y-2 text-xs text-slate-600">
+                                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1 text-[11px]">
+                                            <div className="font-medium text-slate-800 flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                                <span>Built-in Cognitive AI Engine (Default - Free &amp; Offline)</span>
+                                            </div>
+                                            <p className="text-slate-500 text-[10.5px]">
+                                                Specialized fire tender semantic reasoning for Indian client POs, standard cards, and insurance certificates without any API key.
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-medium text-slate-700 flex items-center justify-between">
+                                                <span>Optional: Google Gemini API Key</span>
+                                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-teal-600 hover:underline text-[10px]">Get Free API Key ↗</a>
+                                            </label>
+                                            <input
+                                                type="password"
+                                                value={aiKeyInput}
+                                                onChange={e => setAiKeyInput(e.target.value)}
+                                                placeholder="Paste AI Studio API key (AIzaSy...)"
+                                                className="w-full text-xs font-mono p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-[#0B6B63] focus:bg-white"
+                                            />
+                                            <p className="text-[10px] text-slate-400">Enables Gemini 2.0 Flash multimodal vision for non-standard or scanned client layouts.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                                        {geminiApiKey ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    localStorage.removeItem('fireflow_gemini_api_key');
+                                                    setGeminiApiKey('');
+                                                    setAiKeyInput('');
+                                                    alert('Gemini key removed. Reverted to built-in Cognitive AI.');
+                                                    setShowAiKeyModal(false);
+                                                }}
+                                                className="text-rose-600 hover:text-rose-700 text-xs font-medium cursor-pointer"
+                                            >
+                                                Clear Key
+                                            </button>
+                                        ) : <div></div>}
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAiKeyModal(false)}
+                                                className="h-7.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-md cursor-pointer"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const cleanKey = aiKeyInput.trim();
+                                                    if (cleanKey) {
+                                                        localStorage.setItem('fireflow_gemini_api_key', cleanKey);
+                                                        setGeminiApiKey(cleanKey);
+                                                        alert('Gemini 2.0 Flash AI successfully enabled!');
+                                                    }
+                                                    setShowAiKeyModal(false);
+                                                }}
+                                                className="h-7.5 px-4 bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-medium rounded-md shadow-2xs cursor-pointer"
+                                            >
+                                                Save Settings
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {showPasteModal && (
+                            <div className="fixed inset-0 z-[10000] bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+                                <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-xl w-full p-4 space-y-3">
+                                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg">📋</span>
+                                            <div>
+                                                <h4 className="text-xs font-semibold text-slate-900 uppercase">Paste Document / Email Text</h4>
+                                                <p className="text-[10px] text-slate-500">Copy text from PO, technical spec sheet, or insurance email and paste below.</p>
+                                            </div>
+                                        </div>
+                                        <button type="button" onClick={() => setShowPasteModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+                                    </div>
+                                    <textarea
+                                        value={pasteText}
+                                        onChange={e => setPasteText(e.target.value)}
+                                        rows={8}
+                                        placeholder="Paste PO text, vehicle specs, or quotation here... e.g. PO No: NB/M09/13003959&#10;Buyer: Swan Defence&#10;Pump: Firefly 4000 LPM&#10;Water Tank: 5000 Liters..."
+                                        className="w-full text-xs font-mono p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-[#0B6B63] focus:bg-white"
+                                    />
+                                    <div className="flex justify-end gap-2 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setPasteText(''); setShowPasteModal(false); }}
+                                            className="h-7.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-md cursor-pointer"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!pasteText.trim()) { alert('Please paste some text first.'); return; }
+                                                processDocumentText(pasteText, 'Pasted Text');
+                                                setShowPasteModal(false);
+                                                setPasteText('');
+                                            }}
+                                            className="h-7.5 px-4 bg-[#0B6B63] hover:bg-[#09544E] text-white text-xs font-medium rounded-md shadow-2xs cursor-pointer"
+                                        >
+                                            ⚡ Parse &amp; Autofill Form
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -13983,6 +14804,437 @@ ON CONFLICT (id) DO NOTHING;`;
             return typeof document !== 'undefined' && document.body ? ReactDOM.createPortal(modalContent, document.body) : modalContent;
         };
 
+
+        // ── FULLY EDIT & APPROVE SUBMISSION MODAL (ADMIN CONTROL) ──
+        const EditAndApproveSubmissionModal = ({ submission, onClose, onSaveDraft, onApprove }) => {
+            if (!submission) return null;
+
+            const [form, setForm] = useState({
+                // Client & Org
+                customerName: submission.customerName || submission.customer_name || '',
+                address: submission.address || '',
+                contactPerson: submission.contactPerson || submission.contact_person || '',
+                phone: submission.phone || '',
+                email: submission.email || '',
+                poDate: submission.poDate || submission.po_date || '',
+
+                // Vehicle & Fleet
+                poNo: submission.poNo || submission.po_no || '',
+                tenderType: submission.tenderType || submission.tender_type || '',
+                chassisMake: submission.chassisMake || submission.chassis_make || '',
+                modelNo: submission.modelNo || submission.model_no || '',
+                chassisSrNo: submission.chassisSrNo || submission.chassis_sr_no || '',
+                engineSrNo: submission.engineSrNo || submission.engine_sr_no || '',
+                deliveryDate: submission.deliveryDate || submission.delivery_date || '',
+                warrantyMonths: String(submission.warrantyMonths || submission.warranty_months || 12),
+
+                // Pump & PTO
+                pumpMake: submission.pumpMake || submission.pump_make || '',
+                pumpSrNo: submission.pumpSrNo || submission.pump_sr_no || '',
+                pumpLpm: String(submission.pumpLpm || submission.pump_lpm || ''),
+                ptoMake: submission.ptoMake || submission.pto_make || '',
+                ptoRatio: submission.ptoRatio || submission.pto_ratio || '',
+                ptoSrNo: submission.ptoSrNo || submission.pto_sr_no || '',
+
+                // Capacities & Insurance
+                waterCapacity: String(submission.waterCapacity || submission.water_capacity || ''),
+                foamCapacity: String(submission.foamCapacity || submission.foam_capacity || ''),
+                insuranceCompany: submission.insuranceCompany || submission.insurance_company || '',
+                insurancePolicyNo: submission.insurancePolicyNo || submission.insurance_policy_no || '',
+                insuranceExpiryDate: submission.insuranceExpiryDate || submission.insurance_expiry_date || '',
+
+                // Auxiliary
+                uhpPumpMake: submission.uhpPumpMake || submission.uhp_pump_make || '',
+                uhpPumpLpm: submission.uhpPumpLpm || submission.uhp_pump_lpm || '',
+                uhpPumpSrNo: submission.uhpPumpSrNo || submission.uhp_pump_sr_no || '',
+                dcpCapacity: String(submission.dcpCapacity || submission.dcp_capacity || ''),
+                dcpHptDueDate: submission.dcpHptDueDate || submission.dcp_hpt_due_date || ''
+            });
+
+            const handleChange = (field, val) => {
+                setForm(prev => ({ ...prev, [field]: val }));
+            };
+
+            const handleSave = (e) => {
+                e.preventDefault();
+                if (!form.customerName.trim() || !form.poNo.trim() || !form.tenderType.trim()) {
+                    alert('Please ensure Client Name, PO / WO Number, and Tender Type are filled.');
+                    return;
+                }
+                onSaveDraft({ ...submission, ...form });
+            };
+
+            const handleApproveClick = (e) => {
+                e.preventDefault();
+                if (!form.customerName.trim() || !form.poNo.trim() || !form.tenderType.trim()) {
+                    alert('Please ensure Client Name, PO / WO Number, and Tender Type are filled.');
+                    return;
+                }
+                onApprove({ ...submission, ...form });
+            };
+
+            const modalMarkup = (
+                <div className="fixed inset-0 z-[10001] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full my-auto overflow-hidden border border-slate-200 flex flex-col max-h-[94vh]">
+                        {/* Header */}
+                        <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between border-b border-slate-800 shrink-0">
+                            <div className="flex items-center gap-2.5">
+                                <span className="w-8 h-8 rounded-lg bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 flex items-center justify-center text-sm">
+                                    ✏️
+                                </span>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-sm font-semibold text-white uppercase tracking-tight">Review &amp; Edit Vehicle Registration</h2>
+                                        <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-mono">
+                                            {submission.id}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 font-normal">
+                                        Edit any client or technical parameters. Once approved, this will automatically save as a live vehicle with QR code.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Form Body */}
+                        <form className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {/* Section 1: Client & Org */}
+                            <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-3 space-y-2.5">
+                                <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                                    <span>🏢</span> 1. Client &amp; Organization Details
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Organization / Client Name *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={form.customerName}
+                                            onChange={e => handleChange('customerName', e.target.value)}
+                                            placeholder="ORGANIZATION NAME"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Delivery Site Address</label>
+                                        <input
+                                            type="text"
+                                            value={form.address}
+                                            onChange={e => handleChange('address', e.target.value)}
+                                            placeholder="DELIVERY SITE ADDRESS"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Contact Person</label>
+                                        <input
+                                            type="text"
+                                            value={form.contactPerson}
+                                            onChange={e => handleChange('contactPerson', e.target.value)}
+                                            placeholder="CONTACT PERSON"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Mobile / Phone</label>
+                                        <input
+                                            type="text"
+                                            value={form.phone}
+                                            onChange={e => handleChange('phone', e.target.value)}
+                                            placeholder="+91 MOBILE NUMBER"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Contact Email</label>
+                                        <input
+                                            type="email"
+                                            value={form.email}
+                                            onChange={e => handleChange('email', e.target.value)}
+                                            placeholder="OFFICER@CLIENT.COM"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">PO / WO Date</label>
+                                        <input
+                                            type="date"
+                                            value={form.poDate}
+                                            onChange={e => handleChange('poDate', e.target.value)}
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 2: Vehicle & Specifications */}
+                            <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-3 space-y-2.5">
+                                <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                                    <span>🚒</span> 2. Vehicle &amp; Delivery Specifications
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">PO / WO Number *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={form.poNo}
+                                            onChange={e => handleChange('poNo', e.target.value)}
+                                            placeholder="PO / WO NUMBER"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Tender Type *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={form.tenderType}
+                                            onChange={e => handleChange('tenderType', e.target.value)}
+                                            placeholder="TENDER TYPE"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Chassis Make</label>
+                                        <input
+                                            type="text"
+                                            value={form.chassisMake}
+                                            onChange={e => handleChange('chassisMake', e.target.value)}
+                                            placeholder="ASHOK LEYLAND / TATA"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Delivery Date</label>
+                                        <input
+                                            type="date"
+                                            value={form.deliveryDate}
+                                            onChange={e => handleChange('deliveryDate', e.target.value)}
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Pump Make</label>
+                                        <input
+                                            type="text"
+                                            value={form.pumpMake}
+                                            onChange={e => handleChange('pumpMake', e.target.value)}
+                                            placeholder="FIREFLY / GODIVA"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Pump Serial No</label>
+                                        <input
+                                            type="text"
+                                            value={form.pumpSrNo}
+                                            onChange={e => handleChange('pumpSrNo', e.target.value)}
+                                            placeholder="PUMP SERIAL NO"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase font-mono font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Pump LPM Capacity</label>
+                                        <input
+                                            type="text"
+                                            value={form.pumpLpm}
+                                            onChange={e => handleChange('pumpLpm', e.target.value.replace(/[^0-9]/g, ''))}
+                                            placeholder="3000"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Warranty (Months)</label>
+                                        <input
+                                            type="number"
+                                            value={form.warrantyMonths}
+                                            onChange={e => handleChange('warrantyMonths', e.target.value)}
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">PTO Make</label>
+                                        <input
+                                            type="text"
+                                            value={form.ptoMake}
+                                            onChange={e => handleChange('ptoMake', e.target.value)}
+                                            placeholder="FIRE HAWK / KOZMAKSAN"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">PTO Ratio</label>
+                                        <input
+                                            type="text"
+                                            value={form.ptoRatio}
+                                            onChange={e => handleChange('ptoRatio', e.target.value)}
+                                            placeholder="1:1.48"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none font-mono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">PTO Sr Number</label>
+                                        <input
+                                            type="text"
+                                            value={form.ptoSrNo}
+                                            onChange={e => handleChange('ptoSrNo', e.target.value)}
+                                            placeholder="PTO SERIAL NO"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase font-mono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Water / Foam (Ltrs)</label>
+                                        <div className="flex gap-1.5">
+                                            <input
+                                                type="text"
+                                                value={form.waterCapacity}
+                                                onChange={e => handleChange('waterCapacity', e.target.value.replace(/[^0-9]/g, ''))}
+                                                placeholder="Water"
+                                                className="w-1/2 h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={form.foamCapacity}
+                                                onChange={e => handleChange('foamCapacity', e.target.value.replace(/[^0-9]/g, ''))}
+                                                placeholder="Foam"
+                                                className="w-1/2 h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Insurance Company</label>
+                                        <input
+                                            type="text"
+                                            value={form.insuranceCompany}
+                                            onChange={e => handleChange('insuranceCompany', e.target.value)}
+                                            placeholder="INSURANCE CO."
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Policy Number</label>
+                                        <input
+                                            type="text"
+                                            value={form.insurancePolicyNo}
+                                            onChange={e => handleChange('insurancePolicyNo', e.target.value)}
+                                            placeholder="POLICY NUMBER"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase font-mono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">Insurance Expiry Date</label>
+                                        <input
+                                            type="date"
+                                            value={form.insuranceExpiryDate}
+                                            onChange={e => handleChange('insuranceExpiryDate', e.target.value)}
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 3: Optional Auxiliary Equipment */}
+                            <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-3 space-y-2.5">
+                                <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                                    <span>⚡</span> 3. Optional Auxiliary Equipment (UHP Pump &amp; DCP System)
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">UHP Pump Make</label>
+                                        <input
+                                            type="text"
+                                            value={form.uhpPumpMake}
+                                            onChange={e => handleChange('uhpPumpMake', e.target.value)}
+                                            placeholder="UDOR / HAWK"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">UHP LPM / Bar</label>
+                                        <input
+                                            type="text"
+                                            value={form.uhpPumpLpm}
+                                            onChange={e => handleChange('uhpPumpLpm', e.target.value)}
+                                            placeholder="50 LPM @ 100 BAR"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">UHP Serial No</label>
+                                        <input
+                                            type="text"
+                                            value={form.uhpPumpSrNo}
+                                            onChange={e => handleChange('uhpPumpSrNo', e.target.value)}
+                                            placeholder="UHP SERIAL NO"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none uppercase font-mono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">DCP Capacity (KG)</label>
+                                        <input
+                                            type="text"
+                                            value={form.dcpCapacity}
+                                            onChange={e => handleChange('dcpCapacity', e.target.value.replace(/[^0-9]/g, ''))}
+                                            placeholder="500"
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-medium text-slate-600 mb-0.5">DCP HPT Due Date</label>
+                                        <input
+                                            type="date"
+                                            value={form.dcpHptDueDate}
+                                            onChange={e => handleChange('dcpHptDueDate', e.target.value)}
+                                            className="w-full h-7.5 px-2 text-xs text-slate-800 bg-white border border-slate-300 rounded focus:border-indigo-600 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        {/* Footer Controls */}
+                        <div className="bg-slate-50 px-5 py-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                            <span className="text-[11px] text-slate-500 font-normal">
+                                Approving will immediately create customer &amp; fleet records and generate QR code.
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="h-8 px-3.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSave}
+                                    className="h-8 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                                >
+                                    <span>💾</span> Save Draft Edits
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleApproveClick}
+                                    className="h-8 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+                                >
+                                    <span>✓</span> Approve &amp; Save into System
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            return typeof document !== 'undefined' && document.body ? ReactDOM.createPortal(modalMarkup, document.body) : modalMarkup;
+        };
 
 function App() {
         const [rootCauseCategories, setRootCauseCategories] = useState(() => loadSavedRootCauseCategories());
@@ -14023,6 +15275,170 @@ function App() {
             const [accessMode, setAccessMode] = useState('customer');
             const [showRegisterDeliveryModal, setShowRegisterDeliveryModal] = useState(false);
             const [showPendingSubmissionsModal, setShowPendingSubmissionsModal] = useState(false);
+            const [editingSubmission, setEditingSubmission] = useState(null);
+
+            const handleSaveSubmissionDraft = (updatedSub) => {
+                setDeliverySubmissions(prev => {
+                    const next = prev.map(s => s.id === updatedSub.id ? { ...s, ...updatedSub } : s);
+                    try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(next)); } catch(e){}
+                    return next;
+                });
+                setEditingSubmission(null);
+                alert('Draft changes saved successfully.');
+            };
+
+            const handleApproveSubmission = async (sub) => {
+                try {
+                    const clientName = (sub.customerName || sub.customer_name || '').trim();
+                    if (!clientName) {
+                        alert('Cannot approve: Client Name is missing.');
+                        return;
+                    }
+
+                    // 1. Check or create Customer record
+                    let existingCust = customers.find(c => c.name.trim().toUpperCase() === clientName.toUpperCase());
+                    let custId = existingCust?.id;
+                    let custRecord = null;
+                    if (!custId) {
+                        const newCustId = 'CUST-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+                        custRecord = {
+                            id: newCustId,
+                            name: clientName,
+                            contactPerson: sub.contactPerson || sub.contact_person || '',
+                            phone: sub.phone || '',
+                            email: sub.email || '',
+                            address: sub.address || '',
+                            poNo: sub.poNo || sub.po_no || '',
+                            poDate: sub.poDate || sub.po_date || null
+                        };
+                        setCustomers(prev => {
+                            const next = [...prev, custRecord];
+                            try { localStorage.setItem('ff_cust', JSON.stringify(next)); } catch(e){}
+                            return next;
+                        });
+                        custId = newCustId;
+                        const sb = window.SupabaseClient;
+                        if (sb) {
+                            try {
+                                await sb.from('customers').insert({
+                                    id: newCustId,
+                                    name: custRecord.name,
+                                    contact_person: custRecord.contactPerson,
+                                    phone: custRecord.phone,
+                                    email: custRecord.email,
+                                    address: custRecord.address,
+                                    po_no: custRecord.poNo,
+                                    po_date: custRecord.poDate
+                                });
+                            } catch(e){ console.warn('Supabase customer sync note:', e); }
+                        }
+                    } else if (sub.address || sub.phone || sub.email || sub.contactPerson) {
+                        setCustomers(prev => {
+                            const next = prev.map(c => c.id === custId ? {
+                                ...c,
+                                address: sub.address || c.address,
+                                phone: sub.phone || c.phone,
+                                email: sub.email || c.email,
+                                contactPerson: sub.contactPerson || c.contactPerson
+                            } : c);
+                            try { localStorage.setItem('ff_cust', JSON.stringify(next)); } catch(e){}
+                            return next;
+                        });
+                    }
+
+                    // 2. Create Truck / Vehicle Delivery Record
+                    const trkId = 'TRK-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+                    const newTrkPayload = {
+                        id: trkId,
+                        customerId: custId,
+                        poNo: sub.poNo || sub.po_no || '',
+                        poDate: sub.poDate || sub.po_date || null,
+                        tenderType: sub.tenderType || sub.tender_type || 'FIRE TENDER',
+                        chassisMake: sub.chassisMake || sub.chassis_make || '',
+                        modelNo: sub.modelNo || sub.model_no || '',
+                        chassisSrNo: sub.chassisSrNo || sub.chassis_sr_no || '',
+                        engineSrNo: sub.engineSrNo || sub.engine_sr_no || '',
+                        deliveryDate: sub.deliveryDate || sub.delivery_date || new Date().toISOString().split('T')[0],
+                        warrantyMonths: parseInt(sub.warrantyMonths || sub.warranty_months) || 12,
+                        pumpMake: sub.pumpMake || sub.pump_make || '',
+                        pumpLpm: sub.pumpLpm || sub.pump_lpm || '',
+                        pumpSrNo: sub.pumpSrNo || sub.pump_sr_no || '',
+                        ptoMake: sub.ptoMake || sub.pto_make || '',
+                        ptoRatio: sub.ptoRatio || sub.pto_ratio || '',
+                        ptoSrNo: sub.ptoSrNo || sub.pto_sr_no || '',
+                        waterCapacity: parseFloat(sub.waterCapacity || sub.water_capacity) || 0,
+                        foamCapacity: parseFloat(sub.foamCapacity || sub.foam_capacity) || 0,
+                        uhpPumpMake: sub.uhpPumpMake || sub.uhp_pump_make || null,
+                        uhpPumpLpm: sub.uhpPumpLpm || sub.uhp_pump_lpm || null,
+                        uhpPumpSrNo: sub.uhpPumpSrNo || sub.uhp_pump_sr_no || null,
+                        dcpCapacity: sub.dcpCapacity || sub.dcp_capacity || null,
+                        dcpHptDueDate: sub.dcpHptDueDate || sub.dcp_hpt_due_date || null,
+                        insuranceCompany: sub.insuranceCompany || sub.insurance_company || '',
+                        insurancePolicyNo: sub.insurancePolicyNo || sub.insurance_policy_no || '',
+                        insuranceExpiryDate: sub.insuranceExpiryDate || sub.insurance_expiry_date || null,
+                        costCenterStatus: 'Not Generated'
+                    };
+
+                    setTrucks(prev => {
+                        const next = [newTrkPayload, ...prev];
+                        try { localStorage.setItem('ff_trks', JSON.stringify(next)); } catch(e){}
+                        return next;
+                    });
+
+                    // 3. Mark submission as Punched in System / Approved
+                    const updatedSubs = deliverySubmissions.map(s => (s.id === sub.id) ? { ...s, ...sub, status: 'Punched in System', approvedAt: new Date().toISOString() } : s);
+                    setDeliverySubmissions(updatedSubs);
+                    try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(updatedSubs)); } catch(e){}
+
+                    // 4. Sync to Supabase
+                    const sb = window.SupabaseClient;
+                    if (sb) {
+                        try {
+                            await sb.from('trucks').insert({
+                                id: trkId,
+                                customer_id: custId,
+                                po_no: newTrkPayload.poNo,
+                                po_date: newTrkPayload.poDate,
+                                tender_type: newTrkPayload.tenderType,
+                                chassis_make: newTrkPayload.chassisMake,
+                                model_no: newTrkPayload.modelNo,
+                                chassis_sr_no: newTrkPayload.chassisSrNo,
+                                engine_sr_no: newTrkPayload.engineSrNo,
+                                delivery_date: newTrkPayload.deliveryDate,
+                                warranty_months: newTrkPayload.warrantyMonths,
+                                pump_make: newTrkPayload.pumpMake,
+                                pump_lpm: newTrkPayload.pumpLpm ? parseFloat(newTrkPayload.pumpLpm) : null,
+                                pump_sr_no: newTrkPayload.pumpSrNo,
+                                pto_make: newTrkPayload.ptoMake,
+                                pto_ratio: newTrkPayload.ptoRatio,
+                                pto_sr_no: newTrkPayload.ptoSrNo,
+                                water_capacity: newTrkPayload.waterCapacity,
+                                foam_capacity: newTrkPayload.foamCapacity,
+                                uhp_pump_make: newTrkPayload.uhpPumpMake,
+                                uhp_pump_lpm: newTrkPayload.uhpPumpLpm,
+                                uhp_pump_sr_no: newTrkPayload.uhpPumpSrNo,
+                                dcp_capacity: newTrkPayload.dcpCapacity,
+                                dcp_hpt_due_date: newTrkPayload.dcpHptDueDate,
+                                insurance_company: newTrkPayload.insuranceCompany,
+                                insurance_policy_no: newTrkPayload.insurancePolicyNo,
+                                insurance_expiry_date: newTrkPayload.insuranceExpiryDate
+                            });
+                            await sb.from('delivery_submissions').update({ status: 'Punched in System' }).eq('id', sub.id);
+                        } catch(e){ console.warn('Supabase truck sync note:', e); }
+                    }
+
+                    // 5. Close modals & open live QR code for instant dispatch
+                    setEditingSubmission(null);
+                    setShowPendingSubmissionsModal(false);
+                    setQrTruck(newTrkPayload);
+                    setShowQrModal(true);
+
+                    alert(`✅ Vehicle "${newTrkPayload.tenderType}" for "${clientName}" approved and saved into the live system successfully!`);
+                } catch(err) {
+                    console.error('Punch-in error:', err);
+                    alert('Failed to approve submission: ' + err.message);
+                }
+            };
             const [deliverySubmissions, setDeliverySubmissions] = useState(() => {
                 try {
                     const saved = localStorage.getItem('ff_delivery_submissions');
@@ -16747,7 +18163,7 @@ function App() {
                         document.body
                     )}
 
-                    {/* 📋 REGISTER CLIENT TO DELIVERY MODAL (PIN: 2038) */}
+                    {/* 📋 REGISTER CLIENT TO DELIVERY MODAL (DISPATCH ENTRY) */}
                     {showRegisterDeliveryModal && (
                         <RegisterClientToDeliveryModal
                             onClose={() => setShowRegisterDeliveryModal(false)}
@@ -16775,7 +18191,7 @@ function App() {
                     )}
 
 
-                                        {/* 🔔 PENDING DELIVERY SUBMISSIONS MODAL (0706 ADMIN ACCEPT & INSTANT QR CODE) */}
+                                        {/* 🔔 PENDING DELIVERY SUBMISSIONS MODAL (ADMIN ACCEPT & INSTANT QR CODE) */}
                     {showPendingSubmissionsModal && (
                         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
                             <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-slate-200 flex flex-col max-h-[92vh]">
@@ -16816,122 +18232,22 @@ function App() {
                                                             {sub.status || 'Pending Approval'}
                                                         </span>
                                                         {sub.status !== 'Punched in System' && (
-                                                            <button
-                                                                onClick={async () => {
-                                                                    try {
-                                                                        // 1. Check or create Customer
-                                                                        let custId = customers.find(c => c.name.trim().toUpperCase() === (sub.customerName || sub.customer_name || '').trim().toUpperCase())?.id;
-                                                                        let custRecord = null;
-                                                                        if (!custId) {
-                                                                            const newCustId = 'CUST-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-                                                                            custRecord = {
-                                                                                id: newCustId,
-                                                                                name: sub.customerName || sub.customer_name,
-                                                                                contactPerson: sub.contactPerson || sub.contact_person || '',
-                                                                                phone: sub.phone || '',
-                                                                                email: sub.email || '',
-                                                                                address: sub.address || '',
-                                                                                poNo: sub.poNo || sub.po_no || '',
-                                                                                poDate: sub.poDate || sub.po_date || null
-                                                                            };
-                                                                            setCustomers(prev => [...prev, custRecord]);
-                                                                            custId = newCustId;
-                                                                            const sb = window.SupabaseClient;
-                                                                            if (sb) {
-                                                                                try { await sb.from('customers').insert({ id: newCustId, name: custRecord.name, contact_person: custRecord.contactPerson, phone: custRecord.phone, email: custRecord.email, address: custRecord.address, po_no: custRecord.poNo, po_date: custRecord.poDate }); } catch(e){}
-                                                                            }
-                                                                        }
-
-                                                                        // 2. Create Truck Delivery
-                                                                        const trkId = 'TRK-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-                                                                        const newTrkPayload = {
-                                                                            id: trkId,
-                                                                            customerId: custId,
-                                                                            poNo: sub.poNo || sub.po_no,
-                                                                            poDate: sub.poDate || sub.po_date || null,
-                                                                            tenderType: sub.tenderType || sub.tender_type,
-                                                                            chassisMake: sub.chassisMake || sub.chassis_make || '',
-                                                                            modelNo: sub.modelNo || sub.model_no || '',
-                                                                            chassisSrNo: sub.chassisSrNo || sub.chassis_sr_no || '',
-                                                                            engineSrNo: sub.engineSrNo || sub.engine_sr_no || '',
-                                                                            deliveryDate: sub.deliveryDate || sub.delivery_date || new Date().toISOString().split('T')[0],
-                                                                            warrantyMonths: parseInt(sub.warrantyMonths || sub.warranty_months) || 12,
-                                                                            pumpMake: sub.pumpMake || sub.pump_make || '',
-                                                                            pumpLpm: sub.pumpLpm || sub.pump_lpm || '',
-                                                                            pumpSrNo: sub.pumpSrNo || sub.pump_sr_no || '',
-                                                                            ptoMake: sub.ptoMake || sub.pto_make || '',
-                                                                            ptoRatio: sub.ptoRatio || sub.pto_ratio || '',
-                                                                            ptoSrNo: sub.ptoSrNo || sub.pto_sr_no || '',
-                                                                            waterCapacity: sub.waterCapacity || sub.water_capacity || 0,
-                                                                            foamCapacity: sub.foamCapacity || sub.foam_capacity || 0,
-                                                                            uhpPumpMake: sub.uhpPumpMake || sub.uhp_pump_make || null,
-                                                                            uhpPumpLpm: sub.uhpPumpLpm || sub.uhp_pump_lpm || null,
-                                                                            uhpPumpSrNo: sub.uhpPumpSrNo || sub.uhp_pump_sr_no || null,
-                                                                            dcpCapacity: sub.dcpCapacity || sub.dcp_capacity || null,
-                                                                            dcpHptDueDate: sub.dcpHptDueDate || sub.dcp_hpt_due_date || null,
-                                                                            insuranceCompany: sub.insuranceCompany || sub.insurance_company || '',
-                                                                            insurancePolicyNo: sub.insurancePolicyNo || sub.insurance_policy_no || '',
-                                                                            insuranceExpiryDate: sub.insuranceExpiryDate || sub.insurance_expiry_date || null,
-                                                                            costCenterStatus: 'Not Generated'
-                                                                        };
-
-                                                                        setTrucks(prev => [newTrkPayload, ...prev]);
-
-                                                                        // Mark submission as Punched
-                                                                        const updatedSubs = deliverySubmissions.map(s => (s.id === sub.id) ? { ...s, status: 'Punched in System' } : s);
-                                                                        setDeliverySubmissions(updatedSubs);
-                                                                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(updatedSubs)); } catch(e){}
-
-                                                                        // Sync to Supabase
-                                                                        const sb = window.SupabaseClient;
-                                                                        if (sb) {
-                                                                            try {
-                                                                                await sb.from('trucks').insert({
-                                                                                    id: trkId,
-                                                                                    customer_id: custId,
-                                                                                    po_no: newTrkPayload.poNo,
-                                                                                    po_date: newTrkPayload.poDate,
-                                                                                    tender_type: newTrkPayload.tenderType,
-                                                                                    chassis_make: newTrkPayload.chassisMake,
-                                                                                    model_no: newTrkPayload.modelNo,
-                                                                                    chassis_sr_no: newTrkPayload.chassisSrNo,
-                                                                                    engine_sr_no: newTrkPayload.engineSrNo,
-                                                                                    delivery_date: newTrkPayload.deliveryDate,
-                                                                                    warranty_months: newTrkPayload.warrantyMonths,
-                                                                                    pump_make: newTrkPayload.pumpMake,
-                                                                                    pump_lpm: newTrkPayload.pumpLpm ? parseFloat(newTrkPayload.pumpLpm) : null,
-                                                                                    pump_sr_no: newTrkPayload.pumpSrNo,
-                                                                                    pto_make: newTrkPayload.ptoMake,
-                                                                                    pto_ratio: newTrkPayload.ptoRatio,
-                                                                                    pto_sr_no: newTrkPayload.ptoSrNo,
-                                                                                    water_capacity: newTrkPayload.waterCapacity,
-                                                                                    foam_capacity: newTrkPayload.foamCapacity,
-                                                                                    uhp_pump_make: newTrkPayload.uhpPumpMake,
-                                                                                    uhp_pump_lpm: newTrkPayload.uhpPumpLpm,
-                                                                                    uhp_pump_sr_no: newTrkPayload.uhpPumpSrNo,
-                                                                                    dcp_capacity: newTrkPayload.dcpCapacity,
-                                                                                    dcp_hpt_due_date: newTrkPayload.dcpHptDueDate,
-                                                                                    insurance_company: newTrkPayload.insuranceCompany,
-                                                                                    insurance_policy_no: newTrkPayload.insurancePolicyNo,
-                                                                                    insurance_expiry_date: newTrkPayload.insuranceExpiryDate
-                                                                                });
-                                                                                await sb.from('delivery_submissions').update({ status: 'Punched in System' }).eq('id', sub.id);
-                                                                            } catch(e){}
-                                                                        }
-
-                                                                        // Automatically open QR Code Modal for this newly punched tender!
-                                                                        setQrTruck(newTrkPayload);
-                                                                        setShowPendingSubmissionsModal(false);
-                                                                        setShowQrModal(true);
-                                                                    } catch(err) {
-                                                                        console.error('Punch-in error:', err);
-                                                                        alert('Failed to punch in: ' + err.message);
-                                                                    }
-                                                                }}
-                                                                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10.5px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                                                            >
-                                                                <span>🚀</span> Accept &amp; Generate QR
-                                                            </button>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setEditingSubmission(sub)}
+                                                                    className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-[10.5px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+                                                                >
+                                                                    <span>✏️</span> Review &amp; Edit
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleApproveSubmission(sub)}
+                                                                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10.5px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                                                                >
+                                                                    <span>🚀</span> Accept &amp; Generate QR
+                                                                </button>
+                                                            </div>
                                                         )}
                                                         <button
                                                             onClick={() => {
@@ -16963,6 +18279,16 @@ function App() {
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {/* ✏️ EDIT & APPROVE DELIVERY SUBMISSION MODAL */}
+                    {editingSubmission && (
+                        <EditAndApproveSubmissionModal
+                            submission={editingSubmission}
+                            onClose={() => setEditingSubmission(null)}
+                            onSaveDraft={handleSaveSubmissionDraft}
+                            onApprove={handleApproveSubmission}
+                        />
                     )}
 
                     {/* MASTER ADMIN SECURE ACCESS MODAL (AUTO-UNLOCK ON MATCH) */}
@@ -17347,6 +18673,114 @@ function App() {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* 🔔 PENDING DELIVERY SUBMISSIONS APPROVAL SECTION (IN MASTER ADMIN DASHBOARD) */}
+                                {(() => {
+                                    const pendingSubs = deliverySubmissions.filter(s => s.status === 'Pending Approval');
+                                    if (pendingSubs.length === 0) return null;
+                                    return (
+                                        <div className="bg-gradient-to-r from-amber-50 via-orange-50/40 to-white border border-amber-300 rounded-2xl p-4 shadow-2xs space-y-3">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-amber-200/70">
+                                                <div className="flex items-center gap-2.5">
+                                                    <span className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-sm font-bold shadow-xs">
+                                                        🔔
+                                                    </span>
+                                                    <div>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight">
+                                                                New Vehicle Deliveries Awaiting Approval
+                                                            </h2>
+                                                            <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                                                                {pendingSubs.length} Action Required
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[11px] text-slate-500 font-normal mt-0.5">
+                                                            Submitted via Dispatch Entry. Review, edit any specifications, and approve to save into the live system.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPendingSubmissionsModal(true)}
+                                                    className="h-8 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
+                                                >
+                                                    <span>📋 View Queue ({pendingSubs.length})</span>
+                                                </button>
+                                            </div>
+
+                                            {/* Cards Grid */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                                                {pendingSubs.map((sub, idx) => (
+                                                    <div key={sub.id || idx} className="bg-white border border-slate-200/90 rounded-xl p-3 shadow-2xs hover:border-amber-400 transition-all space-y-2.5 flex flex-col justify-between">
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <span className="font-bold text-xs text-slate-900 uppercase tracking-tight line-clamp-1" title={sub.customerName || sub.customer_name}>
+                                                                    {sub.customerName || sub.customer_name}
+                                                                </span>
+                                                                <span className="text-[10px] font-mono font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.2 rounded shrink-0">
+                                                                    PO: {sub.poNo || sub.po_no}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="text-[11px] text-slate-600 space-y-0.5 bg-slate-50/80 p-2 rounded-lg border border-slate-100">
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-slate-400 font-normal">Tender Type:</span>
+                                                                    <span className="font-medium text-slate-800 uppercase">{sub.tenderType || 'Fire Tender'}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-slate-400 font-normal">Pump Specs:</span>
+                                                                    <span className="font-medium text-slate-800">{sub.pumpMake || '—'} {sub.pumpSrNo ? `(${sub.pumpSrNo})` : ''} · {sub.pumpLpm || '—'} LPM</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-slate-400 font-normal">PTO Specs:</span>
+                                                                    <span className="font-medium text-slate-800">{sub.ptoMake || '—'} {sub.ptoRatio ? `(${sub.ptoRatio})` : ''}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-slate-400 font-normal">Capacities:</span>
+                                                                    <span className="font-medium text-slate-800">{sub.waterCapacity || 0}W / {sub.foamCapacity || 0}F</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Action Buttons */}
+                                                        <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setEditingSubmission(sub)}
+                                                                className="flex-1 h-7 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                                                                title="Edit all fields and review"
+                                                            >
+                                                                <span>✏️</span> Review &amp; Edit
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleApproveSubmission(sub)}
+                                                                className="flex-1 h-7 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[11px] font-semibold flex items-center justify-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                                                                title="Approve and save to live system"
+                                                            >
+                                                                <span>✓</span> Approve
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (confirm(`Reject and delete submission for "${sub.customerName || sub.customer_name}"?`)) {
+                                                                        const updated = deliverySubmissions.filter(s => s.id !== sub.id);
+                                                                        setDeliverySubmissions(updated);
+                                                                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(updated)); } catch(e){}
+                                                                    }
+                                                                }}
+                                                                className="h-7 w-7 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md flex items-center justify-center transition-colors cursor-pointer text-xs"
+                                                                title="Reject and delete"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* ═══ ENTERPRISE COMPACT KPI GRID (Matching Reference) ═══ */}
                                 {(() => {
