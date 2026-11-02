@@ -133,40 +133,41 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Certificate of Commissioning &amp; Training - ${certNo}</title>
+    <title>Certificate of Commissioning &amp; Training — ${certNo}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        @page { size: A4 portrait; margin: 5mm; }
+        @page { size: A4 portrait; margin: 4mm; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #1a1a2e;
-            background: #f4f4f8;
+            color: #1E293B;
+            background: #F8FAFC;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            font-size: 9.5px;
-            line-height: 1.4;
+            font-size: 8.5px;
+            line-height: 1.45;
+            -webkit-font-smoothing: antialiased;
         }
 
         .cert-page {
-            width: 198mm;
-            min-height: 285mm;
-            margin: 6mm auto;
-            background: #ffffff;
+            width: 202mm;
+            min-height: 287mm;
+            margin: 5mm auto;
+            background: #FFFFFF;
             position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-            padding: 16px 20px 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            padding: 16px 22px 14px;
             border-radius: 4px;
         }
 
-        /* Executive Certificate Multi-Border Frame */
+        /* ── Prestigious MNC Hairline Dual-Border Frame ── */
         .cert-page::before {
             content: '';
             position: absolute;
-            inset: 5px;
-            border: 2.5px solid #8B6914;
+            inset: 6px;
+            border: 1.2px solid #C5A059;
             border-radius: 3px;
             pointer-events: none;
             z-index: 2;
@@ -174,49 +175,37 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
         .cert-page::after {
             content: '';
             position: absolute;
-            inset: 9px;
-            border: 1px solid #d4af37;
+            inset: 10px;
+            border: 0.5px solid #E2E8F0;
             border-radius: 2px;
             pointer-events: none;
             z-index: 2;
         }
-        .inner-line {
-            position: absolute;
-            inset: 13px;
-            border: 0.5px solid #f1e2b8;
-            border-radius: 1px;
-            pointer-events: none;
-            z-index: 2;
-        }
 
-        /* Classical Rosette Corner Ornaments */
+        /* Geometric Minimalist Corner Accents */
         .corner-ornament {
             position: absolute;
-            width: 38px;
-            height: 38px;
+            width: 24px;
+            height: 24px;
             z-index: 3;
-            opacity: 0.65;
+            pointer-events: none;
         }
-        .corner-tl { top: 6px; left: 6px; }
-        .corner-tr { top: 6px; right: 6px; transform: scaleX(-1); }
-        .corner-bl { bottom: 6px; left: 6px; transform: scaleY(-1); }
-        .corner-br { bottom: 6px; right: 6px; transform: scale(-1, -1); }
+        .corner-tl { top: 8px; left: 8px; }
+        .corner-tr { top: 8px; right: 8px; transform: scaleX(-1); }
+        .corner-bl { bottom: 8px; left: 8px; transform: scaleY(-1); }
+        .corner-br { bottom: 8px; right: 8px; transform: scale(-1, -1); }
 
-        .watermark {
+        /* Subtle Prestige Guilloché Watermark */
+        .watermark-emblem {
             position: absolute;
-            top: 50%;
+            top: 52%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-30deg);
-            font-family: 'Cinzel', serif;
-            font-size: 64px;
-            font-weight: 900;
-            color: rgba(139, 105, 20, 0.035);
-            text-transform: uppercase;
-            letter-spacing: 14px;
-            white-space: nowrap;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            height: 320px;
             pointer-events: none;
             z-index: 1;
-            user-select: none;
+            opacity: 0.035;
         }
 
         .cert-content {
@@ -230,7 +219,7 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
             align-items: center;
             justify-content: space-between;
             padding-bottom: 8px;
-            border-bottom: 1.5px solid #8B6914;
+            border-bottom: 0.5px solid #E2E8F0;
         }
         .logo-block {
             display: flex;
@@ -238,101 +227,115 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
             gap: 12px;
         }
         .logo-img {
-            width: 54px;
-            height: 54px;
+            width: 50px;
+            height: 50px;
             object-fit: contain;
             border-radius: 50%;
-            border: 1.5px solid #c9a84c;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            background: #ffffff;
+            border: 1px solid #E2E8F0;
+            background: #FFFFFF;
+            padding: 2px;
         }
         .company-name {
             font-family: 'Cinzel', serif;
-            font-size: 17px;
-            font-weight: 800;
-            color: #1a1a2e;
+            font-size: 15px;
+            font-weight: 700;
+            color: #0F172A;
             letter-spacing: 1.5px;
             text-transform: uppercase;
-            line-height: 1.15;
+            line-height: 1.2;
         }
         .company-tagline {
-            font-size: 8px;
-            font-weight: 700;
-            color: #5c5c70;
+            font-size: 7.5px;
+            font-weight: 500;
+            color: #64748B;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.8px;
             margin-top: 1.5px;
         }
         .company-iso {
-            font-size: 7.5px;
-            font-weight: 600;
-            color: #8B6914;
+            font-size: 7px;
+            font-weight: 500;
+            color: #96722E;
             letter-spacing: 0.5px;
             margin-top: 1px;
         }
         .cert-number-box {
             text-align: right;
             flex-shrink: 0;
-        }
-        .cert-number-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #1a1a2e, #2d2d5e);
-            color: #f5e6b8;
-            font-family: 'Cinzel', serif;
-            font-size: 8.5px;
-            font-weight: 800;
+            background: #F8FAFC;
+            border: 0.5px solid #E2E8F0;
+            border-radius: 5px;
             padding: 4px 10px;
-            border-radius: 4px;
+        }
+        .cert-number-label {
+            font-size: 6.5px;
+            font-weight: 600;
+            color: #94A3B8;
             letter-spacing: 1px;
             text-transform: uppercase;
-            border: 1px solid #c9a84c;
+        }
+        .cert-number-value {
+            font-family: 'Cinzel', serif;
+            font-size: 9px;
+            font-weight: 700;
+            color: #0F172A;
+            letter-spacing: 0.8px;
         }
         .cert-date-text {
-            font-size: 8px;
-            font-weight: 700;
-            color: #6b7280;
-            margin-top: 3px;
-        }
-
-        /* ── TITLE RIBBON & PREAMBLE ── */
-        .title-ribbon {
-            text-align: center;
-            margin: 8px 0 6px;
-        }
-        .title-ribbon-inner {
-            display: inline-block;
-            background: linear-gradient(135deg, #8B6914 0%, #b4832c 50%, #8B6914 100%);
-            color: #ffffff;
-            padding: 5px 28px;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(139,105,20,0.3);
-            border: 1px solid #f5e6b8;
-        }
-        .title-ribbon h2 {
-            font-family: 'Cinzel', serif;
-            font-size: 12.5px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin: 0;
-        }
-        .title-ribbon p {
-            font-size: 7.5px;
-            font-weight: 700;
-            color: #fef3c7;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
+            font-size: 7px;
+            font-weight: 500;
+            color: #64748B;
             margin-top: 1px;
         }
-        .cert-preamble {
+
+        /* ── TITLE & PRESTIGE PREAMBLE ── */
+        .title-section {
             text-align: center;
+            margin: 7px 0 5px;
+        }
+        .title-pill {
+            display: inline-block;
+            background: #FDFBF7;
+            border: 0.5px solid #E6D7B8;
+            color: #96722E;
+            font-size: 6.8px;
+            font-weight: 600;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            padding: 2px 10px;
+            border-radius: 20px;
+            margin-bottom: 3px;
+        }
+        .cert-title {
+            font-family: 'Cinzel', serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.8px;
+            color: #0F172A;
+            text-transform: uppercase;
+            margin: 0;
+            line-height: 1.25;
+        }
+        .cert-preamble {
             font-family: 'Playfair Display', serif;
             font-style: italic;
-            font-size: 9px;
-            color: #374151;
-            line-height: 1.35;
-            margin: 4px auto 8px;
-            max-width: 95%;
+            font-size: 8.5px;
+            color: #475569;
+            line-height: 1.45;
+            margin: 3px auto 4px;
+            max-width: 90%;
+        }
+        .recipient-name {
+            font-family: 'Cinzel', serif;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #0F172A;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #C5A059;
+            display: inline-block;
+            padding-bottom: 2px;
+            margin-bottom: 5px;
         }
 
         /* ── DETAILS TABLE ── */
@@ -340,246 +343,245 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            margin-bottom: 7px;
-            border: 1px solid #d1d5db;
-            border-radius: 5px;
+            margin-bottom: 6px;
+            border: 0.5px solid #E2E8F0;
+            border-radius: 4px;
             overflow: hidden;
-            font-size: 8.5px;
+            font-size: 8px;
         }
         .details-grid td {
-            padding: 3.5px 7px;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 3px 6px;
+            border-bottom: 0.5px solid #E2E8F0;
         }
         .details-grid tr:last-child td { border-bottom: none; }
         .details-grid .dlbl {
-            background: #faf8f3;
-            font-weight: 800;
-            color: #4b5563;
+            background: #F8FAFC;
+            font-weight: 600;
+            color: #64748B;
             text-transform: uppercase;
-            font-size: 7.5px;
+            font-size: 7px;
             letter-spacing: 0.5px;
-            width: 23%;
-            border-right: 1px solid #e5e7eb;
+            width: 22%;
+            border-right: 0.5px solid #E2E8F0;
         }
         .details-grid .dval {
-            font-weight: 700;
-            color: #1a1a2e;
-            width: 27%;
+            font-weight: 500;
+            color: #1E293B;
+            width: 28%;
+            background: #FFFFFF;
         }
-        .details-grid .dval-highlight {
-            font-weight: 800;
-            color: #8B6914;
-        }
-        .details-grid .border-r { border-right: 1px solid #e5e7eb; }
+        .details-grid .border-r { border-right: 0.5px solid #E2E8F0; }
 
         /* ── SECTION HEADERS ── */
         .section-header {
             display: flex;
             align-items: center;
             gap: 6px;
-            margin: 7px 0 4px;
+            margin: 5px 0 3px;
         }
         .section-number {
-            width: 18px;
-            height: 18px;
-            background: linear-gradient(135deg, #1a1a2e, #2d2d5e);
-            color: #f5e6b8;
+            width: 15px;
+            height: 15px;
+            background: #FDFBF7;
+            border: 0.5px solid #E6D7B8;
+            color: #96722E;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8.5px;
-            font-weight: 900;
+            font-size: 7.5px;
+            font-weight: 600;
             flex-shrink: 0;
-            border: 1px solid #c9a84c;
         }
         .section-title {
             font-family: 'Cinzel', serif;
-            font-size: 9px;
-            font-weight: 800;
-            color: #1a1a2e;
+            font-size: 8px;
+            font-weight: 700;
+            color: #0F172A;
             text-transform: uppercase;
             letter-spacing: 0.8px;
         }
         .section-line {
             flex: 1;
-            height: 1px;
-            background: linear-gradient(to right, #c9a84c, transparent);
+            height: 0.5px;
+            background: linear-gradient(to right, #E2E8F0, transparent);
         }
 
         /* ── DATA TABLES ── */
         .data-tbl {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8.5px;
-            border: 1px solid #d1d5db;
+            font-size: 8px;
+            border: 0.5px solid #E2E8F0;
             border-radius: 4px;
             overflow: hidden;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
         }
         .data-tbl thead th {
-            background: #f1f3f7;
-            font-weight: 800;
-            color: #374151;
+            background: #F8FAFC;
+            font-weight: 600;
+            color: #64748B;
             text-transform: uppercase;
-            font-size: 7.5px;
-            letter-spacing: 0.6px;
+            font-size: 6.8px;
+            letter-spacing: 0.5px;
             padding: 3px 6px;
-            border-bottom: 1.5px solid #9ca3af;
+            border-bottom: 0.5px solid #E2E8F0;
             text-align: left;
         }
         .data-tbl tbody td {
-            padding: 3px 6px;
-            border-bottom: 1px solid #e5e7eb;
-            color: #1f2937;
+            padding: 2.5px 6px;
+            border-bottom: 0.5px solid #F1F5F9;
+            color: #334155;
+            font-weight: 400;
         }
         .data-tbl tbody tr:last-child td { border-bottom: none; }
-        .data-tbl tbody tr:nth-child(even) { background: #fafafa; }
+        .data-tbl tbody tr:nth-child(even) { background: #FCFDFD; }
         .badge-pass {
             display: inline-block;
-            background: #ecfdf5;
-            color: #065f46;
-            font-weight: 800;
-            font-size: 7.5px;
-            padding: 1.5px 5px;
-            border-radius: 3px;
-            border: 1px solid #a7f3d0;
+            background: #ECFDF5;
+            color: #047857;
+            font-weight: 600;
+            font-size: 6.8px;
+            padding: 1px 5px;
+            border-radius: 10px;
+            border: 0.5px solid #A7F3D0;
             text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         .att-name {
-            font-weight: 800;
-            color: #111827;
+            font-weight: 600;
+            color: #0F172A;
         }
 
-        /* ── REMARKS & SIGNATURES ── */
+        /* ── REMARKS & STATEMENT ── */
         .remarks-box {
-            background: #fffdf7;
-            border: 1px solid #fde68a;
-            border-left: 3px solid #d97706;
-            border-radius: 4px;
-            padding: 4px 8px;
-            margin: 6px 0 7px;
+            background: #FDFBF7;
+            border: 0.5px solid #E6D7B8;
+            border-left: 2.5px solid #C5A059;
+            border-radius: 3px;
+            padding: 3.5px 7px;
+            margin: 4px 0 5px;
         }
         .remarks-label {
-            font-size: 7.5px;
-            font-weight: 800;
-            color: #92400e;
+            font-size: 6.8px;
+            font-weight: 600;
+            color: #96722E;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
         }
         .remarks-text {
-            font-size: 8.5px;
-            font-weight: 600;
-            color: #374151;
+            font-size: 7.8px;
+            font-weight: 400;
+            color: #334155;
             line-height: 1.35;
         }
 
+        /* ── SIGNATURES ── */
         .sig-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-top: 8px;
-            gap: 12px;
+            margin-top: 6px;
+            gap: 16px;
         }
         .sig-col {
             flex: 1;
             text-align: center;
         }
         .sig-line {
-            width: 80%;
-            height: 1px;
-            background: #4b5563;
+            width: 75%;
+            height: 0.5px;
+            background: #CBD5E1;
             margin: 0 auto 3px;
         }
         .sig-name {
             font-family: 'Cinzel', serif;
-            font-size: 9px;
-            font-weight: 800;
-            color: #1a1a2e;
+            font-size: 8px;
+            font-weight: 600;
+            color: #0F172A;
         }
         .sig-role {
-            font-size: 7.5px;
-            font-weight: 700;
-            color: #6b7280;
+            font-size: 6.8px;
+            font-weight: 500;
+            color: #64748B;
             text-transform: uppercase;
         }
         .sig-org {
-            font-size: 7px;
-            font-weight: 600;
-            color: #9ca3af;
+            font-size: 6.5px;
+            font-weight: 400;
+            color: #94A3B8;
         }
 
-        /* ── SUPPORT FOOTER ── */
+        /* ── MNC SUPPORT & AUTHENTICITY FOOTER ── */
         .support-box {
-            margin-top: 8px;
-            border: 1px solid #bfdbfe;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .support-hdr {
-            background: linear-gradient(135deg, #1e3a5f, #1e40af);
+            margin-top: 6px;
+            border: 0.5px solid #E2E8F0;
+            border-radius: 4px;
+            background: #F8FAFC;
             padding: 3px 8px;
             text-align: center;
-            color: #ffffff;
-            font-size: 8px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
+            font-size: 7px;
+            color: #64748B;
         }
-        .support-body {
-            padding: 4px 10px;
-            background: #f8faff;
-            font-size: 8px;
-            text-align: center;
+        .support-box b {
+            color: #1E293B;
+            font-weight: 600;
         }
 
         .print-toolbar {
             position: fixed;
             top: 0; left: 0; right: 0;
-            background: #1a1a2e;
-            color: #fff;
-            padding: 8px 16px;
+            background: #0F172A;
+            color: #F8FAFC;
+            padding: 8px 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 9999;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 1px 6px rgba(0,0,0,0.1);
         }
         .print-toolbar-title {
             font-family: 'Cinzel', serif;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 600;
             letter-spacing: 1px;
             text-transform: uppercase;
         }
         .print-toolbar-sub {
-            font-size: 9px;
-            color: #c9a84c;
+            font-size: 8.5px;
+            color: #C5A059;
             margin-left: 8px;
         }
         .toolbar-btn {
             border: none;
             padding: 6px 14px;
             border-radius: 6px;
-            font-weight: 800;
-            font-size: 10px;
+            font-weight: 600;
+            font-size: 9.5px;
             cursor: pointer;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.6px;
+            transition: all 0.15s ease;
         }
         .btn-print {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: #fff;
+            background: #059669;
+            color: #FFFFFF;
+        }
+        .btn-print:hover {
+            background: #047857;
         }
         .btn-close {
-            background: #374151;
-            color: #d1d5db;
+            background: #334155;
+            color: #E2E8F0;
             margin-left: 6px;
+        }
+        .btn-close:hover {
+            background: #1E293B;
         }
 
         @media print {
             .print-toolbar { display: none !important; }
-            body { background: #fff; padding: 0; }
+            body { background: #FFFFFF; padding: 0; }
             .cert-page { margin: 0; box-shadow: none; width: 100%; min-height: auto; }
         }
     </style>
@@ -588,7 +590,7 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
     <div class="print-toolbar">
         <div>
             <span class="print-toolbar-title">Certificate of Commissioning &amp; Training</span>
-            <span class="print-toolbar-sub">Format: IFS/COMM/CERT/2026 · ${trainingDays} Days Program · ${cert?.status||'Finalized &amp; Issued'}</span>
+            <span class="print-toolbar-sub">Credential: ${certNo} · ${trainingDays} Days Program · ${cert?.status||'Finalized &amp; Issued'}</span>
         </div>
         <div>
             <button class="toolbar-btn btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
@@ -597,19 +599,34 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
     </div>
 
     <div class="cert-page">
-        <div class="inner-line"></div>
-        <div class="corner-ornament corner-tl"><svg viewBox="0 0 50 50"><path d="M5 5 L5 20 Q5 5 20 5 Z" fill="#8B6914" opacity="0.6"/><path d="M5 5 L5 14 Q5 5 14 5 Z" fill="#c9a84c" opacity="0.8"/></svg></div>
-        <div class="corner-ornament corner-tr"><svg viewBox="0 0 50 50"><path d="M5 5 L5 20 Q5 5 20 5 Z" fill="#8B6914" opacity="0.6"/><path d="M5 5 L5 14 Q5 5 14 5 Z" fill="#c9a84c" opacity="0.8"/></svg></div>
-        <div class="corner-ornament corner-bl"><svg viewBox="0 0 50 50"><path d="M5 5 L5 20 Q5 5 20 5 Z" fill="#8B6914" opacity="0.6"/><path d="M5 5 L5 14 Q5 5 14 5 Z" fill="#c9a84c" opacity="0.8"/></svg></div>
-        <div class="corner-ornament corner-br"><svg viewBox="0 0 50 50"><path d="M5 5 L5 20 Q5 5 20 5 Z" fill="#8B6914" opacity="0.6"/><path d="M5 5 L5 14 Q5 5 14 5 Z" fill="#c9a84c" opacity="0.8"/></svg></div>
+        <!-- Elegant Geometric Corner Accents -->
+        <div class="corner-ornament corner-tl">
+            <svg viewBox="0 0 24 24"><path d="M2 2 L2 14 M2 2 L14 2" stroke="#C5A059" stroke-width="1.2" fill="none" opacity="0.6"/><circle cx="5" cy="5" r="1.5" fill="#C5A059" opacity="0.5"/></svg>
+        </div>
+        <div class="corner-ornament corner-tr">
+            <svg viewBox="0 0 24 24"><path d="M2 2 L2 14 M2 2 L14 2" stroke="#C5A059" stroke-width="1.2" fill="none" opacity="0.6"/><circle cx="5" cy="5" r="1.5" fill="#C5A059" opacity="0.5"/></svg>
+        </div>
+        <div class="corner-ornament corner-bl">
+            <svg viewBox="0 0 24 24"><path d="M2 2 L2 14 M2 2 L14 2" stroke="#C5A059" stroke-width="1.2" fill="none" opacity="0.6"/><circle cx="5" cy="5" r="1.5" fill="#C5A059" opacity="0.5"/></svg>
+        </div>
+        <div class="corner-ornament corner-br">
+            <svg viewBox="0 0 24 24"><path d="M2 2 L2 14 M2 2 L14 2" stroke="#C5A059" stroke-width="1.2" fill="none" opacity="0.6"/><circle cx="5" cy="5" r="1.5" fill="#C5A059" opacity="0.5"/></svg>
+        </div>
 
-        <div class="watermark">INDUS FIRE</div>
+        <!-- Subtle Guilloché Watermark -->
+        <svg class="watermark-emblem" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="90" fill="none" stroke="#C5A059" stroke-width="1.2" stroke-dasharray="3,3"/>
+            <circle cx="100" cy="100" r="82" fill="none" stroke="#C5A059" stroke-width="0.8"/>
+            <circle cx="100" cy="100" r="68" fill="none" stroke="#C5A059" stroke-width="0.5"/>
+            <polygon points="100,38 116,80 162,80 125,108 139,150 100,124 61,150 75,108 38,80 84,80" fill="none" stroke="#C5A059" stroke-width="0.6"/>
+            <text x="100" y="103" text-anchor="middle" font-family="'Cinzel', serif" font-size="9" font-weight="600" fill="#C5A059" letter-spacing="1.5">INDUS FIRE</text>
+        </svg>
 
         <div class="cert-content">
             <!-- HEADER -->
             <div class="header-row">
                 <div class="logo-block">
-                    <img src="${INDUS_LOGO_BASE64}" alt="Indus Fire Safety Logo" class="logo-img" />
+                    <img src="${INDUS_LOGO_BASE64}" alt="Indus Fire Safety" class="logo-img" />
                     <div>
                         <div class="company-name">Indus Fire Safety Pvt. Ltd.</div>
                         <div class="company-tagline">Manufacturers of Advanced Fire Fighting &amp; Emergency Rescue Apparatus</div>
@@ -617,33 +634,33 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
                     </div>
                 </div>
                 <div class="cert-number-box">
-                    <div class="cert-number-badge">CERT NO: ${certNo}</div>
-                    <div class="cert-date-text">Issued: ${formatDateDDMMYYYY(commDate)}</div>
+                    <div class="cert-number-label">Certificate No.</div>
+                    <div class="cert-number-value">${certNo}</div>
+                    <div class="cert-date-text">Conferred: ${formatDateDDMMYYYY(commDate)}</div>
                 </div>
             </div>
 
-            <!-- TITLE RIBBON & PREAMBLE -->
-            <div class="title-ribbon">
-                <div class="title-ribbon-inner">
-                    <h2>Certificate of Commissioning &amp; Operational Training</h2>
-                    <p>Apparatus Handover &amp; Crew Competency Clearance</p>
+            <!-- TITLE & RECIPIENT -->
+            <div class="title-section">
+                <div class="title-pill">Official Handover &amp; Crew Clearance</div>
+                <h1 class="cert-title">Certificate of Commissioning &amp; Operational Training</h1>
+                <div class="cert-preamble">
+                    This is to formally certify that the firefighting apparatus and emergency systems detailed herein have been commissioned in strict accordance with OEM engineering standards, and comprehensive operational training has been conferred upon the designated crew of:
                 </div>
-            </div>
-            <div class="cert-preamble">
-                This is to formally certify that the emergency fire apparatus detailed below has been successfully commissioned at site, and hands-on operational and maintenance training has been imparted to the designated crew.
+                <div class="recipient-name">${customer?.name||'Authorized Client Organization'}</div>
             </div>
 
-            <!-- DETAILS GRID -->
+            <!-- APPARATUS & PROGRAM SPECIFICATIONS GRID -->
             <table class="details-grid">
                 <tr>
-                    <td class="dlbl">Customer Organization</td>
-                    <td class="dval border-r dval-highlight">${customer?.name||'Customer Organization'}</td>
+                    <td class="dlbl">Client Organization</td>
+                    <td class="dval border-r" style="font-weight:600;color:#0F172A;">${customer?.name||'Client Organization'}</td>
                     <td class="dlbl">Purchase Order (PO)</td>
-                    <td class="dval" style="font-weight:800;color:#1e3a8a;">${truck?.poNo||'N/A'}</td>
+                    <td class="dval" style="font-weight:600;color:#1E40AF;">${truck?.poNo||'N/A'}</td>
                 </tr>
                 <tr>
-                    <td class="dlbl">Tender Type / Model</td>
-                    <td class="dval border-r">${truck?.tenderType||'Fire Tender'}</td>
+                    <td class="dlbl">Apparatus Model / Type</td>
+                    <td class="dval border-r">${truck?.tenderType||'Multipurpose Fire Tender'}</td>
                     <td class="dlbl">Vehicle Delivery Date</td>
                     <td class="dval">${formatDateDDMMYYYY(truck?.deliveryDate)}</td>
                 </tr>
@@ -655,22 +672,22 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
                 </tr>
                 <tr>
                     <td class="dlbl">Training Conducted By</td>
-                    <td class="dval border-r dval-highlight">${cert?.commissioningEngineer||'Lead Service Engineer'}</td>
-                    <td class="dlbl">Training Duration</td>
-                    <td class="dval" style="font-weight:800;color:#047857;">${trainingDays} Days (${formatDateDDMMYYYY(startDate)} → ${formatDateDDMMYYYY(commDate)})</td>
+                    <td class="dval border-r" style="font-weight:600;color:#0F172A;">${cert?.commissioningEngineer||'Lead Service Engineer'}</td>
+                    <td class="dlbl">Program Duration</td>
+                    <td class="dval" style="font-weight:600;color:#047857;">${trainingDays} Days (${formatDateDDMMYYYY(startDate)} → ${formatDateDDMMYYYY(commDate)})</td>
                 </tr>
                 <tr>
                     <td class="dlbl">Receiving Authority</td>
-                    <td class="dval border-r dval-highlight">${cert?.receivingOfficer||'Chief Fire Officer'}</td>
-                    <td class="dlbl">Training Location</td>
-                    <td class="dval">${cert?.stationLocation||'Client Fire Station'}</td>
+                    <td class="dval border-r" style="font-weight:600;color:#0F172A;">${cert?.receivingOfficer||'Chief Fire Officer'}</td>
+                    <td class="dlbl">Commissioning Site</td>
+                    <td class="dval">${cert?.stationLocation||'Client Station Facility'}</td>
                 </tr>
             </table>
 
             <!-- SECTION 1: COMMISSIONING QUESTIONS TABLE -->
             <div class="section-header">
-                <div class="section-number">1</div>
-                <div class="section-title">Operational Competency &amp; Checklist Clearance</div>
+                <div class="section-number">01</div>
+                <div class="section-title">Operational Competency &amp; Checklist Verification</div>
                 <div class="section-line"></div>
             </div>
             <table class="data-tbl">
@@ -685,8 +702,8 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
                 <tbody>
                     ${questionsList.slice(0,8).map((q,idx)=>{const dayBadge=q.completedOnDay?'Day '+q.completedOnDay:'Cleared';return`
                         <tr>
-                            <td style="text-align:center;font-weight:800;color:#9ca3af;">${idx+1}</td>
-                            <td><span style="font-weight:800;color:#8B6914;">${q.category||'System'}</span></td>
+                            <td style="text-align:center;font-weight:600;color:#94A3B8;">${idx+1}</td>
+                            <td><span style="font-weight:600;color:#96722E;">${q.category||'System'}</span></td>
                             <td>${q.question}</td>
                             <td style="text-align:center;">
                                 <span class="badge-pass">✓ ${dayBadge}</span>
@@ -698,26 +715,26 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
 
             <!-- SECTION 2: ATTENDEES ROSTER -->
             <div class="section-header">
-                <div class="section-number">2</div>
-                <div class="section-title">Training Attendee Roster — Certified Crew &amp; Attendance Record</div>
+                <div class="section-number">02</div>
+                <div class="section-title">Certified Operations Crew &amp; Attendance Record</div>
                 <div class="section-line"></div>
             </div>
             <table class="data-tbl">
                 <thead>
                     <tr>
                         <th style="width:6%;text-align:center;">#</th>
-                        <th style="width:34%;">Trainee / Officer Name</th>
+                        <th style="width:36%;">Crew Member Name</th>
                         <th style="width:26%;">Designation / Rank</th>
-                        <th style="width:34%;">Training Attendance Duration</th>
+                        <th style="width:32%;text-align:center;">Attendance &amp; Evaluation</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${attendeesList.map((att,idx)=>`
                     <tr>
-                        <td style="text-align:center;font-weight:800;color:#9ca3af;">${idx+1}</td>
+                        <td style="text-align:center;font-weight:600;color:#94A3B8;">${idx+1}</td>
                         <td><span class="att-name">${att.name}</span></td>
-                        <td><span style="color:#4b5563;font-weight:600;">${att.designation||'Driver-Operator'}</span></td>
-                        <td><span style="color:#065f46;font-weight:800;">${att.attendanceDisplay||'Full Program'}</span></td>
+                        <td><span style="color:#64748B;font-weight:400;">${att.designation||'Driver-Operator'}</span></td>
+                        <td style="text-align:center;"><span class="badge-pass">✓ ${att.attendanceDisplay||'Full Program'}</span></td>
                     </tr>
                     `).join('')}
                 </tbody>
@@ -726,25 +743,25 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
             <!-- SECTION 3: DOCUMENTS HANDED OVER (IF ANY) -->
             ${selectedDocsList&&selectedDocsList.length>0?`
             <div class="section-header">
-                <div class="section-number">3</div>
-                <div class="section-title">Documents, Manuals &amp; Technical Literature Handed Over</div>
+                <div class="section-number">03</div>
+                <div class="section-title">Technical Documentation &amp; Manuals Handed Over</div>
                 <div class="section-line"></div>
             </div>
             <table class="data-tbl">
                 <thead>
                     <tr>
                         <th style="width:6%;text-align:center;">#</th>
-                        <th style="width:64%;">Document / Technical Manual Title</th>
+                        <th style="width:64%;">Technical Manual / Certificate Title</th>
                         <th style="width:30%;text-align:center;">Handover Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${selectedDocsList.map((doc,idx)=>`
                     <tr>
-                        <td style="text-align:center;font-weight:800;color:#9ca3af;">${idx+1}</td>
+                        <td style="text-align:center;font-weight:600;color:#94A3B8;">${idx+1}</td>
                         <td>
                             <span class="att-name">${doc.name}</span>
-                            ${doc.refNo?`<span style="font-size:7px;color:#6b7280;margin-left:5px;">(Ref: ${doc.refNo})</span>`:''}
+                            ${doc.refNo?`<span style="font-size:6.8px;color:#94A3B8;margin-left:5px;">(Ref: ${doc.refNo})</span>`:''}
                         </td>
                         <td style="text-align:center;">
                             <span class="badge-pass">✓ Handed Over</span>
@@ -755,47 +772,47 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
             </table>
             `:''}
 
-            <!-- SECTION 4: PHOTOS (IF ANY) -->
+            <!-- SECTION 4: FIELD PHOTOS (IF ANY) -->
             ${Object.keys(photosByDay).length>0?`
             <div class="section-header">
-                <div class="section-number">📷</div>
-                <div class="section-title">Training Photographic Record — Crew, Trainer &amp; Apparatus</div>
+                <div class="section-number">04</div>
+                <div class="section-title">Commissioning &amp; Training Field Photographic Record</div>
                 <div class="section-line"></div>
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 6px;">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:3px 0 5px;">
                 ${Object.entries(photosByDay).map(([dayNum,photoUrl])=>`
-                    <div style="text-align:center;flex:1;min-width:110px;max-width:160px;">
-                        <img src="${photoUrl}" alt="Day ${dayNum} Training Photo" style="width:100%;height:65px;object-fit:cover;border-radius:4px;border:1px solid #d1d5db;" />
-                        <div style="font-size:7px;font-weight:800;color:#8B6914;text-transform:uppercase;margin-top:1px;">Day ${dayNum} Field Photo</div>
+                    <div style="text-align:center;flex:1;min-width:105px;max-width:150px;">
+                        <img src="${photoUrl}" alt="Day ${dayNum} Training Photo" style="width:100%;height:62px;object-fit:cover;border-radius:3px;border:0.5px solid #E2E8F0;" />
+                        <div style="font-size:6.8px;font-weight:600;color:#96722E;text-transform:uppercase;margin-top:1.5px;">Day ${dayNum} Field Photo</div>
                     </div>
                 `).join('')}
             </div>
             `:''}
 
-            <!-- REMARKS -->
+            <!-- COMMISSIONING STATEMENT -->
             <div class="remarks-box">
-                <div class="remarks-label">Commissioning Clearance &amp; Handover Statement</div>
-                <div class="remarks-text">${cert?.remarks||'Vehicle successfully commissioned at site. Hands-on training covering all applicable systems and operational procedures has been completed. All listed personnel have demonstrated satisfactory competency and the vehicle is hereby cleared for active duty.'}</div>
+                <div class="remarks-label">Official Commissioning &amp; Handover Statement</div>
+                <div class="remarks-text">${cert?.remarks||'Apparatus and emergency auxiliary systems successfully commissioned at site. Comprehensive hands-on operational and preventative maintenance training has been successfully concluded. All listed personnel have demonstrated satisfactory operational competency and the apparatus is hereby formally cleared for active emergency duty.'}</div>
             </div>
 
-            <!-- SIGNATURES -->
+            <!-- SIGNATORIES -->
             <div class="sig-row">
                 <div class="sig-col">
-                    <div style="height:18px;"></div>
+                    <div style="height:16px;"></div>
                     <div class="sig-line"></div>
                     <div class="sig-name">${cert?.commissioningEngineer||'Lead Service Engineer'}</div>
-                    <div class="sig-role">Lead Trainer / Engineer</div>
+                    <div class="sig-role">Lead Commissioning Engineer</div>
                     <div class="sig-org">Indus Fire Safety Pvt. Ltd.</div>
                 </div>
                 <div class="sig-col">
-                    <div style="height:18px;"></div>
+                    <div style="height:16px;"></div>
                     <div class="sig-line"></div>
                     <div class="sig-name">${attendeesList[0]?.name||'Lead Driver Representative'}</div>
                     <div class="sig-role">${attendeesList[0]?.designation||'Lead Operator / Driver'}</div>
-                    <div class="sig-org">Customer Fire Operations</div>
+                    <div class="sig-org">Customer Operations Division</div>
                 </div>
                 <div class="sig-col">
-                    <div style="height:18px;"></div>
+                    <div style="height:16px;"></div>
                     <div class="sig-line"></div>
                     <div class="sig-name">${cert?.receivingOfficer||'Chief Fire Officer'}</div>
                     <div class="sig-role">Receiving Authority</div>
@@ -803,16 +820,10 @@ const attendanceByDay=cert?.attendanceByDay||(cert?.attendees?{1:cert.attendees}
                 </div>
             </div>
 
-            <!-- AFTER SALES & WARRANTY FOOTER -->
+            <!-- FOOTER AUTHENTICITY BAR -->
             <div class="support-box">
-                <div class="support-hdr">
-                    After Sales Service &amp; 24/7 Warranty Support Desk
-                </div>
-                <div class="support-body">
-                    This vehicle is covered under <b>Comprehensive Warranty</b> as per PO terms. Contact us 24/7/365: 
-                    <b>Email:</b> <span style="color:#1e40af;font-weight:800;">customercare@indusfire.com</span> &nbsp;·&nbsp;
-                    <b>Helpline:</b> <span style="color:#1e40af;font-weight:800;">+91 93139 27647</span> (Available 24/7 365 Days)
-                </div>
+                This apparatus is protected under <b>OEM Comprehensive Warranty</b>. Official digital record authenticated by Indus Fire Safety. 
+                Support Desk: <b>customercare@indusfire.com</b> &nbsp;·&nbsp; 24/7 Helpline: <b>+91 93139 27647</b>
             </div>
         </div>
     </div>
@@ -862,7 +873,7 @@ if(!isCurrentStepDocSelected)toggleDocSelection(currentStepDoc.id);if(stepDocInd
 const DEFAULT_TRAINER_PORTAL_PASSWORD='6655';const getTrainerPortalPassword=()=>{try{return localStorage.getItem('ff_trainer_portal_password')||DEFAULT_TRAINER_PORTAL_PASSWORD;}catch(e){return DEFAULT_TRAINER_PORTAL_PASSWORD;}};const saveTrainerPortalPassword=newPass=>{try{if(newPass&&newPass.trim()){localStorage.setItem('ff_trainer_portal_password',newPass.trim());return true;}}catch(e){}return false;};// ══════════════════════════════════════════════════════
 // CUSTOMER TRAINING SHEET & CERTIFICATE SOFT COPY MODAL
 // ══════════════════════════════════════════════════════
-const CustomerTrainingSoftCopyModal=({cert,truck,customer,onClose})=>{if(!cert||!truck)return null;const pumpOem=getPumpOemSpecs(truck.pumpMake);const chassisOem=getChassisOemSpecs(truck.chassisMake);const trainingDays=parseInt(cert.trainingDays)||3;const startDate=cert.startDate||cert.commissioningDate||truck.deliveryDate;const commDate=cert.commissioningDate||truck.deliveryDate;const attendanceByDay=cert.attendanceByDay||(cert.attendees?{1:cert.attendees}:{1:[]});const summaryAttendees=buildTrainingAttendeeSummary(attendanceByDay,trainingDays,startDate);const attendeesList=summaryAttendees.length>0?summaryAttendees:cert.attendees||[];const selectedDocsList=cert.selectedHandoverDocuments||cert.handoverSnapshot?.documents||[];const photosByDay=cert.photosByDay||(cert.groupPhoto?{1:cert.groupPhoto}:{});const questionsList=cert.questions&&cert.questions.length>0?cert.questions:loadTrainingQuestionsMaster().filter(q=>q.active!==false);const completedCount=questionsList.filter(q=>q.completed).length;return/*#__PURE__*/React.createElement("div",{className:"fixed inset-0 z-60 bg-white flex flex-col text-slate-800 overflow-hidden"},/*#__PURE__*/React.createElement("div",{className:"bg-white w-full h-full p-4 sm:p-6 space-y-4 flex flex-col text-slate-800 relative overflow-hidden max-w-6xl mx-auto"},/*#__PURE__*/React.createElement("div",{className:"absolute inset-2 border border-amber-400/30 rounded-2xl pointer-events-none z-0"}),/*#__PURE__*/React.createElement("div",{className:"relative z-10 flex flex-wrap justify-between items-center pb-3 border-b border-slate-200 gap-2"},/*#__PURE__*/React.createElement("div",{className:"flex items-center gap-3"},/*#__PURE__*/React.createElement("img",{src:INDUS_LOGO_BASE64,alt:"Indus Logo",className:"w-11 h-11 rounded-full object-contain border-2 border-amber-400 shadow-sm bg-white"}),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("div",{className:"flex items-center gap-2 flex-wrap"},/*#__PURE__*/React.createElement("h3",{className:"text-sm font-black uppercase tracking-tight text-slate-900 font-serif"},"Certificate of Commissioning & Training"),/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300"},"\u2713 ",cert.status||'Finalized & Issued')),/*#__PURE__*/React.createElement("p",{className:"text-[10px] font-bold text-slate-500"},"Official Digital Record \xB7 Cert No: ",/*#__PURE__*/React.createElement("b",{className:"text-slate-800"},cert.certNo)," \xB7 ",customer?.name||'Customer Organization'))),/*#__PURE__*/React.createElement("div",{className:"flex items-center gap-2"},/*#__PURE__*/React.createElement("button",{type:"button",onClick:()=>printCommissioningCertificatePdf(cert,truck,customer),className:"bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md cursor-pointer transition-all"},/*#__PURE__*/React.createElement(Icon,{name:"printer",size:14})," Download PDF Soft Copy"),/*#__PURE__*/React.createElement("button",{type:"button",onClick:onClose,className:"text-slate-400 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-100 cursor-pointer"},/*#__PURE__*/React.createElement(Icon,{name:"x",size:18})))),/*#__PURE__*/React.createElement("div",{className:"relative z-10 flex-1 overflow-y-auto pr-1 space-y-4 text-xs font-sans"},/*#__PURE__*/React.createElement("div",{className:"text-center bg-linear-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 p-3.5 rounded-2xl border border-amber-400/40 space-y-1"},/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black tracking-widest text-amber-900 uppercase"},"Indus Fire Safety Pvt. Ltd. \u2014 ISO 9001:2015 Certified"),/*#__PURE__*/React.createElement("h4",{className:"text-sm font-black uppercase tracking-wider text-slate-900 font-serif"},"Apparatus Handover & Operational Clearance"),/*#__PURE__*/React.createElement("p",{className:"text-[10.5px] italic text-slate-600 font-serif max-w-2xl mx-auto"},"This certifies that the fire apparatus detailed below has been successfully commissioned at site, and hands-on operational and maintenance training has been imparted to the designated crew.")),/*#__PURE__*/React.createElement("div",{className:"grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs"},/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase text-slate-400 block"},"Customer"),/*#__PURE__*/React.createElement("span",{className:"font-extrabold text-slate-900"},customer?.name)),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase text-slate-400 block"},"PO Number"),/*#__PURE__*/React.createElement("span",{className:"font-extrabold text-blue-900"},truck.poNo||'N/A')),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase text-slate-400 block"},"Tender Type"),/*#__PURE__*/React.createElement("span",{className:"font-extrabold text-slate-900"},truck.tenderType||'Fire Tender')),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase text-slate-400 block"},"Delivery Date"),/*#__PURE__*/React.createElement("span",{className:"font-extrabold text-slate-800"},formatDate(truck.deliveryDate))),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase text-slate-400 block"},"Chassis Make"),/*#__PURE__*/React.createElement("span",{className:"font-bold text-slate-800"},truck.chassisMake||chassisOem.brand)),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase text-slate-400 block"},"Fire Pump & Sr."),/*#__PURE__*/React.createElement("span",{className:"font-bold text-slate-800"},truck.pumpMake||pumpOem.brand," (",truck.pumpSrNo||'N/A',")")),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase text-slate-400 block"},"Trainer Conducted By"),/*#__PURE__*/React.createElement("span",{className:"font-extrabold text-amber-800"},cert.commissioningEngineer||'Lead Service Engineer')),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase text-slate-400 block"},"Training Duration"),/*#__PURE__*/React.createElement("span",{className:"font-extrabold text-emerald-800"},trainingDays," Days (",formatDate(startDate)," \u2192 ",formatDate(commDate),")"))),/*#__PURE__*/React.createElement("div",{className:"bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2"},/*#__PURE__*/React.createElement("div",{className:"flex justify-between items-center"},/*#__PURE__*/React.createElement("h5",{className:"font-black text-xs uppercase text-slate-900 flex items-center gap-1.5 font-serif"},/*#__PURE__*/React.createElement(Icon,{name:"check-circle",size:13,className:"text-emerald-600"}),"1. Operational Competency & Checklist Clearance (",completedCount,"/",questionsList.length," Points)"),/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200"},Math.round(completedCount/questionsList.length*100),"% Cleared")),/*#__PURE__*/React.createElement("div",{className:"grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1"},questionsList.map((q,i)=>/*#__PURE__*/React.createElement("div",{key:i,className:'p-2 rounded-xl border flex items-center gap-2 '+(q.completed?'bg-emerald-50/50 border-emerald-200 text-emerald-950':'bg-slate-50 border-slate-200 text-slate-500')},/*#__PURE__*/React.createElement("span",{className:'w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 '+(q.completed?'bg-emerald-600 text-white':'bg-slate-300 text-slate-600')},q.completed?'✓':'○'),/*#__PURE__*/React.createElement("span",{className:"font-bold text-[11px] truncate"},i+1,". ",q.question))))),/*#__PURE__*/React.createElement("div",{className:"bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2"},/*#__PURE__*/React.createElement("h5",{className:"font-black text-xs uppercase text-slate-900 flex items-center gap-1.5 font-serif"},/*#__PURE__*/React.createElement(Icon,{name:"users",size:13,className:"text-blue-600"}),"2. Certified Trainee Crew Roster (",attendeesList.length," Personnel)"),/*#__PURE__*/React.createElement("div",{className:"overflow-x-auto"},/*#__PURE__*/React.createElement("table",{className:"w-full text-left text-xs"},/*#__PURE__*/React.createElement("thead",null,/*#__PURE__*/React.createElement("tr",{className:"border-b text-[9px] font-black uppercase text-slate-400 bg-slate-50"},/*#__PURE__*/React.createElement("th",{className:"p-2"},"#"),/*#__PURE__*/React.createElement("th",{className:"p-2"},"Trainee / Officer Name"),/*#__PURE__*/React.createElement("th",{className:"p-2"},"Designation / Rank"),/*#__PURE__*/React.createElement("th",{className:"p-2"},"Attendance Duration"),/*#__PURE__*/React.createElement("th",{className:"p-2 text-right"},"Clearance"))),/*#__PURE__*/React.createElement("tbody",{className:"divide-y divide-slate-100"},attendeesList.map((att,idx)=>/*#__PURE__*/React.createElement("tr",{key:idx,className:"hover:bg-slate-50/50"},/*#__PURE__*/React.createElement("td",{className:"p-2 text-slate-400 font-bold"},idx+1),/*#__PURE__*/React.createElement("td",{className:"p-2 font-black text-slate-900"},att.name),/*#__PURE__*/React.createElement("td",{className:"p-2 text-slate-600 font-semibold"},att.designation||'Driver-Operator'),/*#__PURE__*/React.createElement("td",{className:"p-2 font-extrabold text-emerald-800"},att.attendanceDisplay||'Full Program'),/*#__PURE__*/React.createElement("td",{className:"p-2 text-right"},/*#__PURE__*/React.createElement("span",{className:"bg-emerald-100 text-emerald-800 text-[8.5px] font-black uppercase px-2 py-0.5 rounded"},"\u2713 Certified")))))))),selectedDocsList.length>0&&/*#__PURE__*/React.createElement("div",{className:"bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2"},/*#__PURE__*/React.createElement("h5",{className:"font-black text-xs uppercase text-slate-900 flex items-center gap-1.5 font-serif"},/*#__PURE__*/React.createElement(Icon,{name:"file-text",size:13,className:"text-amber-600"}),"3. Documents & Technical Manuals Handed Over (",selectedDocsList.length," Items)"),/*#__PURE__*/React.createElement("div",{className:"grid grid-cols-1 sm:grid-cols-2 gap-2"},selectedDocsList.map((doc,idx)=>/*#__PURE__*/React.createElement("div",{key:idx,className:"p-2 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-2"},/*#__PURE__*/React.createElement("div",{className:"flex items-center gap-1.5 truncate"},/*#__PURE__*/React.createElement("span",{className:"text-emerald-600 font-black"},"\u2713"),/*#__PURE__*/React.createElement("span",{className:"font-bold text-slate-800 truncate"},idx+1,". ",doc.name)),doc.refNo&&/*#__PURE__*/React.createElement("span",{className:"text-[8.5px] font-bold text-slate-500 bg-white px-1.5 py-0.2 rounded border shrink-0"},doc.refNo))))),Object.keys(photosByDay).length>0&&/*#__PURE__*/React.createElement("div",{className:"bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2"},/*#__PURE__*/React.createElement("h5",{className:"font-black text-xs uppercase text-slate-900 flex items-center gap-1.5 font-serif"},/*#__PURE__*/React.createElement(Icon,{name:"camera",size:13,className:"text-violet-600"}),"4. Training Site Photographic Record"),/*#__PURE__*/React.createElement("div",{className:"grid grid-cols-2 sm:grid-cols-3 gap-3"},Object.entries(photosByDay).map(([dayNum,photoUrl])=>/*#__PURE__*/React.createElement("div",{key:dayNum,className:"text-center space-y-1"},/*#__PURE__*/React.createElement("img",{src:photoUrl,alt:`Day ${dayNum} Training`,className:"w-full h-24 object-cover rounded-xl border border-slate-200 shadow-2xs"}),/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase text-slate-600 block"},"Day ",dayNum," Group Photo"))))),/*#__PURE__*/React.createElement("div",{className:"p-3.5 bg-amber-50/70 border border-amber-300 rounded-2xl space-y-1"},/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-black uppercase text-amber-900 tracking-wider block font-serif"},"Commissioning Clearance Statement"),/*#__PURE__*/React.createElement("p",{className:"text-slate-800 font-medium leading-relaxed"},cert.remarks)),/*#__PURE__*/React.createElement("div",{className:"grid grid-cols-3 gap-4 pt-4 border-t border-slate-200 text-center"},/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("div",{className:"w-3/4 h-px bg-slate-400 mx-auto mb-1"}),/*#__PURE__*/React.createElement("p",{className:"font-bold text-slate-900 text-xs font-serif"},cert.commissioningEngineer||'Lead Service Engineer'),/*#__PURE__*/React.createElement("p",{className:"text-[9px] font-bold text-slate-500 uppercase"},"Lead Trainer / Engineer"),/*#__PURE__*/React.createElement("p",{className:"text-[8px] text-slate-400"},"Indus Fire Safety Pvt. Ltd.")),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("div",{className:"w-3/4 h-px bg-slate-400 mx-auto mb-1"}),/*#__PURE__*/React.createElement("p",{className:"font-bold text-slate-900 text-xs font-serif"},attendeesList[0]?.name||'Lead Driver Representative'),/*#__PURE__*/React.createElement("p",{className:"text-[9px] font-bold text-slate-500 uppercase"},"Lead Operator / Driver"),/*#__PURE__*/React.createElement("p",{className:"text-[8px] text-slate-400"},"Customer Fire Operations")),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("div",{className:"w-3/4 h-px bg-slate-400 mx-auto mb-1"}),/*#__PURE__*/React.createElement("p",{className:"font-bold text-slate-900 text-xs font-serif"},cert.receivingOfficer||'Chief Fire Officer'),/*#__PURE__*/React.createElement("p",{className:"text-[9px] font-bold text-slate-500 uppercase"},"Receiving Authority"),/*#__PURE__*/React.createElement("p",{className:"text-[8px] text-slate-400"},customer?.name||'Customer Organization'))),/*#__PURE__*/React.createElement("div",{className:"p-3 bg-linear-to-r from-blue-900 to-indigo-950 text-white rounded-2xl text-center space-y-0.5"},/*#__PURE__*/React.createElement("p",{className:"text-[9px] font-black uppercase tracking-widest text-amber-300"},"After Sales Service & 24/7 Warranty Support Desk"),/*#__PURE__*/React.createElement("p",{className:"text-[10px] font-medium text-slate-200"},"Email: ",/*#__PURE__*/React.createElement("span",{className:"font-bold text-white"},"customercare@indusfire.com")," \xA0\xB7\xA0 Helpline: ",/*#__PURE__*/React.createElement("span",{className:"font-bold text-amber-400"},"+91 93139 27647")," (Available 24/7 365 Days)"))),/*#__PURE__*/React.createElement("div",{className:"relative z-10 pt-2 border-t border-slate-100 flex justify-between items-center"},/*#__PURE__*/React.createElement("span",{className:"text-[10px] font-bold text-slate-400"},"Indus Fire Safety Pvt. Ltd. \xB7 Official Digital Training Record"),/*#__PURE__*/React.createElement("div",{className:"flex gap-2"},/*#__PURE__*/React.createElement("button",{type:"button",onClick:onClose,className:"bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-black uppercase cursor-pointer"},"Close"),/*#__PURE__*/React.createElement("button",{type:"button",onClick:()=>printCommissioningCertificatePdf(cert,truck,customer),className:"bg-slate-900 hover:bg-black text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md cursor-pointer"},/*#__PURE__*/React.createElement(Icon,{name:"printer",size:14})," Download PDF Soft Copy")))));};// ── Customer Portal ──
+const CustomerTrainingSoftCopyModal=({cert,truck,customer,onClose})=>{if(!cert||!truck)return null;const pumpOem=getPumpOemSpecs(truck.pumpMake);const chassisOem=getChassisOemSpecs(truck.chassisMake);const trainingDays=parseInt(cert.trainingDays)||3;const startDate=cert.startDate||cert.commissioningDate||truck.deliveryDate;const commDate=cert.commissioningDate||truck.deliveryDate;const attendanceByDay=cert.attendanceByDay||(cert.attendees?{1:cert.attendees}:{1:[]});const summaryAttendees=buildTrainingAttendeeSummary(attendanceByDay,trainingDays,startDate);const attendeesList=summaryAttendees.length>0?summaryAttendees:cert.attendees||[];const selectedDocsList=cert.selectedHandoverDocuments||cert.handoverSnapshot?.documents||[];const photosByDay=cert.photosByDay||(cert.groupPhoto?{1:cert.groupPhoto}:{});const questionsList=cert.questions&&cert.questions.length>0?cert.questions:loadTrainingQuestionsMaster().filter(q=>q.active!==false);return/*#__PURE__*/React.createElement("div",{className:"fixed inset-0 z-60 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 text-slate-800 overflow-hidden font-sans"},/*#__PURE__*/React.createElement("div",{className:"bg-white w-full max-w-5xl max-h-[94vh] rounded-3xl shadow-2xl flex flex-col border border-slate-200 overflow-hidden relative"},/*#__PURE__*/React.createElement("div",{className:"absolute inset-2 border border-[#C5A059]/30 rounded-2xl pointer-events-none z-0"}),/*#__PURE__*/React.createElement("div",{className:"relative z-10 flex flex-wrap justify-between items-center px-6 py-4 border-b border-slate-100 gap-3 bg-[#FAF8F5]/80"},/*#__PURE__*/React.createElement("div",{className:"flex items-center gap-3"},/*#__PURE__*/React.createElement("img",{src:INDUS_LOGO_BASE64,alt:"Indus Logo",className:"w-10 h-10 rounded-full object-contain border border-[#C5A059]/40 bg-white p-1 shadow-xs"}),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("div",{className:"flex items-center gap-2"},/*#__PURE__*/React.createElement("h3",{className:"text-sm font-bold uppercase tracking-wider text-slate-900 font-serif"},"Certificate of Commissioning & Training"),/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"},"\u2713 ",cert.status||'Finalized & Issued')),/*#__PURE__*/React.createElement("p",{className:"text-[10px] text-slate-500 font-medium"},"Official Credential \xB7 ",/*#__PURE__*/React.createElement("span",{className:"font-semibold text-slate-700"},cert.certNo)," \xB7 ",customer?.name||'Customer Organization'))),/*#__PURE__*/React.createElement("div",{className:"flex items-center gap-2"},/*#__PURE__*/React.createElement("button",{type:"button",onClick:()=>printCommissioningCertificatePdf(cert,truck,customer),className:"bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold tracking-wider flex items-center gap-2 shadow-sm cursor-pointer transition-all"},/*#__PURE__*/React.createElement(Icon,{name:"printer",size:13})," Download PDF Soft Copy"),/*#__PURE__*/React.createElement("button",{type:"button",onClick:onClose,className:"text-slate-400 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-100 cursor-pointer transition-all"},/*#__PURE__*/React.createElement(Icon,{name:"x",size:18})))),/*#__PURE__*/React.createElement("div",{className:"relative z-10 flex-1 overflow-y-auto px-6 py-5 space-y-4 text-xs"},/*#__PURE__*/React.createElement("div",{className:"text-center bg-[#FDFBF7] p-5 rounded-2xl border border-[#E6D7B8] space-y-2"},/*#__PURE__*/React.createElement("span",{className:"inline-block text-[8px] font-semibold tracking-widest text-[#96722E] uppercase px-2.5 py-0.5 rounded-full bg-white border border-[#E6D7B8]"},"Indus Fire Safety Pvt. Ltd. \u2014 ISO 9001:2015 Accredited"),/*#__PURE__*/React.createElement("h4",{className:"text-base font-bold uppercase tracking-wider text-slate-900 font-serif"},"Apparatus Handover & Operational Clearance"),/*#__PURE__*/React.createElement("p",{className:"text-[11px] italic text-slate-600 font-serif max-w-2xl mx-auto leading-relaxed"},"This certifies that the fire apparatus detailed below has been formally commissioned in full compliance with OEM standards, and certified operational and maintenance training has been conferred upon the designated crew."),/*#__PURE__*/React.createElement("div",{className:"pt-1"},/*#__PURE__*/React.createElement("span",{className:"font-serif text-sm font-bold text-slate-900 border-b border-[#C5A059] pb-0.5 uppercase tracking-wide"},customer?.name))),/*#__PURE__*/React.createElement("div",{className:"grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 text-xs"},/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold uppercase text-slate-400 block tracking-wider"},"Purchase Order"),/*#__PURE__*/React.createElement("span",{className:"font-semibold text-blue-700"},truck.poNo||'N/A')),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold uppercase text-slate-400 block tracking-wider"},"Tender Model"),/*#__PURE__*/React.createElement("span",{className:"font-semibold text-slate-900"},truck.tenderType||'Fire Tender')),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold uppercase text-slate-400 block tracking-wider"},"Chassis Make & Sr."),/*#__PURE__*/React.createElement("span",{className:"font-medium text-slate-700"},truck.chassisMake||chassisOem.brand," (",truck.chassisSrNo||'N/A',")")),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold uppercase text-slate-400 block tracking-wider"},"Fire Pump & Output"),/*#__PURE__*/React.createElement("span",{className:"font-medium text-slate-700"},truck.pumpMake||pumpOem.brand," ",truck.pumpLpm?`${truck.pumpLpm} LPM`:''," (",truck.pumpSrNo||'N/A',")")),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold uppercase text-slate-400 block tracking-wider"},"Lead Commissioning Engineer"),/*#__PURE__*/React.createElement("span",{className:"font-semibold text-slate-800"},cert.commissioningEngineer||'Lead Service Engineer')),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold uppercase text-slate-400 block tracking-wider"},"Training Duration"),/*#__PURE__*/React.createElement("span",{className:"font-semibold text-emerald-700"},trainingDays," Days (",formatDateDDMMYYYY(startDate)," \u2192 ",formatDateDDMMYYYY(commDate),")")),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold uppercase text-slate-400 block tracking-wider"},"Receiving Officer"),/*#__PURE__*/React.createElement("span",{className:"font-semibold text-slate-800"},cert.receivingOfficer||'Chief Fire Officer')),/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold uppercase text-slate-400 block tracking-wider"},"Delivery Date"),/*#__PURE__*/React.createElement("span",{className:"font-medium text-slate-700"},formatDateDDMMYYYY(truck.deliveryDate)))),/*#__PURE__*/React.createElement("div",{className:"bg-white rounded-2xl border border-slate-200 p-4 space-y-2"},/*#__PURE__*/React.createElement("h5",{className:"font-bold text-xs uppercase text-slate-800 flex items-center gap-2 font-serif"},/*#__PURE__*/React.createElement("span",{className:"w-5 h-5 rounded-full bg-[#FDFBF7] border border-[#E6D7B8] text-[#96722E] flex items-center justify-center text-[10px] font-sans"},"01"),"System Commissioning Verification Protocol"),/*#__PURE__*/React.createElement("div",{className:"grid grid-cols-1 sm:grid-cols-2 gap-2"},questionsList.slice(0,8).map((q,idx)=>/*#__PURE__*/React.createElement("div",{key:idx,className:"p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between gap-2"},/*#__PURE__*/React.createElement("div",{className:"truncate"},/*#__PURE__*/React.createElement("span",{className:"text-[10px] font-semibold text-[#96722E] block"},q.category||'System'),/*#__PURE__*/React.createElement("span",{className:"font-medium text-slate-700 truncate block text-[11px]"},q.question)),/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0"},"\u2713 Cleared"))))),/*#__PURE__*/React.createElement("div",{className:"bg-white rounded-2xl border border-slate-200 p-4 space-y-2"},/*#__PURE__*/React.createElement("h5",{className:"font-bold text-xs uppercase text-slate-800 flex items-center gap-2 font-serif"},/*#__PURE__*/React.createElement("span",{className:"w-5 h-5 rounded-full bg-[#FDFBF7] border border-[#E6D7B8] text-[#96722E] flex items-center justify-center text-[10px] font-sans"},"02"),"Certified Operations Crew (",attendeesList.length," Personnel)"),/*#__PURE__*/React.createElement("div",{className:"grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2"},attendeesList.map((att,idx)=>/*#__PURE__*/React.createElement("div",{key:idx,className:"p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between"},/*#__PURE__*/React.createElement("div",null,/*#__PURE__*/React.createElement("span",{className:"font-semibold text-slate-800 block text-[11px]"},att.name),/*#__PURE__*/React.createElement("span",{className:"text-[10px] text-slate-500 block"},att.designation||'Driver-Operator')),/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full"},"\u2713 Certified"))))),selectedDocsList.length>0&&/*#__PURE__*/React.createElement("div",{className:"bg-white rounded-2xl border border-slate-200 p-4 space-y-2"},/*#__PURE__*/React.createElement("h5",{className:"font-bold text-xs uppercase text-slate-800 flex items-center gap-2 font-serif"},/*#__PURE__*/React.createElement("span",{className:"w-5 h-5 rounded-full bg-[#FDFBF7] border border-[#E6D7B8] text-[#96722E] flex items-center justify-center text-[10px] font-sans"},"03"),"Technical Handover Documents (",selectedDocsList.length," Items)"),/*#__PURE__*/React.createElement("div",{className:"grid grid-cols-1 sm:grid-cols-2 gap-2"},selectedDocsList.map((doc,idx)=>/*#__PURE__*/React.createElement("div",{key:idx,className:"p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between"},/*#__PURE__*/React.createElement("span",{className:"font-medium text-slate-700 truncate"},idx+1,". ",doc.name),/*#__PURE__*/React.createElement("span",{className:"text-[9px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0"},"\u2713 Handed Over"))))),/*#__PURE__*/React.createElement("div",{className:"bg-[#FDFBF7] rounded-xl border border-[#E6D7B8] p-3 text-[11px] text-slate-700 leading-relaxed"},/*#__PURE__*/React.createElement("b",{className:"text-[#96722E] uppercase text-[9px] block mb-0.5"},"Commissioning & Handover Clearance Statement:"),cert.remarks||'Apparatus and emergency auxiliary systems successfully commissioned at site. Comprehensive hands-on operational and preventative maintenance training has been successfully concluded. All listed personnel have demonstrated satisfactory operational competency and the apparatus is hereby formally cleared for active emergency duty.')),/*#__PURE__*/React.createElement("div",{className:"relative z-10 px-6 py-3 border-t border-slate-100 flex justify-between items-center bg-slate-50/50"},/*#__PURE__*/React.createElement("span",{className:"text-[10px] text-slate-400 font-medium"},"Indus Fire Safety Pvt. Ltd. \xB7 Official Digital Training Record"),/*#__PURE__*/React.createElement("div",{className:"flex gap-2"},/*#__PURE__*/React.createElement("button",{type:"button",onClick:onClose,className:"bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all"},"Close"),/*#__PURE__*/React.createElement("button",{type:"button",onClick:()=>printCommissioningCertificatePdf(cert,truck,customer),className:"bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs font-semibold tracking-wider flex items-center gap-1.5 shadow-sm cursor-pointer transition-all"},/*#__PURE__*/React.createElement(Icon,{name:"printer",size:13})," Download PDF Soft Copy")))));};// ── Customer Portal ──
 const CustomerPortal=({trucks,customers,complaints,categories,pmRecords=[],onSavePmRecord,commCerts=[],onSaveCommCert,setComplaints,feedbacks,setFeedbacks,user,initialPo='',initialTicket='',getQrImageUrl,onAdminLogin})=>{const[selectedPmMilestone,setSelectedPmMilestone]=useState(null);const[selectedCommissioningTruck,setSelectedCommissioningTruck]=useState(null);const[customerViewSoftCopyCert,setCustomerViewSoftCopyCert]=useState(null);const[tab,setTab]=useState(initialTicket?'tracker':'lookup');const[lookupQuery,setLookupQuery]=useState(initialPo);const[foundTruck,setFoundTruck]=useState(null);const[lookupError,setLookupError]=useState('');const[showComplaintForm,setShowComplaintForm]=useState(false);const[ticketQuery,setTicketQuery]=useState(initialTicket||'');const[foundTicket,setFoundTicket]=useState(null);const[ticketError,setTicketError]=useState('');const[compForm,setCompForm]=useState({category:'',description:'',reportedBy:'',contactPhone:'',contactEmail:'',attachment:null,attachmentPreview:''});const[compSubmitted,setCompSubmitted]=useState(null);const[fbForm,setFbForm]=useState({rating:5,feedbackText:'',personName:'',contactNumber:''});const[fbSubmitted,setFbSubmitted]=useState(false);const[directTruck,setDirectTruck]=useState(null);const[faqSearch,setFaqSearch]=useState('');// Mode: 'portal' (Customer Search) vs 'login' (Dedicated Staff/Admin Login View)
 // Forcefully default to 'portal' on initial load or refresh
 const[portalMode,setPortalMode]=useState('portal');// Dedicated Staff Login State
