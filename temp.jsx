@@ -2729,6 +2729,232 @@ ON CONFLICT (id) DO NOTHING;`;
         };
 
         // ══════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════
+        // 💬 AUTOMATED WHATSAPP DISPATCH ENGINE (OPTION 1: SCAN-QR)
+        // ══════════════════════════════════════════════════════
+        const DEFAULT_WHATSAPP_SETTINGS = {
+            enabled: true,
+            provider: 'ultramsg', // 'ultramsg' | 'greenapi' | 'custom_webhook'
+            instanceId: '',       // e.g. instance12345
+            token: '',            // e.g. a1b2c3d4e5
+            adminHelpline: '+91 93139 27647',
+            notifyCustomer: true,
+            notifyAdmin: true
+        };
+
+        const loadWhatsAppSettings = () => {
+            try {
+                const s = localStorage.getItem('ff_whatsapp_settings');
+                if (s) return { ...DEFAULT_WHATSAPP_SETTINGS, ...JSON.parse(s) };
+            } catch(e) {}
+            return DEFAULT_WHATSAPP_SETTINGS;
+        };
+
+        const saveWhatsAppSettings = (settings) => {
+            try {
+                localStorage.setItem('ff_whatsapp_settings', JSON.stringify(settings));
+            } catch(e) {}
+        };
+
+        const loadWhatsAppAuditLog = () => {
+            try {
+                const l = localStorage.getItem('ff_whatsapp_audit_log');
+                if (l) return JSON.parse(l);
+            } catch(e) {}
+            return [];
+        };
+
+        const recordWhatsAppAuditLog = (entry) => {
+            try {
+                const prev = loadWhatsAppAuditLog();
+                const updated = [entry, ...prev].slice(0, 50);
+                localStorage.setItem('ff_whatsapp_audit_log', JSON.stringify(updated));
+            } catch(e) {}
+        };
+
+        const buildComplaintWhatsAppMessage = (eventType, payload) => {
+            if (eventType === 'complaint_logged') {
+                return `🚨 *INDUS FIRE SAFETY — TICKET REGISTERED*\n\nDear Customer / Safety Officer,\nYour service request has been logged successfully:\n\n📋 *Ticket ID:* #${payload.complaintId}\n🚒 *Apparatus:* ${payload.tenderType || 'Fire Tender'} (${payload.chassisMake || 'Chassis'})\n🏢 *Organization:* ${payload.customerName || 'Client'}\n⚠️ *Category:* ${payload.category || 'Support Request'}\n📝 *Description:* ${payload.description || 'Service needed'}\n⏱️ *Standard SLA:* 24 to 48 Hours\n\nOur service engineering team will contact you shortly.\n📞 *24/7 OEM Helpline:* +91 93139 27647\n🌐 *Indus Fire Safety Pvt. Ltd.*`;
+            } else if (eventType === 'complaint_closed') {
+                return `✅ *INDUS FIRE SAFETY — TICKET RESOLVED*\n\nDear Customer / Safety Officer,\nWe are pleased to inform you that your service request has been completed and closed:\n\n📋 *Ticket ID:* #${payload.complaintId}\n🚒 *Apparatus:* ${payload.tenderType || 'Fire Tender'} (${payload.chassisMake || 'Chassis'})\n🏢 *Organization:* ${payload.customerName || 'Client'}\n🔧 *Attended By:* ${payload.closedBy || 'Indus Lead Service Engineer'}\n📝 *Action Taken:* ${payload.diagnosis || 'Maintenance completed successfully'}\n📅 *Date Closed:* ${payload.closedDate || new Date().toISOString().split('T')[0]}\n\nThank you for choosing Indus Fire Safety!\n📞 *24/7 OEM Helpline:* +91 93139 27647`;
+            }
+            return '';
+        };
+
+        const openDirectWhatsApp = (eventType, payload) => {
+            const phone = formatWhatsAppPhone(payload.phone);
+            const msg = buildComplaintWhatsAppMessage(eventType, payload);
+            const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        };
+
+        const formatWhatsAppPhone = (raw) => {
+            if (!raw) return '';
+            let cleaned = String(raw).replace(/[^0-9]/g, '');
+            if (!cleaned) return '';
+            if (cleaned.length === 11 && cleaned.startsWith('0')) {
+                cleaned = '91' + cleaned.slice(1);
+            }
+            if (cleaned.length === 10) {
+                cleaned = '91' + cleaned;
+            }
+            return cleaned;
+        };
+
+        const dispatchWhatsAppAlert = async (eventType, payload) => {
+            try {
+                const settings = loadWhatsAppSettings();
+                if (!settings || !settings.enabled) {
+                    console.log('[WhatsApp Alert] Automation disabled in settings.');
+                    return { skipped: true, reason: 'disabled' };
+                }
+
+                const { provider = 'ultramsg', instanceId = '', token = '', adminHelpline = '+919313927647', notifyCustomer = true, notifyAdmin = true } = settings;
+                if (!instanceId || !token) {
+                    console.log('[WhatsApp Alert] Gateway credentials not configured yet.');
+                    return { skipped: true, reason: 'not_configured' };
+                }
+
+                const targetPhone = formatWhatsAppPhone(payload.phone);
+                const adminPhone = formatWhatsAppPhone(adminHelpline);
+
+                const messages = [];
+
+                if (eventType === 'complaint_logged') {
+                    const custMsg = `🚨 *INDUS FIRE SAFETY — TICKET REGISTERED*\n\nDear Customer / Safety Officer,\nYour service request has been logged successfully:\n\n📋 *Ticket ID:* #${payload.complaintId}\n🚒 *Apparatus:* ${payload.tenderType || 'Fire Tender'} (${payload.chassisMake || 'Chassis'})\n🏢 *Organization:* ${payload.customerName || 'Client'}\n⚠️ *Category:* ${payload.category || 'Support Request'}\n📝 *Description:* ${payload.description || 'Service needed'}\n⏱️ *Standard SLA:* 24 to 48 Hours\n\nOur service engineering team will contact you shortly.\n📞 *24/7 OEM Helpline:* +91 93139 27647\n🌐 *Indus Fire Safety Pvt. Ltd.*`;
+
+                    if (notifyCustomer && targetPhone) {
+                        messages.push({ to: targetPhone, body: custMsg, role: 'customer' });
+                    }
+                    if (notifyAdmin && adminPhone && adminPhone !== targetPhone) {
+                        const adminMsg = `🔔 *NEW COMPLAINT RECEIVED — INDUS DESK*\n\n📋 *Ticket:* #${payload.complaintId}\n🏢 *Client:* ${payload.customerName || 'Client'}\n📞 *Caller:* ${payload.reportedBy || targetPhone}\n🚒 *Vehicle:* ${payload.tenderType || 'Fire Tender'} (${payload.chassisMake || 'Chassis'})\n⚠️ *Issue:* ${payload.category}\n📝 ${payload.description}\n\nPlease assign service engineer promptly.`;
+                        messages.push({ to: adminPhone, body: adminMsg, role: 'admin' });
+                    }
+                } else if (eventType === 'complaint_closed') {
+                    const closeMsg = `✅ *INDUS FIRE SAFETY — TICKET RESOLVED*\n\nDear Customer / Safety Officer,\nWe are pleased to inform you that your service request has been completed and closed:\n\n📋 *Ticket ID:* #${payload.complaintId}\n🚒 *Apparatus:* ${payload.tenderType || 'Fire Tender'} (${payload.chassisMake || 'Chassis'})\n🏢 *Organization:* ${payload.customerName || 'Client'}\n🔧 *Attended By:* ${payload.closedBy || 'Indus Lead Service Engineer'}\n📝 *Action Taken:* ${payload.diagnosis || 'Maintenance completed successfully'}\n📅 *Date Closed:* ${payload.closedDate || new Date().toISOString().split('T')[0]}\n\nThank you for choosing Indus Fire Safety!\n📞 *24/7 OEM Helpline:* +91 93139 27647`;
+
+                    if (notifyCustomer && targetPhone) {
+                        messages.push({ to: targetPhone, body: closeMsg, role: 'customer' });
+                    }
+                }
+
+                // Dispatch all queued messages in the background
+                for (const item of messages) {
+                    try {
+                        let resp = null;
+                        if (provider === 'ultramsg') {
+                            const params = new URLSearchParams();
+                            params.append('token', token.trim());
+                            params.append('to', item.to);
+                            params.append('body', item.body);
+
+                            resp = await fetch(`https://api.ultramsg.com/${instanceId.trim()}/messages/chat`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                body: params.toString()
+                            });
+                        } else if (provider === 'greenapi') {
+                            resp = await fetch(`https://api.green-api.com/waInstance${instanceId.trim()}/sendMessage/${token.trim()}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    chatId: `${item.to}@c.us`,
+                                    message: item.body
+                                })
+                            });
+                        } else if (provider === 'custom_webhook') {
+                            resp = await fetch(instanceId.trim(), {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token.trim()}` },
+                                body: JSON.stringify({
+                                    to: item.to,
+                                    message: item.body,
+                                    eventType,
+                                    complaintId: payload.complaintId
+                                })
+                            });
+                        }
+
+                        recordWhatsAppAuditLog({
+                            id: 'WALOG-' + Date.now() + '-' + Math.floor(Math.random()*1000),
+                            timestamp: new Date().toISOString(),
+                            eventType,
+                            recipient: item.to,
+                            role: item.role,
+                            ticketId: payload.complaintId,
+                            status: (resp && resp.ok) ? 'Delivered' : 'Sent',
+                            statusCode: resp ? resp.status : 0
+                        });
+                    } catch(errItem) {
+                        recordWhatsAppAuditLog({
+                            id: 'WALOG-' + Date.now(),
+                            timestamp: new Date().toISOString(),
+                            eventType,
+                            recipient: item.to,
+                            role: item.role,
+                            ticketId: payload.complaintId,
+                            status: 'Failed: ' + (errItem.message || 'Network error')
+                        });
+                    }
+                }
+            } catch(e) {
+                console.warn('[WhatsApp Alert Engine] Global error:', e);
+            }
+        };
+
+        const testSendWhatsAppMessage = async (rawPhone, customSettings = null) => {
+            const settings = customSettings || loadWhatsAppSettings();
+            const targetPhone = formatWhatsAppPhone(rawPhone);
+            if (!targetPhone) return { success: false, message: 'Invalid phone number format.' };
+            if (!settings.instanceId || !settings.token) return { success: false, message: 'Please enter your Instance ID and Token first.' };
+
+            const testBody = `🔔 *INDUS FIRE SAFETY — TEST ALERT*\n\n✓ Your WhatsApp number has been successfully linked to the FireFlow Portal!\n\nAutomated service ticket alerts will now send directly from your Indus mobile number in the background.\n\nTime: ${new Date().toLocaleTimeString()}\nIndus Fire Safety Pvt. Ltd.`;
+
+            try {
+                let resp = null;
+                if (settings.provider === 'ultramsg') {
+                    const params = new URLSearchParams();
+                    params.append('token', settings.token.trim());
+                    params.append('to', targetPhone);
+                    params.append('body', testBody);
+
+                    resp = await fetch(`https://api.ultramsg.com/${settings.instanceId.trim()}/messages/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params.toString()
+                    });
+                } else if (settings.provider === 'greenapi') {
+                    resp = await fetch(`https://api.green-api.com/waInstance${settings.instanceId.trim()}/sendMessage/${settings.token.trim()}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chatId: `${targetPhone}@c.us`,
+                            message: testBody
+                        })
+                    });
+                }
+
+                if (resp && resp.ok) {
+                    recordWhatsAppAuditLog({
+                        id: 'WALOG-' + Date.now(),
+                        timestamp: new Date().toISOString(),
+                        eventType: 'test_message',
+                        recipient: targetPhone,
+                        role: 'test',
+                        ticketId: 'TEST-PING',
+                        status: 'Delivered',
+                        statusCode: resp.status
+                    });
+                    return { success: true, message: `✓ Test message sent successfully to +${targetPhone}!` };
+                } else {
+                    const errTxt = resp ? await resp.text().catch(() => '') : 'Network failed';
+                    return { success: false, message: `Gateway responded with error (${resp ? resp.status : 'Offline'}): ${errTxt.slice(0, 100)}` };
+                }
+            } catch(e) {
+                return { success: false, message: 'Connection error: ' + (e.message || 'Failed to reach gateway') };
+            }
+        };
+
         // CONFIGURABLE HANDOVER DOCUMENT MASTER STORE
         // ══════════════════════════════════════════════════════
         const DEFAULT_HANDOVER_DOCUMENTS_MASTER = [
@@ -5400,7 +5626,7 @@ ON CONFLICT (id) DO NOTHING;`;
             );
         };
         // ── Customer Portal ──
-        const CustomerPortal = ({ trucks, customers, complaints, categories, pmRecords = [], onSavePmRecord, commCerts = [], onSaveCommCert, setComplaints, feedbacks, setFeedbacks, user, initialPo = '', initialTicket = '', getQrImageUrl, onAdminLogin }) => {
+        const CustomerPortal = ({ trucks, customers, complaints, categories, pmRecords = [], onSavePmRecord, commCerts = [], onSaveCommCert, setComplaints, feedbacks, setFeedbacks, user, initialPo = '', initialTicket = '', getQrImageUrl, onAdminLogin, onOpenMasterAuth, onOpenAgmAuth }) => {
             const [selectedPmMilestone, setSelectedPmMilestone] = useState(null);
             const [selectedCommissioningTruck, setSelectedCommissioningTruck] = useState(null);
             const [customerViewSoftCopyCert, setCustomerViewSoftCopyCert] = useState(null);
@@ -5632,6 +5858,23 @@ ON CONFLICT (id) DO NOTHING;`;
                 }
                 setComplaints(prev => [saved, ...prev]);
                 setCompSubmitted(saved);
+                
+                // Silent background dispatch of WhatsApp Alert (Zero manual trigger!)
+                try {
+                    const custObj = customers.find(c => c.id === foundTruck.customerId);
+                    dispatchWhatsAppAlert('complaint_logged', {
+                        complaintId: genId,
+                        tenderType: foundTruck.tenderType || 'Fire Tender',
+                        chassisMake: foundTruck.chassisMake || 'Standard Chassis',
+                        customerName: custObj?.name || 'Valued Client',
+                        category: compForm.category,
+                        description: compForm.description,
+                        reportedBy: compForm.reportedBy,
+                        phone: compForm.contactPhone || custObj?.phone || ''
+                    });
+                } catch(waErr) {
+                    console.warn('[WhatsApp Auto Dispatch Error]:', waErr);
+                }
                 setShowComplaintForm(false);
             };
 
@@ -5931,7 +6174,11 @@ ON CONFLICT (id) DO NOTHING;`;
                                         type="button"
                                         onClick={() => {
                                             setIsTrainerMode(false);
-                                            setPortalMode(portalMode === 'login' ? 'portal' : 'login');
+                                            if (onOpenMasterAuth) {
+                                                onOpenMasterAuth();
+                                            } else {
+                                                setPortalMode(portalMode === 'login' ? 'portal' : 'login');
+                                            }
                                         }}
                                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
                                             portalMode === 'login'
@@ -6735,6 +6982,31 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         </div>
                                                         <p className="text-xs font-bold">Ticket ID: <span className="font-black text-emerald-800">{compSubmitted.complaintId}</span></p>
                                                         <p className="text-[10px] text-emerald-700 font-medium">Our engineering service team will review your complaint and respond within 24 hours.</p>
+                                                        <div className="pt-2 border-t border-emerald-200/60 flex items-center gap-2 text-[10.5px] text-emerald-800 font-bold">
+                                                            <Icon name="message-circle" size={13} className="text-emerald-600 shrink-0"/>
+                                                            <span>Instant WhatsApp confirmation ready (100% Free — ₹0 cost):</span>
+                                                        </div>
+                                                        <div className="pt-2 flex flex-wrap gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const custObj = customers.find(c => c.id === foundTruck?.customerId);
+                                                                    openDirectWhatsApp('complaint_logged', {
+                                                                        complaintId: compSubmitted.complaintId,
+                                                                        tenderType: foundTruck?.tenderType || 'Fire Tender',
+                                                                        chassisMake: foundTruck?.chassisMake || 'Standard Chassis',
+                                                                        customerName: custObj?.name || 'Valued Client',
+                                                                        category: compSubmitted.category,
+                                                                        description: compSubmitted.description,
+                                                                        reportedBy: compSubmitted.reportedBy,
+                                                                        phone: compForm.contactPhone || custObj?.phone || ''
+                                                                    });
+                                                                }}
+                                                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-sm cursor-pointer transition-all"
+                                                            >
+                                                                <Icon name="message-circle" size={14}/> Send Ticket on WhatsApp (Free ₹0)
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
@@ -8683,6 +8955,209 @@ ON CONFLICT (id) DO NOTHING;`;
                             </div>
                         </div>
                     )}
+
+                    {/* 💬 TAB: WHATSAPP AUTOMATION (OPTION 1 SCAN-QR) */}
+                    {activeTab === 'whatsapp_alerts' && (
+                        <div className="space-y-4 text-xs font-sans">
+                            {/* Header Banner */}
+                            <div className="p-4 rounded-2xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-emerald-50/70 border-emerald-200 text-emerald-950">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-sm">
+                                        <Icon name="message-circle" size={20}/>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black text-sm uppercase tracking-tight text-emerald-950">
+                                            Automated WhatsApp Dispatch Engine
+                                        </h4>
+                                        <p className="text-[11px] text-emerald-800 font-medium">
+                                            Silent background messaging — zero manual triggers. Messages fire directly from your linked mobile number!
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-emerald-200">
+                                    <span className="text-[10px] font-black uppercase text-slate-500">Auto-Alerts:</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const updated = { ...waSettings, enabled: !waSettings.enabled };
+                                            setWaSettings(updated);
+                                            saveWhatsAppSettings(updated);
+                                        }}
+                                        className={'px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ' + (
+                                            waSettings.enabled ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-600'
+                                        )}
+                                    >
+                                        {waSettings.enabled ? '● Enabled' : '○ Disabled'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 2-Minute Setup Card for Option 1 */}
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                                <h5 className="font-black text-[11px] uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                                    <span className="w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px]">1</span>
+                                    How to link your mobile number in 2 minutes (Scan QR Code):
+                                </h5>
+                                <ol className="list-decimal list-inside text-[11px] text-slate-600 space-y-1 pl-1 leading-relaxed">
+                                    <li>Create an instance on <b>UltraMsg.com</b> (or <b>Green-API.com</b>) for your Indus WhatsApp number.</li>
+                                    <li>Tap <b>Scan QR Code</b> on their dashboard using your phone WhatsApp (<b>WhatsApp &gt; Linked Devices &gt; Link a Device</b>).</li>
+                                    <li>Copy your <b>Instance ID</b> &amp; <b>Token</b> below and click <b>Save Settings</b>. That's all!</li>
+                                </ol>
+                            </div>
+
+                            {/* Credentials Form */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
+                                <div>
+                                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                                        WhatsApp Gateway Provider
+                                    </label>
+                                    <select
+                                        value={waSettings.provider}
+                                        onChange={e => {
+                                            const updated = { ...waSettings, provider: e.target.value };
+                                            setWaSettings(updated);
+                                            saveWhatsAppSettings(updated);
+                                        }}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+                                    >
+                                        <option value="ultramsg">UltraMsg (Scan QR from your phone — Recommended)</option>
+                                        <option value="greenapi">Green API (Scan QR from your phone)</option>
+                                        <option value="custom_webhook">Custom Webhook / External Gateway</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                                        Indus Admin Helpline (To receive copy of new tickets)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={waSettings.adminHelpline}
+                                        onChange={e => {
+                                            const updated = { ...waSettings, adminHelpline: e.target.value };
+                                            setWaSettings(updated);
+                                            saveWhatsAppSettings(updated);
+                                        }}
+                                        placeholder="+91 93139 27647"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none font-mono"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                                        Instance ID / Channel ID *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={waSettings.instanceId}
+                                        onChange={e => {
+                                            const updated = { ...waSettings, instanceId: e.target.value.trim() };
+                                            setWaSettings(updated);
+                                            saveWhatsAppSettings(updated);
+                                        }}
+                                        placeholder="e.g. instance12345"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none font-mono"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                                        API Token / Password *
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={waSettings.token}
+                                        onChange={e => {
+                                            const updated = { ...waSettings, token: e.target.value.trim() };
+                                            setWaSettings(updated);
+                                            saveWhatsAppSettings(updated);
+                                        }}
+                                        placeholder="••••••••••••"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none font-mono"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Live Test Console */}
+                            <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200 space-y-2">
+                                <h5 className="font-black text-[11px] uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
+                                    <Icon name="send" size={13}/> Live Test Tool: Send Instant Test WhatsApp Message
+                                </h5>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <input
+                                        type="tel"
+                                        value={testPhoneInput}
+                                        onChange={e => setTestPhoneInput(e.target.value)}
+                                        placeholder="Enter phone number (e.g. 9313927647)..."
+                                        className="flex-1 bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none font-mono"
+                                    />
+                                    <button
+                                        type="button"
+                                        disabled={isSendingTest}
+                                        onClick={async () => {
+                                            if (!testPhoneInput.trim()) { alert('Please enter a phone number to test'); return; }
+                                            setIsSendingTest(true);
+                                            setTestResult(null);
+                                            const res = await testSendWhatsAppMessage(testPhoneInput, waSettings);
+                                            setIsSendingTest(false);
+                                            setTestResult(res);
+                                            setAuditLogs(loadWhatsAppAuditLog());
+                                        }}
+                                        className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer shadow-sm transition-all flex items-center justify-center gap-1.5 shrink-0"
+                                    >
+                                        {isSendingTest ? 'Sending...' : 'Send Test WhatsApp Message'}
+                                    </button>
+                                </div>
+                                {testResult && (
+                                    <div className={'p-2.5 rounded-xl border text-[11px] font-bold flex items-center gap-2 ' + (
+                                        testResult.success ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-rose-100 text-rose-900 border-rose-300'
+                                    )}>
+                                        <Icon name={testResult.success ? "check-circle" : "alert-circle"} size={14}/>
+                                        <span>{testResult.message}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Activity Audit Log */}
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <h5 className="font-black text-[11px] uppercase tracking-wider text-slate-800">
+                                        Recent Auto-Dispatched WhatsApp Activity ({auditLogs.length})
+                                    </h5>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            localStorage.removeItem('ff_whatsapp_audit_log');
+                                            setAuditLogs([]);
+                                        }}
+                                        className="text-[10px] text-slate-400 hover:text-slate-600 font-bold uppercase cursor-pointer"
+                                    >
+                                        Clear Logs
+                                    </button>
+                                </div>
+                                {auditLogs.length === 0 ? (
+                                    <p className="text-[11px] text-slate-400 italic">No automated messages dispatched yet. Once tickets are logged or closed, history will appear here.</p>
+                                ) : (
+                                    <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                                        {auditLogs.map((log, idx) => (
+                                            <div key={idx} className="p-2 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-[10.5px]">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={'w-2 h-2 rounded-full ' + (log.status.includes('Delivered') || log.status.includes('Sent') ? 'bg-emerald-500' : 'bg-rose-500')}></span>
+                                                    <span className="font-bold text-slate-800">{log.ticketId || 'Test'}</span>
+                                                    <span className="text-slate-500">→ {log.recipient} ({log.role || 'customer'})</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-slate-400 text-[9.5px]">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    <span className={'px-2 py-0.5 rounded-full font-bold text-[9px] uppercase ' + (
+                                                        log.status.includes('Delivered') || log.status.includes('Sent') ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                                                    )}>
+                                                        {log.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -10046,6 +10521,271 @@ ON CONFLICT (id) DO NOTHING;`;
             return null;
         };
 
+        // ══════════════════════════════════════════════════════
+        // 🚀 HI-TECH SMART LOGIN TERMINAL & GEAR / SPANNER DIAGNOSTICS LOADER
+        // ══════════════════════════════════════════════════════
+        const HiTechSecureLoginModal = ({ isOpen, onClose, onUnlocked }) => {
+            if (!isOpen) return null;
+
+            const [passwordInput, setPasswordInput] = useState('');
+            const [showPassword, setShowPassword] = useState(false);
+            const [authError, setAuthError] = useState(false);
+            const [isDiagnosing, setIsDiagnosing] = useState(false);
+            const [diagStep, setDiagStep] = useState(0);
+            const [diagProgress, setDiagProgress] = useState(25);
+
+            const diagnosticSteps = [
+                { text: '⚙️ INITIALIZING FIRE PUMP & PTO TELEMETRY...', pct: 35 },
+                { text: '🔧 MECHANICAL APPARATUS SYSTEMS VERIFIED...', pct: 70 },
+                { text: '🔐 PASSCODE VERIFIED — DECRYPTING COMMAND...', pct: 94 },
+                { text: '✓ ACCESS GRANTED — LAUNCHING TERMINAL...', pct: 100 }
+            ];
+
+            const runAuthenticationSequence = (role) => {
+                setIsDiagnosing(true);
+                setAuthError(false);
+                let current = 0;
+                setDiagStep(0);
+                setDiagProgress(diagnosticSteps[0].pct);
+
+                const interval = setInterval(() => {
+                    current++;
+                    if (current < diagnosticSteps.length) {
+                        setDiagStep(current);
+                        setDiagProgress(diagnosticSteps[current].pct);
+                    } else {
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            setIsDiagnosing(false);
+                            setPasswordInput('');
+                            onUnlocked(role);
+                        }, 250);
+                    }
+                }, 380);
+            };
+
+            const handleSubmit = async (e) => {
+                if (e) e.preventDefault();
+                if (isDiagnosing || !passwordInput.trim()) return;
+                const role = await verifyPasswordLevel(passwordInput.trim());
+                if (role) {
+                    runAuthenticationSequence(role);
+                } else {
+                    setAuthError(true);
+                }
+            };
+
+            const handleInputChange = async (e) => {
+                const val = e.target.value;
+                setPasswordInput(val);
+                setAuthError(false);
+                if (val.trim().length >= 4) {
+                    const role = await verifyPasswordLevel(val.trim());
+                    if (role) {
+                        runAuthenticationSequence(role);
+                    }
+                }
+            };
+
+            return ReactDOM.createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md select-none font-sans">
+                    {/* CSS KEYFRAMES FOR GEARS AND SPANNER */}
+                    <style>{`
+                        @keyframes gear-cw { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                        @keyframes gear-ccw { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+                        @keyframes wrench-torque {
+                            0% { transform: rotate(-18deg); }
+                            50% { transform: rotate(22deg); }
+                            100% { transform: rotate(-18deg); }
+                        }
+                        @keyframes tech-pulse {
+                            0% { transform: scale(0.95); opacity: 0.7; }
+                            50% { transform: scale(1.08); opacity: 0.3; }
+                            100% { transform: scale(0.95); opacity: 0.7; }
+                        }
+                        .anim-gear-cw { animation: gear-cw 3.5s linear infinite; transform-origin: center; }
+                        .anim-gear-ccw { animation: gear-ccw 3.5s linear infinite; transform-origin: center; }
+                        .anim-wrench { animation: wrench-torque 1.4s ease-in-out infinite; transform-origin: 30% 70%; }
+                        .anim-tech-pulse { animation: tech-pulse 2s ease-in-out infinite; }
+                    `}</style>
+
+                    {!isDiagnosing ? (
+                        /* ── HI-TECH SMART LOGIN TERMINAL ── */
+                        <div className="relative w-full max-w-sm rounded-3xl p-7 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border border-cyan-500/30 shadow-[0_25px_65px_-15px_rgba(0,0,0,0.95),0_0_40px_rgba(6,182,212,0.18)] text-center backdrop-blur-xl overflow-hidden modal-animate">
+                            {/* Glowing Neon Tech Rim */}
+                            <div className="absolute top-0 left-1/4 right-1/4 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-cyan-500/10 via-transparent to-transparent pointer-events-none"></div>
+
+                            {/* Cyber Lock Hologram Badge */}
+                            <div className="relative mx-auto mb-4 w-16 h-16 flex items-center justify-center">
+                                <div className="absolute inset-0 rounded-2xl bg-cyan-500/20 anim-tech-pulse blur-sm"></div>
+                                <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 border border-cyan-400/50 flex items-center justify-center shadow-lg shadow-cyan-950/60">
+                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                        <circle cx="12" cy="16" r="1.5" fill="#22d3ee"/>
+                                    </svg>
+                                </div>
+                                <div className="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-cyan-400"></div>
+                                <div className="absolute -top-1 -right-1 w-2 h-2 border-t border-r border-cyan-400"></div>
+                                <div className="absolute -bottom-1 -left-1 w-2 h-2 border-b border-l border-cyan-400"></div>
+                                <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-cyan-400"></div>
+                            </div>
+
+                            {/* Terminal Headers */}
+                            <div className="space-y-1 mb-5">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-[9px] font-bold uppercase tracking-widest text-cyan-300 font-mono">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                                    <span>SYSTEM GATEWAY · ENCRYPTED</span>
+                                </div>
+                                <h3 className="text-white font-black text-base uppercase tracking-wider font-mono">
+                                    SECURE ACCESS
+                                </h3>
+                                <p className="text-slate-400 text-[11px] font-medium tracking-wide">
+                                    Enter Fleet Command Authorization Passcode
+                                </p>
+                            </div>
+
+                            {/* Passcode Form */}
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={passwordInput}
+                                        onChange={handleInputChange}
+                                        placeholder="ENTER PASSCODE..."
+                                        autoFocus
+                                        required
+                                        className="w-full bg-slate-950/90 border border-slate-700 focus:border-cyan-400 rounded-2xl px-4 py-3.5 text-center text-sm font-mono font-bold text-cyan-300 placeholder-slate-600 outline-none transition-all shadow-inner focus:ring-2 focus:ring-cyan-500/30 tracking-[0.25em]"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan-400 cursor-pointer transition-colors p-1"
+                                        title={showPassword ? "Hide Passcode" : "Show Passcode"}
+                                    >
+                                        <Icon name={showPassword ? "eye-off" : "eye"} size={16}/>
+                                    </button>
+                                </div>
+
+                                {authError && (
+                                    <p className="text-rose-400 text-[11px] font-black uppercase tracking-wider animate-pulse font-mono">
+                                        Invalid access passcode.
+                                    </p>
+                                )}
+
+                                <div className="flex gap-2.5 pt-1 font-mono">
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        className="flex-1 bg-slate-850 hover:bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-black uppercase tracking-wider border border-slate-700/80 transition-all cursor-pointer"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                                    >
+                                        <span>Unlock</span>
+                                        <span>→</span>
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-center gap-1.5 text-[9px] text-slate-500 font-mono">
+                                <span>🛡️</span>
+                                <span>INDUS FIRE SAFETY · FLEET COMMAND TERMINAL</span>
+                            </div>
+                        </div>
+                    ) : (
+                        /* ── HI-TECH GEAR & SPANNER MECHANICAL DIAGNOSTICS LOADER ── */
+                        <div className="relative w-full max-w-sm rounded-3xl p-8 bg-gradient-to-b from-slate-900/98 via-slate-950/98 to-slate-900/98 border border-amber-500/40 shadow-[0_25px_65px_-15px_rgba(0,0,0,0.98),0_0_45px_rgba(245,158,11,0.25)] text-center backdrop-blur-2xl overflow-hidden modal-animate">
+                            {/* Glowing Top Amber/Gold Rim */}
+                            <div className="absolute top-0 left-1/4 right-1/4 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none"></div>
+
+                            {/* ANIMATED GEAR & SPANNER STAGE */}
+                            <div className="relative w-32 h-32 mx-auto my-2 flex items-center justify-center">
+                                <div className="absolute inset-0 rounded-full bg-amber-500/15 anim-tech-pulse blur-md"></div>
+                                
+                                {/* Primary Large Gear (Clockwise) */}
+                                <svg className="anim-gear-cw absolute w-24 h-24 text-amber-400" viewBox="0 0 100 100" fill="currentColor">
+                                    <path d="M50 35 C41.7 35 35 41.7 35 50 C35 58.3 41.7 65 50 65 C58.3 65 65 58.3 65 50 C65 41.7 58.3 35 50 35 Z M50 25 C63.8 25 75 36.2 75 50 C75 63.8 63.8 75 50 75 C36.2 75 25 63.8 25 50 C25 36.2 36.2 25 50 25 Z" opacity="0.9"/>
+                                    <rect x="44" y="5" width="12" height="15" rx="3" fill="currentColor"/>
+                                    <rect x="44" y="80" width="12" height="15" rx="3" fill="currentColor"/>
+                                    <rect x="5" y="44" width="15" height="12" rx="3" fill="currentColor"/>
+                                    <rect x="80" y="44" width="15" height="12" rx="3" fill="currentColor"/>
+                                    <rect x="18" y="18" width="12" height="12" rx="3" transform="rotate(45 24 24)" fill="currentColor"/>
+                                    <rect x="70" y="18" width="12" height="12" rx="3" transform="rotate(45 76 24)" fill="currentColor"/>
+                                    <rect x="18" y="70" width="12" height="12" rx="3" transform="rotate(45 24 76)" fill="currentColor"/>
+                                    <rect x="70" y="70" width="12" height="12" rx="3" transform="rotate(45 76 76)" fill="currentColor"/>
+                                    <circle cx="50" cy="50" r="8" fill="#0f172a"/>
+                                    <circle cx="50" cy="50" r="4" fill="#fbbf24"/>
+                                </svg>
+
+                                {/* Secondary Interlocked Gear (Counter-Clockwise) */}
+                                <svg className="anim-gear-ccw absolute -top-1 -right-1 w-14 h-14 text-cyan-400" viewBox="0 0 100 100" fill="currentColor" style={{ opacity: 0.85 }}>
+                                    <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" strokeWidth="10"/>
+                                    <rect x="45" y="8" width="10" height="14" rx="2" fill="currentColor"/>
+                                    <rect x="45" y="78" width="10" height="14" rx="2" fill="currentColor"/>
+                                    <rect x="8" y="45" width="14" height="10" rx="2" fill="currentColor"/>
+                                    <rect x="78" y="45" width="14" height="10" rx="2" fill="currentColor"/>
+                                    <circle cx="50" cy="50" r="10" fill="#0f172a"/>
+                                </svg>
+
+                                {/* High-Precision Spanner / Wrench (Oscillating Action) */}
+                                <div className="anim-wrench absolute -bottom-2 -left-2 z-10 w-24 h-24 pointer-events-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
+                                    <svg viewBox="0 0 100 100" fill="none">
+                                        <path d="M25 75 L65 35" stroke="#e2e8f0" strokeWidth="9" strokeLinecap="round"/>
+                                        <path d="M25 75 L65 35" stroke="#94a3b8" strokeWidth="4" strokeLinecap="round"/>
+                                        <path d="M60 25 C60 18 68 12 76 15 C82 17 86 23 85 30 L73 34 L74 44 L66 40 Z" fill="#f8fafc" stroke="#64748b" strokeWidth="1.5"/>
+                                        <circle cx="22" cy="78" r="9" fill="none" stroke="#f8fafc" strokeWidth="5"/>
+                                        <circle cx="22" cy="78" r="5" fill="#0f172a"/>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {/* Diagnostics Telemetry Status */}
+                            <div className="mt-4 space-y-3 font-mono">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/40 text-[9px] font-bold uppercase tracking-widest text-amber-300">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                                    <span>FLEET DIAGNOSTICS ACTIVE</span>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <h4 className="text-white font-black text-sm uppercase tracking-wider">
+                                        AUTHENTICATING APPARATUS
+                                    </h4>
+                                    <p className="text-amber-400 text-[10.5px] font-bold h-6 flex items-center justify-center">
+                                        {diagnosticSteps[diagStep]?.text}
+                                    </p>
+                                </div>
+
+                                {/* Glowing Cyber Progress Bar */}
+                                <div className="space-y-1 pt-1">
+                                    <div className="w-full bg-slate-900 border border-slate-700/80 h-2.5 rounded-full overflow-hidden p-0.5 shadow-inner">
+                                        <div
+                                            className="bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 h-full rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+                                            style={{ width: `${diagProgress}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="flex justify-between text-[9px] text-slate-400 font-bold px-1">
+                                        <span>INITIALIZING</span>
+                                        <span className="text-amber-400 font-black">{diagProgress}%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-5 pt-3 border-t border-slate-800/80 text-[9px] text-slate-500 font-mono">
+                                <span>🔧</span>
+                                <span>MECHANICAL SYSTEMS VERIFIED · OPENING TERMINAL</span>
+                            </div>
+                        </div>
+                    )}
+                </div>,
+                document.body
+            );
+        };
         // ── AGM MANAGEMENT VIEW (READ-ONLY: DASHBOARD, CUSTOMERS, FLEET & WARRANTY, OPEN/CLOSED COMPLAINTS) ──
         const AgmManagementView = ({ complaints = [], customers = [], trucks = [], user, onExit, downloadClosureReport, getQrImageUrl }) => {
             const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'customers' | 'trucks' | 'complaints'
@@ -11349,6 +12089,11 @@ ON CONFLICT (id) DO NOTHING;`;
 
             // Trainer Password state
             const [currentTrainerPass, setCurrentTrainerPass] = useState(() => getTrainerPortalPassword());
+            const [waSettings, setWaSettings] = useState(() => loadWhatsAppSettings());
+            const [testPhoneInput, setTestPhoneInput] = useState('');
+            const [isSendingTest, setIsSendingTest] = useState(false);
+            const [testResult, setTestResult] = useState(null);
+            const [auditLogs, setAuditLogs] = useState(() => loadWhatsAppAuditLog());
             const [newTrainerPassInput, setNewTrainerPassInput] = useState('');
             const [trainerPassSuccess, setTrainerPassSuccess] = useState(false);
 
@@ -11448,6 +12193,17 @@ ON CONFLICT (id) DO NOTHING;`;
                                 >
                                     <span>🎓 Training Questions</span>
                                     <span className="text-[9px] bg-white/20 px-1.5 py-0.2 rounded-full font-extrabold">{trainingQuestionsList.length}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('whatsapp_alerts')}
+                                    className={'px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ' + (
+                                        activeTab === 'whatsapp_alerts' ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100'
+                                    )}
+                                >
+                                    <Icon name="message-circle" size={13}/>
+                                    <span>WhatsApp Automation</span>
+                                    <span className="text-[9px] bg-white/25 px-1.5 py-0.2 rounded-full font-extrabold">{waSettings?.enabled ? 'ON' : 'OFF'}</span>
                                 </button>
                                 <button
                                     type="button"
@@ -18011,95 +18767,7 @@ function App() {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     </button>
 
-                    {/* AGM SECURE ACCESS MODAL (AUTO-UNLOCK ON MATCH) */}
-                    {showAgmAuthModal && typeof document !== 'undefined' && document.body && ReactDOM.createPortal(
-                        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
-                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 modal-animate text-center border border-slate-200">
-                                <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                </div>
-                                <h3 className="font-black text-slate-900 uppercase tracking-tight text-base mb-1">
-                                    Secure Access
-                                </h3>
-                                <p className="text-[11px] font-bold text-slate-400 mb-5 uppercase tracking-widest">
-                                    Enter Access Password
-                                </p>
-
-                                <form onSubmit={async (e) => {
-                                    e.preventDefault();
-                                    const role = await verifyPasswordLevel(authPasswordInput);
-                                    if (role === 'register_delivery') {
-                                        setShowAgmAuthModal(false);
-                                        setShowMasterAuthModal(false);
-                                        setShowRegisterDeliveryModal(true);
-                                        setAuthPasswordInput('');
-                                        setAuthPasswordError(false);
-                                    } else if (role === 'agm' || role === 'master_admin') {
-                                        setAccessMode(role === 'master_admin' ? 'master_admin' : 'agm');
-                                        setShowAgmAuthModal(false);
-                                        setAuthPasswordInput('');
-                                        setAuthPasswordError(false);
-                                    } else {
-                                        setAuthPasswordError(true);
-                                    }
-                                }} className="space-y-4">
-                                    <div className="space-y-1">
-                                        <input
-                                            type="password"
-                                            value={authPasswordInput}
-                                            onChange={async (e) => {
-                                                const val = e.target.value;
-                                                setAuthPasswordInput(val);
-                                                setAuthPasswordError(false);
-                                                if (val.trim().length >= 4) {
-                                                    const role = await verifyPasswordLevel(val.trim());
-                                                    if (role === 'register_delivery') {
-                                                        setShowAgmAuthModal(false);
-                                                        setShowMasterAuthModal(false);
-                                                        setShowRegisterDeliveryModal(true);
-                                                        setAuthPasswordInput('');
-                                                        setAuthPasswordError(false);
-                                                    } else if (role === 'agm' || role === 'master_admin') {
-                                                        setAccessMode(role === 'master_admin' ? 'master_admin' : 'agm');
-                                                        setShowAgmAuthModal(false);
-                                                        setAuthPasswordInput('');
-                                                        setAuthPasswordError(false);
-                                                    }
-                                                }
-                                            }}
-                                            placeholder="Enter access password..."
-                                            autoFocus
-                                            required
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-slate-900 transition-all text-center tracking-widest"
-                                        />
-                                    </div>
-
-                                    {authPasswordError && (
-                                        <p className="text-rose-500 text-[11px] font-black uppercase tracking-wider animate-pulse">
-                                            Invalid access password.
-                                        </p>
-                                    )}
-
-                                    <div className="flex gap-2.5 pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => { setShowAgmAuthModal(false); setAuthPasswordInput(''); setAuthPasswordError(false); }}
-                                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            className="flex-1 bg-slate-900 hover:bg-black text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider shadow-lg transition-all cursor-pointer"
-                                        >
-                                            Unlock
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>,
-                        document.body
-                    )}
+                    {/* AGM SECURE ACCESS MODAL ROUTED THROUGH HI-TECH SMART LOGIN TERMINAL */}
 
                     {/* 📋 REGISTER CLIENT TO DELIVERY MODAL (DISPATCH ENTRY) */}
                     {showRegisterDeliveryModal && (
@@ -18229,106 +18897,31 @@ function App() {
                         />
                     )}
 
-                    {/* MASTER ADMIN SECURE ACCESS MODAL (AUTO-UNLOCK ON MATCH) */}
-                    {showMasterAuthModal && typeof document !== 'undefined' && document.body && ReactDOM.createPortal(
-                        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
-                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 modal-animate text-center border border-slate-200">
-                                <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                </div>
-                                <h3 className="font-black text-slate-900 uppercase tracking-tight text-base mb-1">
-                                    Secure Access
-                                </h3>
-                                <p className="text-[11px] font-bold text-slate-400 mb-5 uppercase tracking-widest">
-                                    Enter Access Password
-                                </p>
-
-                                <form onSubmit={async (e) => {
-                                    e.preventDefault();
-                                    const role = await verifyPasswordLevel(authPasswordInput);
-                                    if (role === 'register_delivery') {
-                                        setShowMasterAuthModal(false);
-                                        setShowAgmAuthModal(false);
-                                        setShowRegisterDeliveryModal(true);
-                                        setAuthPasswordInput('');
-                                        setAuthPasswordError(false);
-                                    } else if (role === 'master_admin') {
-                                        setUser({ connected: true });
-                                        setAccessMode('master_admin');
-                                        setShowMasterAuthModal(false);
-                                        setAuthPasswordInput('');
-                                        setAuthPasswordError(false);
-                                    } else if (role === 'agm') {
-                                        setAccessMode('agm');
-                                        setShowMasterAuthModal(false);
-                                        setAuthPasswordInput('');
-                                        setAuthPasswordError(false);
-                                    } else {
-                                        setAuthPasswordError(true);
-                                    }
-                                }} className="space-y-4">
-                                    <div className="space-y-1">
-                                        <input
-                                            type="password"
-                                            value={authPasswordInput}
-                                            onChange={async (e) => {
-                                                const val = e.target.value;
-                                                setAuthPasswordInput(val);
-                                                setAuthPasswordError(false);
-                                                if (val.trim().length >= 4) {
-                                                    const role = await verifyPasswordLevel(val.trim());
-                                                    if (role === 'register_delivery') {
-                                                        setShowMasterAuthModal(false);
-                                                        setShowAgmAuthModal(false);
-                                                        setShowRegisterDeliveryModal(true);
-                                                        setAuthPasswordInput('');
-                                                        setAuthPasswordError(false);
-                                                    } else if (role === 'master_admin') {
-                                                        setUser({ connected: true });
-                                                        setAccessMode('master_admin');
-                                                        setShowMasterAuthModal(false);
-                                                        setAuthPasswordInput('');
-                                                        setAuthPasswordError(false);
-                                                    } else if (role === 'agm') {
-                                                        setAccessMode('agm');
-                                                        setShowMasterAuthModal(false);
-                                                        setAuthPasswordInput('');
-                                                        setAuthPasswordError(false);
-                                                    }
-                                                }
-                                            }}
-                                            placeholder="Enter access password..."
-                                            autoFocus
-                                            required
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-slate-900 transition-all text-center tracking-widest"
-                                        />
-                                    </div>
-
-                                    {authPasswordError && (
-                                        <p className="text-rose-500 text-[11px] font-black uppercase tracking-wider animate-pulse">
-                                            Invalid access password.
-                                        </p>
-                                    )}
-
-                                    <div className="flex gap-2.5 pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => { setShowMasterAuthModal(false); setAuthPasswordInput(''); setAuthPasswordError(false); }}
-                                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            className="flex-1 bg-slate-900 hover:bg-black text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider shadow-lg transition-all cursor-pointer"
-                                        >
-                                            Unlock
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>,
-                        document.body
+                    {/* 🚀 HI-TECH SMART LOGIN MODAL WITH GEAR & SPANNER MECHANICAL DIAGNOSTICS */}
+                    {(showMasterAuthModal || showAgmAuthModal) && typeof document !== 'undefined' && document.body && (
+                        <HiTechSecureLoginModal
+                            isOpen={showMasterAuthModal || showAgmAuthModal}
+                            onClose={() => {
+                                setShowMasterAuthModal(false);
+                                setShowAgmAuthModal(false);
+                                setAuthPasswordInput('');
+                                setAuthPasswordError(false);
+                            }}
+                            onUnlocked={(role) => {
+                                setShowMasterAuthModal(false);
+                                setShowAgmAuthModal(false);
+                                setAuthPasswordInput('');
+                                setAuthPasswordError(false);
+                                if (role === 'register_delivery') {
+                                    setShowRegisterDeliveryModal(true);
+                                } else if (role === 'master_admin') {
+                                    setUser({ connected: true });
+                                    setAccessMode('master_admin');
+                                } else if (role === 'agm') {
+                                    setAccessMode('agm');
+                                }
+                            }}
+                        />
                     )}
 
                     <CustomerPortal 
@@ -21809,6 +22402,25 @@ function App() {
                                     }
                                 }
                                 setComplaints(prev=>prev.map(c=>c.id===showCloseModal.id?{...c,...upP,closedBy:closeData.closedBy,closedDate:closeData.closedDate,remarks:closeData.remarks}:c));
+                                
+                                // Silent background dispatch of WhatsApp Resolution Alert
+                                try {
+                                    const relTruck = trucks.find(t => t.id === showCloseModal.truckId);
+                                    const relCust = customers.find(c => c.id === relTruck?.customerId);
+                                    const parsedPhone = (showCloseModal.reportedBy || '').match(/\(([^)]+)\)/)?.[1] || relCust?.phone || '';
+                                    dispatchWhatsAppAlert('complaint_closed', {
+                                        complaintId: showCloseModal.complaintId,
+                                        tenderType: relTruck?.tenderType || 'Fire Tender',
+                                        chassisMake: relTruck?.chassisMake || 'Standard Chassis',
+                                        customerName: relCust?.name || 'Valued Client',
+                                        closedBy: closeData.closedBy || 'Indus Lead Service Engineer',
+                                        diagnosis: closeData.diagnosis || closeData.remarks || 'Maintenance completed successfully',
+                                        closedDate: closeData.closedDate || new Date().toISOString().split('T')[0],
+                                        phone: parsedPhone
+                                    });
+                                } catch(waCloseErr) {
+                                    console.warn('[WhatsApp Close Dispatch Error]:', waCloseErr);
+                                }
                                 setShowCloseModal(null); setCloseData({diagnosis:'',closedBy:'',closedDate:new Date().toISOString().split('T')[0],remarks:''});
                             }} className="space-y-4">
                                 {showCloseModal.closedBy && (
@@ -21827,7 +22439,32 @@ function App() {
                                 <div className="space-y-1"><label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Diagnosis / Fix Applied *</label><textarea className="w-full border rounded-xl p-3 text-sm min-h-[140px] outline-none focus:ring-2 focus:ring-emerald-500" value={closeData.diagnosis} onChange={e=>setCloseData({...closeData,diagnosis:e.target.value})} required placeholder="Describe the root cause and repair performed..."/></div>
                                 <div className="grid grid-cols-2 gap-4"><Input label="Engineer Name" value={closeData.closedBy} onChange={v=>setCloseData({...closeData,closedBy:v})} required/><Input label="Close Date" type="date" value={closeData.closedDate} onChange={v=>setCloseData({...closeData,closedDate:v})} required/></div>
                                 <div className="space-y-1"><label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Additional Notes</label><textarea className="w-full border rounded-xl p-3 text-sm min-h-[80px] outline-none focus:ring-2 focus:ring-emerald-500" value={closeData.remarks} onChange={e=>setCloseData({...closeData,remarks:e.target.value})} placeholder="Any follow-up advice, parts replaced, etc."/></div>
-                                <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-xl mt-2 tracking-widest hover:bg-emerald-700">Close Ticket</button>
+                                <div className="space-y-2 mt-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const relTruck = trucks.find(t => t.id === showCloseModal.truckId);
+                                            const relCust = customers.find(c => c.id === relTruck?.customerId);
+                                            const parsedPhone = (showCloseModal.reportedBy || '').match(/\(([^)]+)\)/)?.[1] || relCust?.phone || '';
+                                            openDirectWhatsApp('complaint_closed', {
+                                                complaintId: showCloseModal.complaintId,
+                                                tenderType: relTruck?.tenderType || 'Fire Tender',
+                                                chassisMake: relTruck?.chassisMake || 'Standard Chassis',
+                                                customerName: relCust?.name || 'Valued Client',
+                                                closedBy: closeData.closedBy || 'Indus Lead Service Engineer',
+                                                diagnosis: closeData.diagnosis || closeData.remarks || 'Maintenance completed successfully',
+                                                closedDate: closeData.closedDate || new Date().toISOString().split('T')[0],
+                                                phone: parsedPhone
+                                            });
+                                        }}
+                                        className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
+                                    >
+                                        <Icon name="message-circle" size={14}/> 📲 Send Resolution on WhatsApp (100% Free ₹0)
+                                    </button>
+                                    <button type="submit" className="w-full bg-slate-900 text-white py-3.5 rounded-2xl font-black text-xs uppercase shadow-xl tracking-widest hover:bg-black transition-all cursor-pointer">
+                                        Resolve &amp; Close Ticket in System
+                                    </button>
+                                </div>
                             </form>
                         </Modal>
                     )}
