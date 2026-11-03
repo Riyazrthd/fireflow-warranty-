@@ -16027,17 +16027,12 @@ function App() {
                 try {
                     const { data, error } = await sb.from('delivery_submissions').select('*').order('created_at', { ascending: false });
                     if (!error && data) {
-                        const mappedDb = data.map(mapDeliverySubmission);
-                        const localSubs = JSON.parse(localStorage.getItem('ff_delivery_submissions') || '[]');
-                        const merged = [...mappedDb];
-                        localSubs.forEach(ls => {
-                            if (!merged.some(m => m.id === ls.id || (m.poNo && m.poNo === ls.poNo && m.customerName === ls.customerName))) {
-                                merged.push(ls);
-                            }
-                        });
-                        setDeliverySubmissions(merged);
-                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(merged)); } catch(e){}
-                        return merged;
+                        const validDb = data
+                            .map(mapDeliverySubmission)
+                            .filter(s => !(s.customerName || s.customer_name || '').toUpperCase().includes('SOLAR'));
+                        setDeliverySubmissions(validDb);
+                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(validDb)); } catch(e){}
+                        return validDb;
                     }
                 } catch(err) {
                     console.warn('Failed to fetch delivery submissions:', err);
@@ -16213,7 +16208,9 @@ function App() {
             const [deliverySubmissions, setDeliverySubmissions] = useState(() => {
                 try {
                     const saved = localStorage.getItem('ff_delivery_submissions');
-                    return saved ? JSON.parse(saved) : [];
+                    if (!saved) return [];
+                    const parsed = JSON.parse(saved);
+                    return parsed.filter(s => !(s.customerName || s.customer_name || '').toUpperCase().includes('SOLAR'));
                 } catch(e) { return []; }
             });
             const [showAgmAuthModal, setShowAgmAuthModal] = useState(false);
@@ -17267,17 +17264,11 @@ function App() {
                         setComplaints(dbCmps);
                         setFeedbacks(dbFb);
                         if (catRes.data?.length > 0) setCategories(catRes.data.map(c => c.name));
-                        // Sync Delivery Submissions from Supabase
+                        // Sync Delivery Submissions from Supabase (Filtering out already added Solar vehicles)
                         let dbSubs = delivRes?.data ? delivRes.data.map(mapDeliverySubmission) : [];
-                        const localSubs = JSON.parse(localStorage.getItem('ff_delivery_submissions') || '[]');
-                        const mergedSubs = [...dbSubs];
-                        localSubs.forEach(ls => {
-                            if (!mergedSubs.some(s => s.id === ls.id || (s.poNo && s.poNo === ls.poNo && s.customerName === ls.customerName))) {
-                                mergedSubs.push(ls);
-                            }
-                        });
-                        setDeliverySubmissions(mergedSubs);
-                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(mergedSubs)); } catch(e){}
+                        const validSubs = dbSubs.filter(s => !(s.customerName || s.customer_name || '').toUpperCase().includes('SOLAR'));
+                        setDeliverySubmissions(validSubs);
+                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(validSubs)); } catch(e){}
 
 
                         // ── Fetch CAPA Tables ──
