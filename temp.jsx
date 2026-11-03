@@ -16061,8 +16061,13 @@ function App() {
                         return;
                     }
 
-                    // 1. Check or create Customer record
-                    let existingCust = customers.find(c => c.name.trim().toUpperCase() === clientName.toUpperCase());
+                    // 1. Check or create Customer record (with robust normalized matching)
+                    const normStr = s => (s || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    const cleanClientNorm = normStr(clientName);
+                    let existingCust = customers.find(c => {
+                        const cNorm = normStr(c.name);
+                        return cNorm === cleanClientNorm || (cleanClientNorm.length > 5 && (cNorm.includes(cleanClientNorm) || cleanClientNorm.includes(cNorm)));
+                    });
                     let custId = existingCust?.id;
                     let custRecord = null;
                     const sb = window.SupabaseClient;
