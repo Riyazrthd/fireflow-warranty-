@@ -130,6 +130,43 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             const code = err.code || '';
             return code === '42703' || msg.includes('column') || msg.includes('does not exist') || msg.includes('schema cache') || msg.includes('not found');
         };
+        const mapDeliverySubmission = r => ({
+            id: r.id,
+            customerName: r.customer_name || r.customerName || '',
+            contactPerson: r.contact_person || r.contactPerson || '',
+            phone: r.phone || '',
+            email: r.email || '',
+            address: r.address || '',
+            poNo: r.po_no || r.poNo || '',
+            poDate: r.po_date || r.poDate || null,
+            tenderType: r.tender_type || r.tenderType || 'FIRE TENDER',
+            chassisMake: r.chassis_make || r.chassisMake || '',
+            modelNo: r.model_no || r.modelNo || '',
+            chassisSrNo: r.chassis_sr_no || r.chassisSrNo || '',
+            engineSrNo: r.engine_sr_no || r.engineSrNo || '',
+            deliveryDate: r.delivery_date || r.deliveryDate || null,
+            warrantyMonths: parseInt(r.warranty_months || r.warrantyMonths) || 12,
+            pumpMake: r.pump_make || r.pumpMake || '',
+            pumpLpm: r.pump_lpm || r.pumpLpm || '',
+            pumpSrNo: r.pump_sr_no || r.pumpSrNo || '',
+            ptoMake: r.pto_make || r.ptoMake || '',
+            ptoRatio: r.pto_ratio || r.ptoRatio || '',
+            ptoSrNo: r.pto_sr_no || r.ptoSrNo || '',
+            waterCapacity: r.water_capacity !== undefined && r.water_capacity !== null ? r.water_capacity : (r.waterCapacity || 0),
+            foamCapacity: r.foam_capacity !== undefined && r.foam_capacity !== null ? r.foam_capacity : (r.foamCapacity || 0),
+            uhpPumpMake: r.uhp_pump_make || r.uhpPumpMake || null,
+            uhpPumpLpm: r.uhp_pump_lpm || r.uhpPumpLpm || null,
+            uhpPumpSrNo: r.uhp_pump_sr_no || r.uhpPumpSrNo || null,
+            dcpCapacity: r.dcp_capacity || r.dcpCapacity || null,
+            dcpHptDueDate: r.dcp_hpt_due_date || r.dcpHptDueDate || null,
+            dcpSrNo: r.dcp_sr_no || r.dcpSrNo || null,
+            insuranceCompany: r.insurance_company || r.insuranceCompany || '',
+            insurancePolicyNo: r.insurance_policy_no || r.insurancePolicyNo || '',
+            insuranceExpiryDate: r.insurance_expiry_date || r.insuranceExpiryDate || null,
+            status: r.status || 'Pending Approval',
+            notes: r.notes || '',
+            submittedAt: r.created_at || r.submittedAt || new Date().toISOString()
+        });
         const mapCustomer = r => ({ id: r.id, name: r.name, address: r.address, contactPerson: r.contact_person, phone: r.phone, email: r.email, poNo: r.po_no || r.poNo || '', poDate: r.po_date || null, timestamp: r.created_at });
         const mapTruck = r => ({
             id: r.id,
@@ -10787,7 +10824,7 @@ ON CONFLICT (id) DO NOTHING;`;
             );
         };
         // ── AGM MANAGEMENT VIEW (READ-ONLY: DASHBOARD, CUSTOMERS, FLEET & WARRANTY, OPEN/CLOSED COMPLAINTS) ──
-        const AgmManagementView = ({ complaints = [], customers = [], trucks = [], user, onExit, downloadClosureReport, getQrImageUrl }) => {
+        const AgmManagementView = ({ complaints = [], customers = [], trucks = [], user, deliverySubmissions = [], onApproveSubmission, onEditSubmission, onExit, downloadClosureReport, getQrImageUrl }) => {
             const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'customers' | 'trucks' | 'complaints'
             const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
             const [analyticsRange, setAnalyticsRange] = useState(6);
@@ -10996,7 +11033,7 @@ ON CONFLICT (id) DO NOTHING;`;
                         <header className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div>
                                 <h1 className="text-2xl font-black text-slate-900 tracking-tight font-heading">
-                                    {activeTab==='trucks'?'Fleet Management':activeTab==='po-glance'?'PO At Glance & Cost Center Hub':activeTab==='complaints'?'Customer Complaints':activeTab==='capa'?'CAPA Quality & RCA Hub':activeTab==='feedback'?'Feedback Reviews':activeTab}
+                                    {activeTab==='qr-requests'?'QR Code Requests & Approvals':activeTab==='trucks'?'Fleet Management':activeTab==='po-glance'?'PO At Glance & Cost Center Hub':activeTab==='complaints'?'Customer Complaints':activeTab==='capa'?'CAPA Quality & RCA Hub':activeTab==='feedback'?'Feedback Reviews':activeTab}
                                 </h1>
                                 {activeTab === 'trucks' && (
                                     <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -11005,6 +11042,17 @@ ON CONFLICT (id) DO NOTHING;`;
                                 )}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
+                                {deliverySubmissions.filter(s => s.status === 'Pending Approval').length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('qr-requests')}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-xs transition-all cursor-pointer font-bold text-xs"
+                                        title="View pending vehicle & QR code requests awaiting approval"
+                                    >
+                                        <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                                        <span>{deliverySubmissions.filter(s => s.status === 'Pending Approval').length} Pending QR Request{deliverySubmissions.filter(s => s.status === 'Pending Approval').length > 1 ? 's' : ''}</span>
+                                    </button>
+                                )}
                                 <div 
                                     title="Data synchronized successfully • Last sync: 13-Sep-2026 13:40"
                                     className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200/90 rounded-xl shadow-2xs cursor-default"
@@ -15968,6 +16016,35 @@ function App() {
             };
             const [accessMode, setAccessMode] = useState('customer');
             const [showRegisterDeliveryModal, setShowRegisterDeliveryModal] = useState(false);
+            const [qrReqSearch, setQrReqSearch] = useState('');
+            const [qrReqFilter, setQrReqFilter] = useState('All'); // 'All' | 'Pending Approval' | 'Punched in System'
+            const [isSyncingQueue, setIsSyncingQueue] = useState(false);
+
+            const fetchDeliverySubmissions = async () => {
+                const sb = window.SupabaseClient;
+                if (!sb) return;
+                setIsSyncingQueue(true);
+                try {
+                    const { data, error } = await sb.from('delivery_submissions').select('*').order('created_at', { ascending: false });
+                    if (!error && data) {
+                        const mappedDb = data.map(mapDeliverySubmission);
+                        const localSubs = JSON.parse(localStorage.getItem('ff_delivery_submissions') || '[]');
+                        const merged = [...mappedDb];
+                        localSubs.forEach(ls => {
+                            if (!merged.some(m => m.id === ls.id || (m.poNo && m.poNo === ls.poNo && m.customerName === ls.customerName))) {
+                                merged.push(ls);
+                            }
+                        });
+                        setDeliverySubmissions(merged);
+                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(merged)); } catch(e){}
+                        return merged;
+                    }
+                } catch(err) {
+                    console.warn('Failed to fetch delivery submissions:', err);
+                } finally {
+                    setTimeout(() => setIsSyncingQueue(false), 400);
+                }
+            };
             const [showPendingSubmissionsModal, setShowPendingSubmissionsModal] = useState(false);
             const [editingSubmission, setEditingSubmission] = useState(null);
 
@@ -16961,8 +17038,13 @@ function App() {
                 const fetchAll = async () => {
                     try {
 
-                        const [custRes, trkRes, compRes, catRes, fbRes] = await Promise.all([
-                            sb.from('customers').select('*'), sb.from('trucks').select('*'), sb.from('complaints').select('*'), sb.from('categories').select('name'), sb.from('feedbacks').select('*')
+                        const [custRes, trkRes, compRes, catRes, fbRes, delivRes] = await Promise.all([
+                            sb.from('customers').select('*'),
+                            sb.from('trucks').select('*'),
+                            sb.from('complaints').select('*'),
+                            sb.from('categories').select('name'),
+                            sb.from('feedbacks').select('*'),
+                            sb.from('delivery_submissions').select('*').order('created_at', { ascending: false })
                         ]);
 
                         // Load local cache
@@ -17185,6 +17267,18 @@ function App() {
                         setComplaints(dbCmps);
                         setFeedbacks(dbFb);
                         if (catRes.data?.length > 0) setCategories(catRes.data.map(c => c.name));
+                        // Sync Delivery Submissions from Supabase
+                        let dbSubs = delivRes?.data ? delivRes.data.map(mapDeliverySubmission) : [];
+                        const localSubs = JSON.parse(localStorage.getItem('ff_delivery_submissions') || '[]');
+                        const mergedSubs = [...dbSubs];
+                        localSubs.forEach(ls => {
+                            if (!mergedSubs.some(s => s.id === ls.id || (s.poNo && s.poNo === ls.poNo && s.customerName === ls.customerName))) {
+                                mergedSubs.push(ls);
+                            }
+                        });
+                        setDeliverySubmissions(mergedSubs);
+                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(mergedSubs)); } catch(e){}
+
 
                         // ── Fetch CAPA Tables ──
                         try {
@@ -18725,6 +18819,9 @@ function App() {
                         customers={customers}
                         trucks={trucks}
                         user={user}
+                        deliverySubmissions={deliverySubmissions}
+                        onApproveSubmission={handleApproveSubmission}
+                        onEditSubmission={(sub) => setEditingSubmission(sub)}
                         onExit={() => setAccessMode('customer')}
                         downloadClosureReport={downloadClosureReport}
                         getQrImageUrl={getQrImageUrl}
@@ -18917,6 +19014,7 @@ function App() {
                                 } else if (role === 'master_admin') {
                                     setUser({ connected: true });
                                     setAccessMode('master_admin');
+                                    fetchDeliverySubmissions();
                                 } else if (role === 'agm') {
                                     setAccessMode('agm');
                                 }
@@ -19016,8 +19114,10 @@ function App() {
 
                         {/* Navigation Menu with Sliding Highlight */}
                         {(() => {
+                            const pendingSubsCount = deliverySubmissions.filter(s => s.status === 'Pending Approval').length;
                             const operationsNav = [
                                 { id: 'dashboard', icon: 'home', label: 'Command Center' },
+                                { id: 'qr-requests', icon: 'qr-code', label: 'QR Code Requests', count: pendingSubsCount, badgeColor: 'bg-amber-100 text-amber-900 border border-amber-300 font-bold' },
                                 { id: 'customers', icon: 'users', label: 'Customers & Assets', count: customers.length },
                                 { id: 'trucks', icon: 'shield-check', label: 'Fleet Inventory', count: trucks.length },
                                 { id: 'po-glance', icon: 'file-text', label: 'PO At Glance' }
@@ -19156,8 +19256,8 @@ function App() {
                     <main className="flex-1 p-4 md:p-6 overflow-y-auto h-screen">
                         <header className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div>
-                                <h1 className="text-xl sm:text-2xl font-black text-slate-900 capitalize tracking-tight font-heading">
-                                    {activeTab==='trucks'?'Fleet Management':activeTab==='po-glance'?'PO At Glance & Cost Center Hub':activeTab==='complaints'?'Customer Complaints':activeTab==='capa'?'CAPA Quality & RCA Hub':activeTab==='feedback'?'Feedback Reviews':activeTab}
+                                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-heading">
+                                    {activeTab==='qr-requests'?'QR Code Requests & Approvals':activeTab==='trucks'?'Fleet Management':activeTab==='po-glance'?'PO At Glance & Cost Center Hub':activeTab==='complaints'?'Customer Complaints':activeTab==='capa'?'CAPA Quality & RCA Hub':activeTab==='feedback'?'Feedback Reviews':activeTab}
                                 </h1>
                                 {activeTab === 'trucks' && (
                                     <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -19614,6 +19714,368 @@ function App() {
                                 </div>
                             </div>
                         )}
+
+                        {/* ── TAB: QR CODE REQUESTS & DISPATCH APPROVALS ── */}
+                        {activeTab === 'qr-requests' && (() => {
+                            const pendingList = deliverySubmissions.filter(s => s.status === 'Pending Approval');
+                            const approvedList = deliverySubmissions.filter(s => s.status !== 'Pending Approval');
+
+                            const filtered = deliverySubmissions.filter(s => {
+                                if (qrReqFilter === 'Pending Approval') return s.status === 'Pending Approval';
+                                if (qrReqFilter === 'Punched in System') return s.status !== 'Pending Approval';
+                                return true;
+                            }).filter(s => {
+                                if (!qrReqSearch.trim()) return true;
+                                const q = qrReqSearch.toLowerCase();
+                                return (
+                                    (s.customerName || '').toLowerCase().includes(q) ||
+                                    (s.poNo || '').toLowerCase().includes(q) ||
+                                    (s.tenderType || '').toLowerCase().includes(q) ||
+                                    (s.chassisMake || '').toLowerCase().includes(q) ||
+                                    (s.pumpMake || '').toLowerCase().includes(q) ||
+                                    (s.pumpSrNo || '').toLowerCase().includes(q) ||
+                                    (s.ptoSrNo || '').toLowerCase().includes(q)
+                                );
+                            });
+
+                            return (
+                                <div className="space-y-4 fade-up">
+                                    {/* 1. Header Banner & Action Bar */}
+                                    <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div className="flex items-start gap-3.5">
+                                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+                                                <Icon name="qr-code" size={22}/>
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight font-heading">
+                                                        QR Code Generation &amp; Dispatch Requests
+                                                    </h2>
+                                                    {pendingList.length > 0 && (
+                                                        <span className="bg-amber-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                                                            {pendingList.length} Action Required
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                                                    Review apparatus specifications submitted from the field (PIN 2038), verify pump &amp; PTO telemetry, and approve to instantly generate official vehicle QR codes.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 self-start md:self-auto shrink-0 flex-wrap">
+                                            <button
+                                                type="button"
+                                                onClick={fetchDeliverySubmissions}
+                                                disabled={isSyncingQueue}
+                                                className="h-9 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                                title="Sync requests directly from Supabase database"
+                                            >
+                                                <span className={isSyncingQueue ? "animate-spin" : ""}>🔄</span>
+                                                <span>{isSyncingQueue ? "Syncing..." : "Sync from Cloud"}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowRegisterDeliveryModal(true)}
+                                                className="h-9 px-4 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                                <span>🚚</span>
+                                                <span>New Dispatch Entry (2038)</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Metrics & Filter Row */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div 
+                                            onClick={() => setQrReqFilter('Pending Approval')}
+                                            className={`p-4 rounded-xl border transition-all cursor-pointer ${qrReqFilter === 'Pending Approval' ? 'bg-amber-50/90 border-amber-300 ring-2 ring-amber-400/40 shadow-xs' : 'bg-white border-slate-200/90 hover:border-amber-300 shadow-2xs'}`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">Awaiting Approval</span>
+                                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                                            </div>
+                                            <div className="text-2xl font-black text-amber-700 mt-1 font-mono">{pendingList.length}</div>
+                                            <div className="text-[10px] text-slate-500 mt-0.5">Staged requests needing verification</div>
+                                        </div>
+
+                                        <div 
+                                            onClick={() => setQrReqFilter('Punched in System')}
+                                            className={`p-4 rounded-xl border transition-all cursor-pointer ${qrReqFilter === 'Punched in System' ? 'bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-400/40 shadow-xs' : 'bg-white border-slate-200/90 hover:border-emerald-300 shadow-2xs'}`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">Approved &amp; Live</span>
+                                                <span className="text-emerald-600 text-xs font-bold">✓</span>
+                                            </div>
+                                            <div className="text-2xl font-black text-emerald-700 mt-1 font-mono">{approvedList.length}</div>
+                                            <div className="text-[10px] text-slate-500 mt-0.5">Punched in fleet with live QR code</div>
+                                        </div>
+
+                                        <div 
+                                            onClick={() => setQrReqFilter('All')}
+                                            className={`p-4 rounded-xl border transition-all cursor-pointer ${qrReqFilter === 'All' ? 'bg-slate-100 border-slate-400 ring-2 ring-slate-400/40 shadow-xs' : 'bg-white border-slate-200/90 hover:border-slate-300 shadow-2xs'}`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Total Registrations</span>
+                                                <span className="text-slate-400 text-xs">📊</span>
+                                            </div>
+                                            <div className="text-2xl font-black text-slate-900 mt-1 font-mono">{deliverySubmissions.length}</div>
+                                            <div className="text-[10px] text-slate-500 mt-0.5">All historic dispatch submissions</div>
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Search and Status Filter Pill Bar */}
+                                    <div className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+                                        <div className="relative w-full sm:w-96">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+                                            <input
+                                                type="text"
+                                                value={qrReqSearch}
+                                                onChange={(e) => setQrReqSearch(e.target.value)}
+                                                placeholder="Search by Client, PO Number, Tender, Pump..."
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs font-medium text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                                            />
+                                            {qrReqSearch && (
+                                                <button onClick={() => setQrReqSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                                            {['All', 'Pending Approval', 'Punched in System'].map(tab => (
+                                                <button
+                                                    key={tab}
+                                                    type="button"
+                                                    onClick={() => setQrReqFilter(tab)}
+                                                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                                        qrReqFilter === tab 
+                                                            ? 'bg-slate-900 text-white shadow-xs' 
+                                                            : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                                                    }`}
+                                                >
+                                                    {tab === 'Punched in System' ? 'Approved' : tab}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 4. Submissions Cards Grid */}
+                                    {filtered.length === 0 ? (
+                                        <div className="bg-white border border-slate-200/90 rounded-2xl p-12 text-center shadow-2xs space-y-3">
+                                            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-2xl text-slate-400">
+                                                📭
+                                            </div>
+                                            <h3 className="text-base font-bold text-slate-800">No Vehicle Requests Found</h3>
+                                            <p className="text-xs text-slate-500 max-w-md mx-auto">
+                                                {qrReqSearch 
+                                                    ? 'No delivery submissions match your search query. Try clearing the search filters.' 
+                                                    : qrReqFilter === 'Pending Approval' 
+                                                        ? 'All caught up! There are currently no pending vehicle requests awaiting approval.'
+                                                        : 'No vehicle delivery submissions found in system.'}
+                                            </p>
+                                            <div className="flex items-center justify-center gap-2 pt-2">
+                                                {qrReqSearch && (
+                                                    <button onClick={() => setQrReqSearch('')} className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold cursor-pointer">
+                                                        Clear Filter
+                                                    </button>
+                                                )}
+                                                <button onClick={fetchDeliverySubmissions} className="px-4 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1.5">
+                                                    <span>🔄</span> Refresh from Cloud
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {filtered.map((sub, idx) => {
+                                                const isPending = sub.status === 'Pending Approval';
+                                                const matchingTruck = trucks.find(t => t.poNo === sub.poNo || t.id === sub.truckId);
+
+                                                return (
+                                                    <div 
+                                                        key={sub.id || idx} 
+                                                        className={`bg-white rounded-2xl border transition-all shadow-2xs hover:shadow-md flex flex-col justify-between overflow-hidden ${
+                                                            isPending ? 'border-amber-300 ring-1 ring-amber-300/50' : 'border-slate-200/90'
+                                                        }`}
+                                                    >
+                                                        {/* Top Status Strip */}
+                                                        <div className={`px-4 py-2 border-b flex items-center justify-between text-xs ${
+                                                            isPending ? 'bg-gradient-to-r from-amber-50 to-orange-50/60 border-amber-200/80 text-amber-900' : 'bg-slate-50 border-slate-100 text-slate-600'
+                                                        }`}>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                                                    isPending ? 'bg-amber-500 text-white animate-pulse' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                                                }`}>
+                                                                    {isPending ? '● Awaiting Approval' : '✓ Punched in System'}
+                                                                </span>
+                                                                <span className="font-mono text-[11px] font-bold text-slate-500">
+                                                                    {sub.id}
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-[10px] font-medium text-slate-400">
+                                                                {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent'}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Main Content Body */}
+                                                        <div className="p-4 space-y-3 flex-1">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <div>
+                                                                    <h3 className="font-black text-sm text-slate-900 uppercase tracking-tight line-clamp-1" title={sub.customerName || sub.customer_name}>
+                                                                        {sub.customerName || sub.customer_name}
+                                                                    </h3>
+                                                                    <p className="text-[11px] text-slate-500 font-medium">
+                                                                        {sub.address || 'Standard Delivery Client'}
+                                                                    </p>
+                                                                </div>
+                                                                <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg shrink-0">
+                                                                    PO: {sub.poNo || sub.po_no}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Technical Specs Grid */}
+                                                            <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50/90 rounded-xl border border-slate-150 text-[11px]">
+                                                                <div>
+                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">Tender Type</span>
+                                                                    <span className="font-bold text-slate-800 uppercase">{sub.tenderType || 'Fire Tender'}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">Delivery &amp; Warranty</span>
+                                                                    <span className="font-semibold text-slate-700">{sub.deliveryDate || '—'} · {sub.warrantyMonths || 12}M</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">Fire Pump (Sr / LPM)</span>
+                                                                    <span className="font-semibold text-slate-700">{sub.pumpMake || '—'} {sub.pumpSrNo ? '(' + sub.pumpSrNo + ')' : ''} {sub.pumpLpm ? '· ' + sub.pumpLpm + ' LPM' : ''}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">PTO (Make / Ratio)</span>
+                                                                    <span className="font-semibold text-slate-700">{sub.ptoMake || '—'} {sub.ptoRatio ? '(' + sub.ptoRatio + ')' : ''} {sub.ptoSrNo ? '· ' + sub.ptoSrNo : ''}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">Water / Foam Capacity</span>
+                                                                    <span className="font-semibold text-slate-700">{sub.waterCapacity || 0} L / {sub.foamCapacity || 0} L</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">Chassis &amp; Model</span>
+                                                                    <span className="font-semibold text-slate-700">{sub.chassisMake || '—'} {sub.modelNo ? '· ' + sub.modelNo : ''}</span>
+                                                                </div>
+
+                                                                {(sub.uhpPumpMake || sub.uhp_pump_make) && (
+                                                                    <div className="col-span-2 pt-1 border-t border-slate-200/60 flex justify-between">
+                                                                        <span className="text-[9.5px] uppercase font-bold text-slate-400">UHP Pump:</span>
+                                                                        <span className="font-semibold text-slate-700">{sub.uhpPumpMake || sub.uhp_pump_make} · {sub.uhpPumpLpm || sub.uhp_pump_lpm || ''} (Sr: {sub.uhpPumpSrNo || sub.uhp_pump_sr_no || 'N/A'})</span>
+                                                                    </div>
+                                                                )}
+
+                                                                {(sub.dcpCapacity || sub.dcp_capacity) && (
+                                                                    <div className="col-span-2 flex justify-between">
+                                                                        <span className="text-[9.5px] uppercase font-bold text-slate-400">DCP Unit:</span>
+                                                                        <span className="font-semibold text-slate-700">{sub.dcpCapacity || sub.dcp_capacity} KG {sub.dcpHptDueDate ? '· HPT Due: ' + sub.dcpHptDueDate : ''}</span>
+                                                                    </div>
+                                                                )}
+
+                                                                {(sub.insuranceCompany || sub.insurance_company) && (
+                                                                    <div className="col-span-2 pt-1 border-t border-slate-200/60">
+                                                                        <span className="text-[9.5px] uppercase font-bold text-slate-400 block">Insurance Details</span>
+                                                                        <span className="font-semibold text-slate-700 block truncate">{sub.insuranceCompany || sub.insurance_company} · {sub.insurancePolicyNo || sub.insurance_policy_no || 'No Policy'}</span>
+                                                                    </div>
+                                                                )}
+
+                                                                {(sub.contactPerson || sub.phone) && (
+                                                                    <div className="col-span-2 text-[10px] text-slate-500 pt-1 border-t border-slate-200/60">
+                                                                        <span>👤 {sub.contactPerson || ''} {sub.phone ? '· 📞 ' + sub.phone : ''} {sub.email ? '· ✉️ ' + sub.email : ''}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Action Buttons Footer */}
+                                                        <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
+                                                            {isPending ? (
+                                                                <>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setEditingSubmission(sub)}
+                                                                        className="flex-1 h-8 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                                                                        title="Review all fields and make adjustments before approval"
+                                                                    >
+                                                                        <span>✏️</span> Review &amp; Edit
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleApproveSubmission(sub)}
+                                                                        className="flex-1 h-8 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                                                                        title="Approve immediately and issue live QR Code"
+                                                                    >
+                                                                        <span>✓</span> Approve &amp; Generate QR
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            if (confirm(`Reject and delete request for "${sub.customerName || sub.customer_name}"?`)) {
+                                                                                const rem = deliverySubmissions.filter(s => s.id !== sub.id);
+                                                                                setDeliverySubmissions(rem);
+                                                                                try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(rem)); } catch(e){}
+                                                                                const sb = window.SupabaseClient;
+                                                                                if (sb && sub.id) {
+                                                                                    sb.from('delivery_submissions').delete().eq('id', sub.id).then(()=>{});
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                        className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl flex items-center justify-center transition-all cursor-pointer text-xs"
+                                                                        title="Reject request"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const trk = matchingTruck || {
+                                                                                id: sub.truckId || ('TRK-' + (sub.poNo || 'GEN')),
+                                                                                customerId: sub.customerId,
+                                                                                poNo: sub.poNo,
+                                                                                tenderType: sub.tenderType,
+                                                                                pumpMake: sub.pumpMake,
+                                                                                pumpSrNo: sub.pumpSrNo,
+                                                                                pumpLpm: sub.pumpLpm,
+                                                                                ptoMake: sub.ptoMake,
+                                                                                ptoRatio: sub.ptoRatio,
+                                                                                ptoSrNo: sub.ptoSrNo,
+                                                                                chassisMake: sub.chassisMake,
+                                                                                waterCapacity: sub.waterCapacity,
+                                                                                foamCapacity: sub.foamCapacity,
+                                                                                deliveryDate: sub.deliveryDate,
+                                                                                warrantyMonths: sub.warrantyMonths
+                                                                            };
+                                                                            setQrTruck(trk);
+                                                                            setShowQrModal(true);
+                                                                        }}
+                                                                        className="flex-1 h-8 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                                                                    >
+                                                                        <span>🔲</span> View Vehicle QR Code
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setFleetSearch(sub.poNo || '');
+                                                                            setActiveTab('trucks');
+                                                                        }}
+                                                                        className="h-8 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                                                                    >
+                                                                        <span>📋</span> Fleet
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
 
                         {/* ── TAB 2: CUSTOMERS (ENTERPRISE DIRECTORY) ── */}
                         {activeTab === 'customers' && (
@@ -22675,6 +23137,44 @@ function App() {
                             </Modal>
                         );
                     })()}
+
+                    {/* ✏️ EDIT & APPROVE DELIVERY SUBMISSION MODAL (IN MASTER ADMIN) */}
+                    {editingSubmission && (
+                        <EditAndApproveSubmissionModal
+                            submission={editingSubmission}
+                            onClose={() => setEditingSubmission(null)}
+                            onSaveDraft={handleSaveSubmissionDraft}
+                            onApprove={handleApproveSubmission}
+                        />
+                    )}
+
+                    {/* 📋 REGISTER CLIENT TO DELIVERY MODAL (DISPATCH ENTRY IN MASTER ADMIN) */}
+                    {showRegisterDeliveryModal && (
+                        <RegisterClientToDeliveryModal
+                            onClose={() => setShowRegisterDeliveryModal(false)}
+                            existingCustomers={customers}
+                            onSubmitted={(newSub) => {
+                                setDeliverySubmissions(prev => {
+                                    const updated = [newSub, ...prev];
+                                    try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(updated)); } catch(e){}
+                                    return updated;
+                                });
+                                fetchDeliverySubmissions();
+                            }}
+                            onDirectPunch={(newCust, newTrk) => {
+                                setCustomers(prev => {
+                                    const updated = [...prev, newCust];
+                                    try { localStorage.setItem('ff_cust', JSON.stringify(updated)); } catch(e){}
+                                    return updated;
+                                });
+                                setTrucks(prev => {
+                                    const updated = [newTrk, ...prev];
+                                    try { localStorage.setItem('ff_trks', JSON.stringify(updated)); } catch(e){}
+                                    return updated;
+                                });
+                            }}
+                        />
+                    )}
                 </div>
             );
         }
