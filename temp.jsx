@@ -16065,8 +16065,10 @@ function App() {
                     let existingCust = customers.find(c => c.name.trim().toUpperCase() === clientName.toUpperCase());
                     let custId = existingCust?.id;
                     let custRecord = null;
+                    const sb = window.SupabaseClient;
+
                     if (!custId) {
-                        const newCustId = 'CUST-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+                        const newCustId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : ('CUST-' + Math.random().toString(36).substring(2, 9).toUpperCase());
                         custRecord = {
                             id: newCustId,
                             name: clientName,
@@ -16074,30 +16076,49 @@ function App() {
                             phone: sub.phone || '',
                             email: sub.email || '',
                             address: sub.address || '',
-                            poNo: sub.poNo || sub.po_no || '',
                             poDate: sub.poDate || sub.po_date || null
                         };
-                        setCustomers(prev => {
-                            const next = [...prev, custRecord];
-                            try { localStorage.setItem('ff_cust', JSON.stringify(next)); } catch(e){}
-                            return next;
-                        });
-                        custId = newCustId;
-                        const sb = window.SupabaseClient;
+
                         if (sb) {
                             try {
-                                await sb.from('customers').insert({
+                                const { data: insCust, error: custErr } = await sb.from('customers').insert({
                                     id: newCustId,
                                     name: custRecord.name,
                                     contact_person: custRecord.contactPerson,
                                     phone: custRecord.phone,
                                     email: custRecord.email,
                                     address: custRecord.address,
-                                    po_no: custRecord.poNo,
-                                    po_date: custRecord.poDate
-                                });
+                                    po_date: custRecord.poDate,
+                                    is_active: true
+                                }).select().single();
+
+                                if (custErr) {
+                                    console.warn('Supabase customer insert retry note:', custErr);
+                                    // Fallback if custom id is rejected
+                                    const retry = await sb.from('customers').insert({
+                                        name: custRecord.name,
+                                        contact_person: custRecord.contactPerson,
+                                        phone: custRecord.phone,
+                                        email: custRecord.email,
+                                        address: custRecord.address,
+                                        po_date: custRecord.poDate,
+                                        is_active: true
+                                    }).select().single();
+                                    if (retry.data?.id) {
+                                        custRecord.id = retry.data.id;
+                                    }
+                                } else if (insCust?.id) {
+                                    custRecord.id = insCust.id;
+                                }
                             } catch(e){ console.warn('Supabase customer sync note:', e); }
                         }
+
+                        custId = custRecord.id;
+                        setCustomers(prev => {
+                            const next = [...prev, custRecord];
+                            try { localStorage.setItem('ff_cust', JSON.stringify(next)); } catch(e){}
+                            return next;
+                        });
                     } else if (sub.address || sub.phone || sub.email || sub.contactPerson) {
                         setCustomers(prev => {
                             const next = prev.map(c => c.id === custId ? {
@@ -16113,7 +16134,11 @@ function App() {
                     }
 
                     // 2. Create Truck / Vehicle Delivery Record
-                    const trkId = 'TRK-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+                    const trkId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : ('TRK-' + Math.random().toString(36).substring(2, 9).toUpperCase());
+                    const pumpMakeVal = sub.pumpMake || sub.pump_make || sub.uhpPumpMake || sub.uhp_pump_make || '';
+                    const pumpSrNoVal = sub.pumpSrNo || sub.pump_sr_no || sub.uhpPumpSrNo || sub.uhp_pump_sr_no || '';
+                    const pumpLpmVal = sub.pumpLpm || sub.pump_lpm || sub.uhpPumpLpm || sub.uhp_pump_lpm || '';
+
                     const newTrkPayload = {
                         id: trkId,
                         customerId: custId,
@@ -16126,19 +16151,14 @@ function App() {
                         engineSrNo: sub.engineSrNo || sub.engine_sr_no || '',
                         deliveryDate: sub.deliveryDate || sub.delivery_date || new Date().toISOString().split('T')[0],
                         warrantyMonths: parseInt(sub.warrantyMonths || sub.warranty_months) || 12,
-                        pumpMake: sub.pumpMake || sub.pump_make || '',
-                        pumpLpm: sub.pumpLpm || sub.pump_lpm || '',
-                        pumpSrNo: sub.pumpSrNo || sub.pump_sr_no || '',
+                        pumpMake: pumpMakeVal,
+                        pumpLpm: pumpLpmVal,
+                        pumpSrNo: pumpSrNoVal,
                         ptoMake: sub.ptoMake || sub.pto_make || '',
                         ptoRatio: sub.ptoRatio || sub.pto_ratio || '',
                         ptoSrNo: sub.ptoSrNo || sub.pto_sr_no || '',
                         waterCapacity: parseFloat(sub.waterCapacity || sub.water_capacity) || 0,
                         foamCapacity: parseFloat(sub.foamCapacity || sub.foam_capacity) || 0,
-                        uhpPumpMake: sub.uhpPumpMake || sub.uhp_pump_make || null,
-                        uhpPumpLpm: sub.uhpPumpLpm || sub.uhp_pump_lpm || null,
-                        uhpPumpSrNo: sub.uhpPumpSrNo || sub.uhp_pump_sr_no || null,
-                        dcpCapacity: sub.dcpCapacity || sub.dcp_capacity || null,
-                        dcpHptDueDate: sub.dcpHptDueDate || sub.dcp_hpt_due_date || null,
                         insuranceCompany: sub.insuranceCompany || sub.insurance_company || '',
                         insurancePolicyNo: sub.insurancePolicyNo || sub.insurance_policy_no || '',
                         insuranceExpiryDate: sub.insuranceExpiryDate || sub.insurance_expiry_date || null,
@@ -16157,38 +16177,40 @@ function App() {
                     try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(updatedSubs)); } catch(e){}
 
                     // 4. Sync to Supabase
-                    const sb = window.SupabaseClient;
                     if (sb) {
                         try {
-                            await sb.from('trucks').insert({
+                            const sbTruckPayload = {
                                 id: trkId,
                                 customer_id: custId,
                                 po_no: newTrkPayload.poNo,
                                 po_date: newTrkPayload.poDate,
                                 tender_type: newTrkPayload.tenderType,
-                                chassis_make: newTrkPayload.chassisMake,
-                                model_no: newTrkPayload.modelNo,
-                                chassis_sr_no: newTrkPayload.chassisSrNo,
-                                engine_sr_no: newTrkPayload.engineSrNo,
+                                chassis_make: newTrkPayload.chassisMake || '',
+                                model_no: newTrkPayload.modelNo || '',
+                                chassis_sr_no: newTrkPayload.chassisSrNo || null,
+                                engine_sr_no: newTrkPayload.engineSrNo || null,
                                 delivery_date: newTrkPayload.deliveryDate,
                                 warranty_months: newTrkPayload.warrantyMonths,
-                                pump_make: newTrkPayload.pumpMake,
-                                pump_lpm: newTrkPayload.pumpLpm ? parseFloat(newTrkPayload.pumpLpm) : null,
-                                pump_sr_no: newTrkPayload.pumpSrNo,
-                                pto_make: newTrkPayload.ptoMake,
-                                pto_ratio: newTrkPayload.ptoRatio,
-                                pto_sr_no: newTrkPayload.ptoSrNo,
-                                water_capacity: newTrkPayload.waterCapacity,
-                                foam_capacity: newTrkPayload.foamCapacity,
-                                uhp_pump_make: newTrkPayload.uhpPumpMake,
-                                uhp_pump_lpm: newTrkPayload.uhpPumpLpm,
-                                uhp_pump_sr_no: newTrkPayload.uhpPumpSrNo,
-                                dcp_capacity: newTrkPayload.dcpCapacity,
-                                dcp_hpt_due_date: newTrkPayload.dcpHptDueDate,
-                                insurance_company: newTrkPayload.insuranceCompany,
-                                insurance_policy_no: newTrkPayload.insurancePolicyNo,
-                                insurance_expiry_date: newTrkPayload.insuranceExpiryDate
-                            });
+                                pump_make: newTrkPayload.pumpMake || '',
+                                pump_lpm: newTrkPayload.pumpLpm ? String(newTrkPayload.pumpLpm) : null,
+                                pump_sr_no: newTrkPayload.pumpSrNo || '',
+                                pto_make: newTrkPayload.ptoMake || '',
+                                pto_ratio: newTrkPayload.ptoRatio || '',
+                                pto_sr_no: newTrkPayload.ptoSrNo || '',
+                                water_capacity: String(newTrkPayload.waterCapacity || 0),
+                                foam_capacity: String(newTrkPayload.foamCapacity || 0),
+                                insurance_company: newTrkPayload.insuranceCompany || '',
+                                insurance_policy_no: newTrkPayload.insurancePolicyNo || '',
+                                insurance_expiry_date: newTrkPayload.insuranceExpiryDate || null,
+                                cost_center_status: 'Not Generated'
+                            };
+
+                            const { data: insTrk, error: trkErr } = await sb.from('trucks').insert(sbTruckPayload).select().single();
+                            if (trkErr) {
+                                console.warn('Supabase truck insert retry note:', trkErr);
+                                delete sbTruckPayload.id;
+                                await sb.from('trucks').insert(sbTruckPayload);
+                            }
                             await sb.from('delivery_submissions').update({ status: 'Punched in System' }).eq('id', sub.id);
                         } catch(e){ console.warn('Supabase truck sync note:', e); }
                     }
@@ -19706,7 +19728,7 @@ function App() {
                             </div>
                         )}
 
-                        {/* ── TAB: QR CODE REQUESTS & DISPATCH APPROVALS ── */}
+                        {/* ── TAB: QR CODE REQUESTS & DISPATCH APPROVALS (COMPACT TABLE VIEW) ── */}
                         {activeTab === 'qr-requests' && (() => {
                             const pendingList = deliverySubmissions.filter(s => s.status === 'Pending Approval');
                             const approvedList = deliverySubmissions.filter(s => s.status !== 'Pending Approval');
@@ -19730,340 +19752,321 @@ function App() {
                             });
 
                             return (
-                                <div className="space-y-4 fade-up">
-                                    {/* 1. Header Banner & Action Bar */}
-                                    <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div className="flex items-start gap-3.5">
-                                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
-                                                <Icon name="qr-code" size={22}/>
+                                <div className="space-y-3 fade-up">
+                                    {/* 1. Compact Header Toolbar with Integrated Counters */}
+                                    <div className="bg-white border border-slate-200/90 rounded-xl px-4 py-3 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0B6B63] border border-teal-200 flex items-center justify-center text-sm font-bold shrink-0">
+                                                <Icon name="qr-code" size={17}/>
                                             </div>
                                             <div>
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight font-heading">
-                                                        QR Code Generation &amp; Dispatch Requests
+                                                <div className="flex items-center gap-2">
+                                                    <h2 className="text-sm font-bold text-slate-900 tracking-tight font-heading">
+                                                        QR Code Requests &amp; Approvals
                                                     </h2>
-                                                    {pendingList.length > 0 && (
-                                                        <span className="bg-amber-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
-                                                            {pendingList.length} Action Required
+                                                    {pendingList.length > 0 ? (
+                                                        <span className="bg-amber-500 text-white text-[9.5px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                                                            {pendingList.length} Pending
+                                                        </span>
+                                                    ) : (
+                                                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9.5px] font-bold px-2 py-0.5 rounded-full">
+                                                            All Approved
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                                                    Review apparatus specifications submitted from the field (PIN 2038), verify pump &amp; PTO telemetry, and approve to instantly generate official vehicle QR codes.
+                                                <p className="text-[11px] text-slate-500 font-normal">
+                                                    Field dispatch registrations awaiting technical verification &amp; instant QR generation.
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2 self-start md:self-auto shrink-0 flex-wrap">
+                                        {/* Right Action Controls & Compact Metric Pills */}
+                                        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                                            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-600">
+                                                <span className="text-amber-600 font-bold">{pendingList.length}</span> Pending · 
+                                                <span className="text-emerald-600 font-bold ml-1">{approvedList.length}</span> Live · 
+                                                <span className="text-slate-900 font-bold ml-1">{deliverySubmissions.length}</span> Total
+                                            </div>
+
                                             <button
                                                 type="button"
                                                 onClick={fetchDeliverySubmissions}
                                                 disabled={isSyncingQueue}
-                                                className="h-9 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                                className="h-8 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
                                                 title="Sync requests directly from Supabase database"
                                             >
                                                 <span className={isSyncingQueue ? "animate-spin" : ""}>🔄</span>
-                                                <span>{isSyncingQueue ? "Syncing..." : "Sync from Cloud"}</span>
+                                                <span className="hidden sm:inline">{isSyncingQueue ? "Syncing..." : "Sync Cloud"}</span>
                                             </button>
+
                                             <button
                                                 type="button"
                                                 onClick={() => setShowRegisterDeliveryModal(true)}
-                                                className="h-9 px-4 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                                                className="h-8 px-3.5 bg-slate-900 hover:bg-black text-white rounded-lg text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
                                             >
                                                 <span>🚚</span>
-                                                <span>New Dispatch Entry (2038)</span>
+                                                <span>New Dispatch (2038)</span>
                                             </button>
                                         </div>
                                     </div>
 
-                                    {/* 2. Metrics & Filter Row */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        <div 
-                                            onClick={() => setQrReqFilter('Pending Approval')}
-                                            className={`p-4 rounded-xl border transition-all cursor-pointer ${qrReqFilter === 'Pending Approval' ? 'bg-amber-50/90 border-amber-300 ring-2 ring-amber-400/40 shadow-xs' : 'bg-white border-slate-200/90 hover:border-amber-300 shadow-2xs'}`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">Awaiting Approval</span>
-                                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
-                                            </div>
-                                            <div className="text-2xl font-black text-amber-700 mt-1 font-mono">{pendingList.length}</div>
-                                            <div className="text-[10px] text-slate-500 mt-0.5">Staged requests needing verification</div>
-                                        </div>
-
-                                        <div 
-                                            onClick={() => setQrReqFilter('Punched in System')}
-                                            className={`p-4 rounded-xl border transition-all cursor-pointer ${qrReqFilter === 'Punched in System' ? 'bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-400/40 shadow-xs' : 'bg-white border-slate-200/90 hover:border-emerald-300 shadow-2xs'}`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">Approved &amp; Live</span>
-                                                <span className="text-emerald-600 text-xs font-bold">✓</span>
-                                            </div>
-                                            <div className="text-2xl font-black text-emerald-700 mt-1 font-mono">{approvedList.length}</div>
-                                            <div className="text-[10px] text-slate-500 mt-0.5">Punched in fleet with live QR code</div>
-                                        </div>
-
-                                        <div 
-                                            onClick={() => setQrReqFilter('All')}
-                                            className={`p-4 rounded-xl border transition-all cursor-pointer ${qrReqFilter === 'All' ? 'bg-slate-100 border-slate-400 ring-2 ring-slate-400/40 shadow-xs' : 'bg-white border-slate-200/90 hover:border-slate-300 shadow-2xs'}`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Total Registrations</span>
-                                                <span className="text-slate-400 text-xs">📊</span>
-                                            </div>
-                                            <div className="text-2xl font-black text-slate-900 mt-1 font-mono">{deliverySubmissions.length}</div>
-                                            <div className="text-[10px] text-slate-500 mt-0.5">All historic dispatch submissions</div>
-                                        </div>
-                                    </div>
-
-                                    {/* 3. Search and Status Filter Pill Bar */}
-                                    <div className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
-                                        <div className="relative w-full sm:w-96">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+                                    {/* 2. Compact Search & Filter Toolbar */}
+                                    <div className="bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                                        <div className="relative w-full sm:w-80">
+                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
                                             <input
                                                 type="text"
                                                 value={qrReqSearch}
                                                 onChange={(e) => setQrReqSearch(e.target.value)}
-                                                placeholder="Search by Client, PO Number, Tender, Pump..."
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs font-medium text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                                                placeholder="Search by client, PO, tender, pump, serial..."
+                                                className="w-full bg-slate-50/80 border border-slate-200 rounded-lg pl-7 pr-3 py-1 text-xs font-normal text-slate-900 outline-none focus:border-[#0B6B63] transition-all"
                                             />
                                             {qrReqSearch && (
-                                                <button onClick={() => setQrReqSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>
+                                                <button onClick={() => setQrReqSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>
                                             )}
                                         </div>
 
-                                        <div className="flex items-center gap-1.5 self-start sm:self-auto">
-                                            {['All', 'Pending Approval', 'Punched in System'].map(tab => (
+                                        <div className="flex items-center gap-1 self-start sm:self-auto">
+                                            {[
+                                                { id: 'All', label: `All (${deliverySubmissions.length})` },
+                                                { id: 'Pending Approval', label: `Pending (${pendingList.length})` },
+                                                { id: 'Punched in System', label: `Approved (${approvedList.length})` }
+                                            ].map(tab => (
                                                 <button
-                                                    key={tab}
+                                                    key={tab.id}
                                                     type="button"
-                                                    onClick={() => setQrReqFilter(tab)}
-                                                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                                        qrReqFilter === tab 
-                                                            ? 'bg-slate-900 text-white shadow-xs' 
-                                                            : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                                                    onClick={() => setQrReqFilter(tab.id)}
+                                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                                                        qrReqFilter === tab.id 
+                                                            ? 'bg-slate-900 text-white font-semibold shadow-2xs' 
+                                                            : 'bg-slate-100/80 hover:bg-slate-200 text-slate-600'
                                                     }`}
                                                 >
-                                                    {tab === 'Punched in System' ? 'Approved' : tab}
+                                                    {tab.label}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
 
-                                    {/* 4. Submissions Cards Grid */}
-                                    {filtered.length === 0 ? (
-                                        <div className="bg-white border border-slate-200/90 rounded-2xl p-12 text-center shadow-2xs space-y-3">
-                                            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-2xl text-slate-400">
-                                                📭
-                                            </div>
-                                            <h3 className="text-base font-bold text-slate-800">No Vehicle Requests Found</h3>
-                                            <p className="text-xs text-slate-500 max-w-md mx-auto">
-                                                {qrReqSearch 
-                                                    ? 'No delivery submissions match your search query. Try clearing the search filters.' 
-                                                    : qrReqFilter === 'Pending Approval' 
-                                                        ? 'All caught up! There are currently no pending vehicle requests awaiting approval.'
-                                                        : 'No vehicle delivery submissions found in system.'}
-                                            </p>
-                                            <div className="flex items-center justify-center gap-2 pt-2">
-                                                {qrReqSearch && (
-                                                    <button onClick={() => setQrReqSearch('')} className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold cursor-pointer">
-                                                        Clear Filter
-                                                    </button>
-                                                )}
-                                                <button onClick={fetchDeliverySubmissions} className="px-4 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1.5">
-                                                    <span>🔄</span> Refresh from Cloud
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {filtered.map((sub, idx) => {
-                                                const isPending = sub.status === 'Pending Approval';
-                                                const matchingTruck = trucks.find(t => t.poNo === sub.poNo || t.id === sub.truckId);
-
-                                                return (
-                                                    <div 
-                                                        key={sub.id || idx} 
-                                                        className={`bg-white rounded-2xl border transition-all shadow-2xs hover:shadow-md flex flex-col justify-between overflow-hidden ${
-                                                            isPending ? 'border-amber-300 ring-1 ring-amber-300/50' : 'border-slate-200/90'
-                                                        }`}
-                                                    >
-                                                        {/* Top Status Strip */}
-                                                        <div className={`px-4 py-2 border-b flex items-center justify-between text-xs ${
-                                                            isPending ? 'bg-gradient-to-r from-amber-50 to-orange-50/60 border-amber-200/80 text-amber-900' : 'bg-slate-50 border-slate-100 text-slate-600'
-                                                        }`}>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                                                    isPending ? 'bg-amber-500 text-white animate-pulse' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                                                }`}>
-                                                                    {isPending ? '● Awaiting Approval' : '✓ Punched in System'}
-                                                                </span>
-                                                                <span className="font-mono text-[11px] font-bold text-slate-500">
-                                                                    {sub.id}
-                                                                </span>
-                                                            </div>
-                                                            <span className="text-[10px] font-medium text-slate-400">
-                                                                {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent'}
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Main Content Body */}
-                                                        <div className="p-4 space-y-3 flex-1">
-                                                            <div className="flex items-start justify-between gap-2">
-                                                                <div>
-                                                                    <h3 className="font-black text-sm text-slate-900 uppercase tracking-tight line-clamp-1" title={sub.customerName || sub.customer_name}>
-                                                                        {sub.customerName || sub.customer_name}
-                                                                    </h3>
-                                                                    <p className="text-[11px] text-slate-500 font-medium">
-                                                                        {sub.address || 'Standard Delivery Client'}
+                                    {/* 3. Compact Tabular Table View */}
+                                    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse text-xs">
+                                                <thead>
+                                                    <tr className="bg-[#F8FAFC] border-b border-slate-200 text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">
+                                                        <th className="px-3.5 py-2.5 w-28">Status</th>
+                                                        <th className="px-3.5 py-2.5 min-w-[200px]">Client / Organization</th>
+                                                        <th className="px-3.5 py-2.5 min-w-[150px]">PO &amp; Date</th>
+                                                        <th className="px-3.5 py-2.5 min-w-[180px]">Apparatus / Tender</th>
+                                                        <th className="px-3.5 py-2.5 min-w-[210px]">Pump / PTO Telemetry</th>
+                                                        <th className="px-3.5 py-2.5 min-w-[130px]">Delivery &amp; Term</th>
+                                                        <th className="px-3.5 py-2.5 min-w-[160px]">Insurance</th>
+                                                        <th className="px-3.5 py-2.5 min-w-[170px] text-right pr-4">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-150">
+                                                    {filtered.length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
+                                                                <div className="space-y-1">
+                                                                    <p className="text-xl">📭</p>
+                                                                    <p className="text-xs font-semibold text-slate-700">No Vehicle Requests Found</p>
+                                                                    <p className="text-[11px] text-slate-400">
+                                                                        {qrReqSearch ? 'No submissions match your search query.' : 'There are currently no vehicle requests in this view.'}
                                                                     </p>
                                                                 </div>
-                                                                <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg shrink-0">
-                                                                    PO: {sub.poNo || sub.po_no}
-                                                                </span>
-                                                            </div>
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        filtered.map((sub, idx) => {
+                                                            const isPending = sub.status === 'Pending Approval';
+                                                            const matchingTruck = trucks.find(t => t.poNo === sub.poNo || t.id === sub.truckId);
+                                                            const cleanWords = (sub.customerName || sub.customer_name || 'IFS').replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+                                                            const initials = cleanWords.map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'IF';
 
-                                                            {/* Technical Specs Grid */}
-                                                            <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50/90 rounded-xl border border-slate-150 text-[11px]">
-                                                                <div>
-                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">Tender Type</span>
-                                                                    <span className="font-bold text-slate-800 uppercase">{sub.tenderType || 'Fire Tender'}</span>
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">Delivery &amp; Warranty</span>
-                                                                    <span className="font-semibold text-slate-700">{sub.deliveryDate || '—'} · {sub.warrantyMonths || 12}M</span>
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">Fire Pump (Sr / LPM)</span>
-                                                                    <span className="font-semibold text-slate-700">{sub.pumpMake || '—'} {sub.pumpSrNo ? '(' + sub.pumpSrNo + ')' : ''} {sub.pumpLpm ? '· ' + sub.pumpLpm + ' LPM' : ''}</span>
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">PTO (Make / Ratio)</span>
-                                                                    <span className="font-semibold text-slate-700">{sub.ptoMake || '—'} {sub.ptoRatio ? '(' + sub.ptoRatio + ')' : ''} {sub.ptoSrNo ? '· ' + sub.ptoSrNo : ''}</span>
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">Water / Foam Capacity</span>
-                                                                    <span className="font-semibold text-slate-700">{sub.waterCapacity || 0} L / {sub.foamCapacity || 0} L</span>
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wider">Chassis &amp; Model</span>
-                                                                    <span className="font-semibold text-slate-700">{sub.chassisMake || '—'} {sub.modelNo ? '· ' + sub.modelNo : ''}</span>
-                                                                </div>
+                                                            return (
+                                                                <tr 
+                                                                    key={sub.id || idx}
+                                                                    className={`hover:bg-slate-50/80 transition-colors ${isPending ? 'bg-amber-50/20' : ''}`}
+                                                                >
+                                                                    {/* 1. Status */}
+                                                                    <td className="px-3.5 py-2.5 align-middle whitespace-nowrap">
+                                                                        {isPending ? (
+                                                                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                                                <span>Pending</span>
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                                <span>✓</span> Approved
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="block font-mono text-[9.5px] text-slate-400 mt-0.5">{sub.id}</span>
+                                                                    </td>
 
-                                                                {(sub.uhpPumpMake || sub.uhp_pump_make) && (
-                                                                    <div className="col-span-2 pt-1 border-t border-slate-200/60 flex justify-between">
-                                                                        <span className="text-[9.5px] uppercase font-bold text-slate-400">UHP Pump:</span>
-                                                                        <span className="font-semibold text-slate-700">{sub.uhpPumpMake || sub.uhp_pump_make} · {sub.uhpPumpLpm || sub.uhp_pump_lpm || ''} (Sr: {sub.uhpPumpSrNo || sub.uhp_pump_sr_no || 'N/A'})</span>
-                                                                    </div>
-                                                                )}
+                                                                    {/* 2. Client / Organization */}
+                                                                    <td className="px-3.5 py-2.5 align-middle">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-[10px] shrink-0 font-mono">
+                                                                                {initials}
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <p className="font-semibold text-slate-900 text-xs truncate max-w-[220px]" title={sub.customerName || sub.customer_name}>
+                                                                                    {sub.customerName || sub.customer_name}
+                                                                                </p>
+                                                                                <p className="text-[10px] text-slate-400 truncate max-w-[220px]" title={sub.address || sub.contactPerson}>
+                                                                                    {sub.address || (sub.contactPerson ? `Contact: ${sub.contactPerson}` : 'Site on file')}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
 
-                                                                {(sub.dcpCapacity || sub.dcp_capacity) && (
-                                                                    <div className="col-span-2 flex justify-between">
-                                                                        <span className="text-[9.5px] uppercase font-bold text-slate-400">DCP Unit:</span>
-                                                                        <span className="font-semibold text-slate-700">{sub.dcpCapacity || sub.dcp_capacity} KG {sub.dcpHptDueDate ? '· HPT Due: ' + sub.dcpHptDueDate : ''}</span>
-                                                                    </div>
-                                                                )}
+                                                                    {/* 3. PO Details */}
+                                                                    <td className="px-3.5 py-2.5 align-middle whitespace-nowrap">
+                                                                        <span className="font-mono text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.5 rounded">
+                                                                            {sub.poNo || sub.po_no}
+                                                                        </span>
+                                                                        <span className="block text-[10px] text-slate-400 mt-0.5">
+                                                                            PO Date: {sub.poDate ? formatDate(sub.poDate) : 'N/A'}
+                                                                        </span>
+                                                                    </td>
 
-                                                                {(sub.insuranceCompany || sub.insurance_company) && (
-                                                                    <div className="col-span-2 pt-1 border-t border-slate-200/60">
-                                                                        <span className="text-[9.5px] uppercase font-bold text-slate-400 block">Insurance Details</span>
-                                                                        <span className="font-semibold text-slate-700 block truncate">{sub.insuranceCompany || sub.insurance_company} · {sub.insurancePolicyNo || sub.insurance_policy_no || 'No Policy'}</span>
-                                                                    </div>
-                                                                )}
+                                                                    {/* 4. Apparatus / Tender */}
+                                                                    <td className="px-3.5 py-2.5 align-middle">
+                                                                        <p className="font-semibold text-slate-800 uppercase text-xs truncate max-w-[190px]" title={sub.tenderType}>
+                                                                            {sub.tenderType || 'Fire Tender'}
+                                                                        </p>
+                                                                        <p className="text-[10px] text-slate-400 truncate">
+                                                                            {sub.chassisMake || 'Standard Chassis'} {sub.modelNo ? `· ${sub.modelNo}` : ''}
+                                                                        </p>
+                                                                    </td>
 
-                                                                {(sub.contactPerson || sub.phone) && (
-                                                                    <div className="col-span-2 text-[10px] text-slate-500 pt-1 border-t border-slate-200/60">
-                                                                        <span>👤 {sub.contactPerson || ''} {sub.phone ? '· 📞 ' + sub.phone : ''} {sub.email ? '· ✉️ ' + sub.email : ''}</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
+                                                                    {/* 5. Pump / PTO Telemetry */}
+                                                                    <td className="px-3.5 py-2.5 align-middle text-[11px]">
+                                                                        <p className="font-medium text-slate-800 truncate max-w-[210px]">
+                                                                            {sub.pumpMake ? `${sub.pumpMake} ${sub.pumpLpm ? `${sub.pumpLpm} LPM` : ''}` : 'No Pump'} 
+                                                                            {sub.pumpSrNo ? ` (${sub.pumpSrNo})` : ''}
+                                                                        </p>
+                                                                        <p className="text-[10px] text-slate-500 truncate max-w-[210px]">
+                                                                            {sub.ptoMake ? `PTO: ${sub.ptoMake} ${sub.ptoRatio ? `(${sub.ptoRatio})` : ''}` : ''}
+                                                                            {sub.waterCapacity ? ` · ${sub.waterCapacity}W / ${sub.foamCapacity || 0}F` : ''}
+                                                                            {sub.uhpPumpMake ? ` · UHP: ${sub.uhpPumpMake}` : ''}
+                                                                        </p>
+                                                                    </td>
 
-                                                        {/* Action Buttons Footer */}
-                                                        <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
-                                                            {isPending ? (
-                                                                <>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setEditingSubmission(sub)}
-                                                                        className="flex-1 h-8 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                                                                        title="Review all fields and make adjustments before approval"
-                                                                    >
-                                                                        <span>✏️</span> Review &amp; Edit
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleApproveSubmission(sub)}
-                                                                        className="flex-1 h-8 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
-                                                                        title="Approve immediately and issue live QR Code"
-                                                                    >
-                                                                        <span>✓</span> Approve &amp; Generate QR
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            if (confirm(`Reject and delete request for "${sub.customerName || sub.customer_name}"?`)) {
-                                                                                const rem = deliverySubmissions.filter(s => s.id !== sub.id);
-                                                                                setDeliverySubmissions(rem);
-                                                                                try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(rem)); } catch(e){}
-                                                                                const sb = window.SupabaseClient;
-                                                                                if (sb && sub.id) {
-                                                                                    sb.from('delivery_submissions').delete().eq('id', sub.id).then(()=>{});
-                                                                                }
-                                                                            }
-                                                                        }}
-                                                                        className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl flex items-center justify-center transition-all cursor-pointer text-xs"
-                                                                        title="Reject request"
-                                                                    >
-                                                                        ✕
-                                                                    </button>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            const trk = matchingTruck || {
-                                                                                id: sub.truckId || ('TRK-' + (sub.poNo || 'GEN')),
-                                                                                customerId: sub.customerId,
-                                                                                poNo: sub.poNo,
-                                                                                tenderType: sub.tenderType,
-                                                                                pumpMake: sub.pumpMake,
-                                                                                pumpSrNo: sub.pumpSrNo,
-                                                                                pumpLpm: sub.pumpLpm,
-                                                                                ptoMake: sub.ptoMake,
-                                                                                ptoRatio: sub.ptoRatio,
-                                                                                ptoSrNo: sub.ptoSrNo,
-                                                                                chassisMake: sub.chassisMake,
-                                                                                waterCapacity: sub.waterCapacity,
-                                                                                foamCapacity: sub.foamCapacity,
-                                                                                deliveryDate: sub.deliveryDate,
-                                                                                warrantyMonths: sub.warrantyMonths
-                                                                            };
-                                                                            setQrTruck(trk);
-                                                                            setShowQrModal(true);
-                                                                        }}
-                                                                        className="flex-1 h-8 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
-                                                                    >
-                                                                        <span>🔲</span> View Vehicle QR Code
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setFleetSearch(sub.poNo || '');
-                                                                            setActiveTab('trucks');
-                                                                        }}
-                                                                        className="h-8 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
-                                                                    >
-                                                                        <span>📋</span> Fleet
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                                    {/* 6. Delivery & Term */}
+                                                                    <td className="px-3.5 py-2.5 align-middle whitespace-nowrap">
+                                                                        <span className="font-medium text-slate-800 text-[11px]">
+                                                                            {sub.deliveryDate ? formatDate(sub.deliveryDate) : 'Pending'}
+                                                                        </span>
+                                                                        <span className="block text-[10px] text-emerald-700 font-semibold mt-0.5">
+                                                                            {sub.warrantyMonths || 12}M Warranty
+                                                                        </span>
+                                                                    </td>
+
+                                                                    {/* 7. Insurance */}
+                                                                    <td className="px-3.5 py-2.5 align-middle text-[11px]">
+                                                                        <p className="font-medium text-slate-700 truncate max-w-[160px]" title={sub.insuranceCompany}>
+                                                                            {sub.insuranceCompany || 'No Policy Linked'}
+                                                                        </p>
+                                                                        <p className="text-[10px] text-slate-400 font-mono truncate max-w-[160px]">
+                                                                            {sub.insurancePolicyNo || '—'}
+                                                                        </p>
+                                                                    </td>
+
+                                                                    {/* 8. Actions */}
+                                                                    <td className="px-3.5 py-2.5 align-middle text-right pr-4 whitespace-nowrap">
+                                                                        <div className="flex items-center justify-end gap-1.5">
+                                                                            {isPending ? (
+                                                                                <>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => setEditingSubmission(sub)}
+                                                                                        className="h-7 px-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                                                                                        title="Review and adjust specifications"
+                                                                                    >
+                                                                                        <span>✏️</span> Edit
+                                                                                    </button>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => handleApproveSubmission(sub)}
+                                                                                        className="h-7 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                                                                                        title="Approve and issue QR Code immediately"
+                                                                                    >
+                                                                                        <span>✓</span> Approve &amp; QR
+                                                                                    </button>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            if (confirm(`Reject and delete request for "${sub.customerName || sub.customer_name}"?`)) {
+                                                                                                const rem = deliverySubmissions.filter(s => s.id !== sub.id);
+                                                                                                setDeliverySubmissions(rem);
+                                                                                                try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(rem)); } catch(e){}
+                                                                                                const sb = window.SupabaseClient;
+                                                                                                if (sb && sub.id) {
+                                                                                                    sb.from('delivery_submissions').delete().eq('id', sub.id).then(()=>{});
+                                                                                                }
+                                                                                            }
+                                                                                        }}
+                                                                                        className="h-7 w-7 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded flex items-center justify-center transition-colors cursor-pointer text-xs"
+                                                                                        title="Reject request"
+                                                                                    >
+                                                                                        ✕
+                                                                                    </button>
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            const trk = matchingTruck || {
+                                                                                                id: sub.truckId || ('TRK-' + (sub.poNo || 'GEN')),
+                                                                                                customerId: sub.customerId,
+                                                                                                poNo: sub.poNo,
+                                                                                                tenderType: sub.tenderType,
+                                                                                                pumpMake: sub.pumpMake,
+                                                                                                pumpSrNo: sub.pumpSrNo,
+                                                                                                pumpLpm: sub.pumpLpm,
+                                                                                                ptoMake: sub.ptoMake,
+                                                                                                ptoRatio: sub.ptoRatio,
+                                                                                                ptoSrNo: sub.ptoSrNo,
+                                                                                                chassisMake: sub.chassisMake,
+                                                                                                waterCapacity: sub.waterCapacity,
+                                                                                                foamCapacity: sub.foamCapacity,
+                                                                                                deliveryDate: sub.deliveryDate,
+                                                                                                warrantyMonths: sub.warrantyMonths
+                                                                                            };
+                                                                                            setQrTruck(trk);
+                                                                                            setShowQrModal(true);
+                                                                                        }}
+                                                                                        className="h-7 px-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded text-[11px] font-semibold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                                                                                        title="Open vehicle QR Code"
+                                                                                    >
+                                                                                        <span>🔲</span> View QR
+                                                                                    </button>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            setFleetSearch(sub.poNo || '');
+                                                                                            setActiveTab('trucks');
+                                                                                        }}
+                                                                                        className="h-7 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-medium transition-colors cursor-pointer"
+                                                                                        title="View in Fleet Inventory"
+                                                                                    >
+                                                                                        Fleet
+                                                                                    </button>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })
+                                                    )}
+                                                </tbody>
+                                            </table>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             );
                         })()}
