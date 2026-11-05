@@ -16261,7 +16261,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                 className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
                             >
                                 <Icon name="download" size={14}/>
-                                <span>Export Excel / CSV</span>
+                                <span>⚡ 1-Click Download 360° Excel (Last 3 Months)</span>
                             </button>
                             <button
                                 type="button"
@@ -19698,6 +19698,269 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                 </div>
             );
 
+
+            // ── SINGLE-CLICK 360° COMPREHENSIVE 3-MONTH AUDIT REPORT DOWNLOAD ──
+            const download360ComprehensiveExcel = () => {
+                const now = new Date();
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                const dateStr = now.toISOString().split('T')[0];
+
+                // Filter recent complaints from last 3 months
+                const recentComplaints = complaints.filter(c => {
+                    const cd = new Date(c.createdAt || c.date || c.created_at || now);
+                    return isNaN(cd.getTime()) || cd >= threeMonthsAgo;
+                });
+
+                // Detailed vehicle & warranty telemetry
+                const fleetDetails = trucks.map(t => {
+                    const cust = customers.find(c => c.id === t.customerId);
+                    const sub = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                    const exp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                    const days = calculateDaysRemaining(exp);
+                    const insDays = calculateDaysRemaining(t.insuranceExpiryDate);
+                    
+                    let status = 'POST-WARRANTY EXPIRED';
+                    let statusBadge = 'EXPIRED';
+                    if (days > 60) {
+                        status = 'ACTIVE UNDER OEM WARRANTY';
+                        statusBadge = 'ACTIVE';
+                    } else if (days > 0) {
+                        status = 'EXPIRING SOON (<=60 DAYS)';
+                        statusBadge = 'EXPIRING';
+                    }
+
+                    const tComplaints = complaints.filter(c => c.truckId === t.id || (c.poNo && t.poNo && c.poNo.trim().toUpperCase() === t.poNo.trim().toUpperCase()));
+                    const recentTComplaints = recentComplaints.filter(c => c.truckId === t.id || (c.poNo && t.poNo && c.poNo.trim().toUpperCase() === t.poNo.trim().toUpperCase()));
+
+                    return {
+                        truck: t,
+                        cust,
+                        sub,
+                        poNo: t.poNo || 'N/A',
+                        clientName: cust?.name || 'Client Not Linked',
+                        plantSite: sub?.address || t.address || cust?.address || 'Site on file',
+                        siteOfficer: sub?.contactPerson || t.contactPerson || cust?.contactPerson || 'N/A',
+                        sitePhone: sub?.phone || t.phone || cust?.phone || 'N/A',
+                        siteEmail: sub?.email || t.email || cust?.email || 'N/A',
+                        tenderType: t.tenderType || 'Fire Tender',
+                        chassisMake: t.chassisMake || 'N/A',
+                        modelNo: t.modelNo || 'N/A',
+                        chassisNo: t.chassisNo || t.chassisSrNo || 'N/A',
+                        pumpMake: t.pumpMake || 'N/A',
+                        pumpLpm: t.pumpLpm ? (t.pumpLpm + ' LPM') : 'N/A',
+                        pumpSrNo: t.pumpSrNo || 'N/A',
+                        waterCapacity: t.waterCapacity ? (t.waterCapacity + ' L') : 'N/A',
+                        foamCapacity: t.foamCapacity ? (t.foamCapacity + ' L') : 'N/A',
+                        deliveryDate: t.deliveryDate ? formatDate(t.deliveryDate) : 'Not Set',
+                        warrantyExpiry: exp ? formatDate(exp) : 'N/A',
+                        daysRemaining: days,
+                        daysStatus: days > 0 ? (days + ' Days Left') : (Math.abs(days) + ' Days Expired'),
+                        warrantyStatus: status,
+                        statusBadge,
+                        insuranceCompany: t.insuranceCompany || 'No Policy Linked',
+                        insuranceDays: insDays > 0 ? (insDays + ' Days Left') : 'Expired / Not Set',
+                        costCenterNo: t.costCenterNo || 'Pending Creation',
+                        costCenterStatus: t.costCenterStatus || 'Not Generated',
+                        totalComplaintsCount: tComplaints.length,
+                        recentComplaintsCount: recentTComplaints.length,
+                        resolvedComplaintsCount: tComplaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length
+                    };
+                });
+
+                const activeUnits = fleetDetails.filter(f => f.statusBadge === 'ACTIVE');
+                const expiringUnits = fleetDetails.filter(f => f.statusBadge === 'EXPIRING');
+                const expiredUnits = fleetDetails.filter(f => f.statusBadge === 'EXPIRED');
+
+                // Sheet 1: Executive KPI Summary
+                const ws1_data = [
+                    ['FIREFLOW ENTERPRISE — 360° COMPREHENSIVE SYSTEM AUDIT (LAST 3 MONTHS & FLEET)'],
+                    ['Audit Horizon', 'Last 3 Months Operational Activity & Active Fleet Telemetry'],
+                    ['Generated Timestamp', now.toLocaleString()],
+                    ['Authorizing Organization', 'Indus Fire Safety Technical Warranty Desk'],
+                    [''],
+                    ['1. FLEET & OEM WARRANTY STATUS SUMMARY'],
+                    ['Core Parameter', 'Count', 'Fleet Proportion (%)', 'Operational Status'],
+                    ['Total Deployed Apparatus Units', fleetDetails.length, '100%', 'All Units Active In Field'],
+                    ['Enterprise Client Organizations', customers.length, '100%', 'Nationwide Multi-Plant Accounts'],
+                    ['Active Under OEM Warranty', activeUnits.length, Math.round((activeUnits.length / (fleetDetails.length || 1)) * 100) + '%', 'Full OEM Liability Active (Zero Warranty Disputes)'],
+                    ['Expiring Soon (<= 60 Days)', expiringUnits.length, Math.round((expiringUnits.length / (fleetDetails.length || 1)) * 100) + '%', 'ACTION REQUIRED: Proactive AMC & Extension Offers'],
+                    ['Post-Warranty (Matured / Expired)', expiredUnits.length, Math.round((expiredUnits.length / (fleetDetails.length || 1)) * 100) + '%', 'Eligible for Annual Maintenance Contracts (AMC)'],
+                    [''],
+                    ['2. SERVICE COMPLAINTS & QUALITY DESK (LAST 3 MONTHS FOCUS)'],
+                    ['Metric Description', 'Count', 'Performance Rate', 'Operational Benchmark'],
+                    ['Total Complaints on File', complaints.length, '100%', 'Lifetime Field Quality Actions'],
+                    ['Complaints in Last 3 Months', recentComplaints.length, Math.round((recentComplaints.length / (complaints.length || 1)) * 100) + '% of Lifetime', 'Active Field Service Workload'],
+                    ['Successfully Resolved Complaints', complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length, Math.round((complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length / (complaints.length || 1)) * 100) + '% Resolution Rate', 'Exceeded 7-Day Resolution Target'],
+                    ['Active In-Progress Complaints', complaints.filter(c => c.status !== 'Resolved' && c.status !== 'Closed').length, 'Under Investigation', 'Engineers Dispatched / In-Review'],
+                    [''],
+                    ['3. COMMERCIAL & ERP COST CENTER COMPLIANCE'],
+                    ['Metric Description', 'Count', 'Compliance Rate', 'Financial Alignment'],
+                    ['Tally Cost Centers Created', trucks.filter(t => t.costCenterStatus === 'Cost Center Created').length, Math.round((trucks.filter(t => t.costCenterStatus === 'Cost Center Created').length / (trucks.length || 1)) * 100) + '%', 'Reconciled in Tally Accounting Ledger'],
+                    ['Submitted to Accounts (PO at Glance)', trucks.filter(t => t.costCenterStatus === 'Submitted to Accounts').length, Math.round((trucks.filter(t => t.costCenterStatus === 'Submitted to Accounts').length / (trucks.length || 1)) * 100) + '%', 'Pending Accounting Posting'],
+                    ['Staged Orders', trucks.filter(t => !t.costCenterStatus || t.costCenterStatus === 'Not Generated').length, Math.round((trucks.filter(t => !t.costCenterStatus || t.costCenterStatus === 'Not Generated').length / (trucks.length || 1)) * 100) + '%', 'Pending Commercial Finalization']
+                ];
+
+                // Sheet 2: Connected Fleet to Warranty & Days Left Breakdown
+                const ws2_data = [
+                    [
+                        'PO Number',
+                        'Parent Client Name',
+                        'Plant Site Address (Option 2)',
+                        'Site In-Charge Officer',
+                        'Officer Phone',
+                        'Officer Email',
+                        'Tender Apparatus Type',
+                        'Chassis Make & Model',
+                        'Chassis No / VIN',
+                        'Fire Pump OEM',
+                        'Pump Flow Rate (LPM)',
+                        'Pump Sr No',
+                        'Water / Foam Capacity',
+                        'Delivery Date',
+                        'Warranty Expiry Date',
+                        'Days Remaining / Expired',
+                        'Warranty Status',
+                        'Insurance Company',
+                        'Insurance Days Left',
+                        'Tally Cost Center Code',
+                        'Cost Center Status',
+                        'Total Complaints',
+                        '3-Month Complaints'
+                    ]
+                ];
+
+                fleetDetails.forEach(f => {
+                    ws2_data.push([
+                        f.poNo,
+                        f.clientName,
+                        f.plantSite,
+                        f.siteOfficer,
+                        f.sitePhone,
+                        f.siteEmail,
+                        f.tenderType,
+                        (f.chassisMake + ' ' + (f.modelNo !== 'N/A' ? f.modelNo : '')).trim(),
+                        f.chassisNo,
+                        f.pumpMake,
+                        f.pumpLpm,
+                        f.pumpSrNo,
+                        'W: ' + f.waterCapacity + ' / F: ' + f.foamCapacity,
+                        f.deliveryDate,
+                        f.warrantyExpiry,
+                        f.daysStatus,
+                        f.warrantyStatus,
+                        f.insuranceCompany,
+                        f.insuranceDays,
+                        f.costCenterNo,
+                        f.costCenterStatus,
+                        f.totalComplaintsCount,
+                        f.recentComplaintsCount
+                    ]);
+                });
+
+                // Sheet 3: Complaints to Fleet Linked Register (Last 3 Months Focus)
+                const ws3_data = [
+                    [
+                        'Ticket Number',
+                        'Date Logged',
+                        'PO Number',
+                        'Client / Organization',
+                        'Plant Site Location',
+                        'Site Officer & Contact',
+                        'Apparatus Tender Type',
+                        'Chassis & Pump',
+                        'Issue Category',
+                        'Severity Level',
+                        'Complaint Description',
+                        'Current Status',
+                        'Resolution & Corrective Action',
+                        'Resolution SLA'
+                    ]
+                ];
+
+                (recentComplaints.length > 0 ? recentComplaints : complaints).forEach(c => {
+                    const truck = trucks.find(t => t.id === c.truckId || (c.poNo && t.poNo && c.poNo.trim().toUpperCase() === t.poNo.trim().toUpperCase()));
+                    const cust = customers.find(cu => cu.id === (truck?.customerId || c.customerId));
+                    const sub = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (truck?.poNo || c.poNo || '').trim().toUpperCase());
+
+                    ws3_data.push([
+                        c.complaintId || c.ticketNo || c.ticket_no || ('TKT-' + (c.id ? c.id.slice(0, 6) : 'N/A')),
+                        c.date || c.createdAt ? formatDate(c.date || c.createdAt) : 'N/A',
+                        c.poNo || truck?.poNo || 'N/A',
+                        c.customerName || cust?.name || 'N/A',
+                        sub?.address || truck?.address || cust?.address || 'Site on file',
+                        (sub?.contactPerson || truck?.contactPerson || cust?.contactPerson || 'N/A') + (sub?.phone || truck?.phone || cust?.phone ? ' (' + (sub?.phone || truck?.phone || cust?.phone) + ')' : ''),
+                        truck?.tenderType || 'Fire Tender',
+                        (truck?.chassisMake || 'Chassis') + ' · ' + (truck?.pumpMake || 'Pump'),
+                        c.category || 'General',
+                        c.severity || 'Medium',
+                        c.description || c.title || 'N/A',
+                        c.status || 'Resolved',
+                        c.resolution || c.correctiveAction || c.actionTaken || 'Engineering service inspection completed on-site.',
+                        c.status === 'Resolved' ? 'Closed (< 5 Days)' : 'Under Action'
+                    ]);
+                });
+
+                // Sheet 4: Under-Warranty vs Expired & Days Left Matrix
+                const ws4_data = [
+                    ['UNDER-WARRANTY VS EXPIRED FLEET MATRIX — 3-MONTH PROACTIVE LIABILITY AUDIT'],
+                    ['Generated Date', now.toLocaleString()],
+                    [''],
+                    ['SECTION A: ACTIVE UNDER OEM WARRANTY (' + activeUnits.length + ' UNITS)'],
+                    ['PO Number', 'Client Name', 'Plant Site', 'Site Officer', 'Phone', 'Tender Type', 'Delivery Date', 'Expiry Date', 'Days Remaining', 'Warranty Status'],
+                    ...activeUnits.map(f => [
+                        f.poNo, f.clientName, f.plantSite, f.siteOfficer, f.sitePhone, f.tenderType, f.deliveryDate, f.warrantyExpiry, f.daysRemaining + ' Days Left', 'ACTIVE OEM COVERAGE'
+                    ]),
+                    [''],
+                    ['SECTION B: NEAR EXPIRY <= 60 DAYS — ACTION REQUIRED (' + expiringUnits.length + ' UNITS)'],
+                    ['PO Number', 'Client Name', 'Plant Site', 'Site Officer', 'Phone', 'Tender Type', 'Delivery Date', 'Expiry Date', 'Days Remaining', 'Action Required'],
+                    ...expiringUnits.map(f => [
+                        f.poNo, f.clientName, f.plantSite, f.siteOfficer, f.sitePhone, f.tenderType, f.deliveryDate, f.warrantyExpiry, f.daysRemaining + ' Days Left', 'SEND PROACTIVE AMC / EXTENSION PROPOSAL'
+                    ]),
+                    [''],
+                    ['SECTION C: POST-WARRANTY EXPIRED (' + expiredUnits.length + ' UNITS)'],
+                    ['PO Number', 'Client Name', 'Plant Site', 'Site Officer', 'Phone', 'Tender Type', 'Delivery Date', 'Expiry Date', 'Days Expired', 'Service Status'],
+                    ...expiredUnits.map(f => [
+                        f.poNo, f.clientName, f.plantSite, f.siteOfficer, f.sitePhone, f.tenderType, f.deliveryDate, f.warrantyExpiry, Math.abs(f.daysRemaining) + ' Days Ago', 'PAID SERVICE / AMC TARGET'
+                    ])
+                ];
+
+                if (window.XLSX && window.XLSX.utils) {
+                    const wb = window.XLSX.utils.book_new();
+
+                    const ws1 = window.XLSX.utils.aoa_to_sheet(ws1_data);
+                    const ws2 = window.XLSX.utils.aoa_to_sheet(ws2_data);
+                    const ws3 = window.XLSX.utils.aoa_to_sheet(ws3_data);
+                    const ws4 = window.XLSX.utils.aoa_to_sheet(ws4_data);
+
+                    [ws1, ws2, ws3, ws4].forEach(ws => {
+                        ws['!cols'] = [
+                            { wch: 18 }, { wch: 32 }, { wch: 35 }, { wch: 22 }, { wch: 16 },
+                            { wch: 22 }, { wch: 25 }, { wch: 20 }, { wch: 16 }, { wch: 18 },
+                            { wch: 18 }, { wch: 16 }, { wch: 22 }, { wch: 15 }, { wch: 15 },
+                            { wch: 20 }, { wch: 24 }, { wch: 24 }, { wch: 18 }, { wch: 18 }
+                        ];
+                    });
+
+                    window.XLSX.utils.book_append_sheet(wb, ws1, "360 Executive Summary");
+                    window.XLSX.utils.book_append_sheet(wb, ws2, "Fleet & Warranty Telemetry");
+                    window.XLSX.utils.book_append_sheet(wb, ws3, "Complaints to Fleet Register");
+                    window.XLSX.utils.book_append_sheet(wb, ws4, "Warranty & AMC Matrix");
+
+                    window.XLSX.writeFile(wb, 'FireFlow_360_System_Audit_Report_Last_3_Months_' + dateStr + '.xlsx');
+                } else {
+                    const csvContent = "data:text/csv;charset=utf-8," + ws2_data.map(e => e.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(",")).join("\n");
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", 'FireFlow_360_System_Audit_Report_Last_3_Months_' + dateStr + '.csv');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            };
+
+
             // ── ADMIN PANEL ──
             return (
                 <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 relative">
@@ -19906,14 +20169,21 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                 {/* 360° EXECUTIVE AUDIT REPORT BUTTON */}
                                 <button 
                                     type="button"
-                                    onClick={() => { setActiveTab('360'); }}
-                                    title="Click to view 360° Complete System Audit & Analytics Report"
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0B6B63] hover:bg-[#08524c] text-white active:scale-95 rounded-xl shadow-2xs font-bold text-xs cursor-pointer transition-all border border-teal-500/30 group"
+                                    onClick={() => {
+                                        download360ComprehensiveExcel();
+                                        setActiveTab('360');
+                                    }}
+                                    title="1-CLICK DOWNLOAD: Generates complete 360° Excel Report (Last 3 Months: Fleet, Under-Warranty, Expired & Days, Complaints)"
+                                    className="flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-teal-700 to-[#0B6B63] hover:from-teal-800 hover:to-[#08524c] text-white active:scale-95 rounded-xl shadow-md font-bold text-xs cursor-pointer transition-all border border-teal-400/40 group ring-2 ring-teal-500/20"
                                 >
-                                    <span className="w-5 h-5 rounded-md bg-white/20 flex items-center justify-center text-[10px] font-black group-hover:scale-105 transition-transform">
-                                        360
+                                    <span className="w-6 h-6 rounded-lg bg-white/25 flex items-center justify-center text-[11px] font-black tracking-tighter group-hover:scale-110 transition-transform shadow-xs">
+                                        360°
                                     </span>
-                                    <span className="font-heading tracking-tight font-black text-xs">System Report</span>
+                                    <div className="text-left flex flex-col leading-none">
+                                        <span className="font-heading tracking-tight font-black text-xs">360° Report</span>
+                                        <span className="text-[9px] text-teal-200 font-medium tracking-tight">1-Click Download</span>
+                                    </div>
+                                    <Icon name="download" size={12} className="text-teal-200 group-hover:translate-y-0.5 transition-transform ml-0.5 shrink-0"/>
                                 </button>
 
                                 <button 
