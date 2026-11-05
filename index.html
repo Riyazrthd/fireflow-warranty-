@@ -151,7 +151,7 @@
     </script>
 
     <!-- High-Speed Precompiled Application Bundle (Instant 0s Boot) -->
-    <script src="./app.bundle.js"></script>
+    <script src="./app.bundle.js?v=5.2.0"></script>
 
     <!-- PWA Update Toast -->
     <div id="pwa-update-toast" style="display:none; position:fixed; bottom:20px; right:20px; background:#0f172a; color:white; padding:15px 25px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); z-index:9999; font-family:'Plus Jakarta Sans', sans-serif; align-items:center; gap:15px;">
@@ -159,12 +159,24 @@
         <button onclick="window.location.reload()" style="background:#3b82f6; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;">Reload</button>
     </div>
     
-    <!-- PWA Service Worker Registration -->
+    <!-- PWA Service Worker Registration & Live Cloud Auto-Update -->
     <script>
         if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js')
                 .then(registration => {
+                    // Periodic update check every 60 seconds
+                    setInterval(() => {
+                        registration.update().catch(()=>{});
+                    }, 60000);
+
+                    // Check for updates when returning to the tab on mobile
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') {
+                            registration.update().catch(()=>{});
+                        }
+                    });
+
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
                         newWorker.addEventListener('statechange', () => {
@@ -175,6 +187,14 @@
                     });
                 })
                 .catch(err => console.warn('SW registration warning:', err));
+            });
+
+            // Automatically reload once when new service worker takes control
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!window.__swReloading) {
+                    window.__swReloading = true;
+                    window.location.reload();
+                }
             });
 
             if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {

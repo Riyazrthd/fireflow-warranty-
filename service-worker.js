@@ -1,21 +1,21 @@
-const CACHE_NAME = 'fireflow-pwa-v3';
-const DYNAMIC_CACHE = 'fireflow-dynamic-v3';
+const CACHE_NAME = 'fireflow-pwa-v6';
+const DYNAMIC_CACHE = 'fireflow-dynamic-v6';
 
 // Relative assets without leading slashes for perfect GitHub Pages & Custom Domain compatibility
 const PRECACHE_ASSETS = [
   './',
   './index.html',
-  './app.bundle.js',
+  './app.bundle.js?v=5.2.0',
   './manifest.json',
   './icons/favicon.png'
 ];
 
-// Install Event: Precache static assets gracefully
+// Install Event: Precache static assets gracefully and activate immediately
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      console.log('[Service Worker v3] Precaching Core Assets...');
+      console.log('[Service Worker v5] Precaching Core Assets...');
       for (const asset of PRECACHE_ASSETS) {
         try {
           await cache.add(asset);
@@ -27,7 +27,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate Event: Cleanup old caches immediately
+// Activate Event: Cleanup all outdated caches immediately and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -45,13 +45,38 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event: Network-First for HTML/Navigations, Cache-First with Network Fallback for JS/Assets
+// Fetch Event: Direct Live Supabase Network Fetch (Never Stale API), Network-First for Navigation
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // 1. HTML / Document Navigation: Network First -> Cache Fallback
+  // 1. CRITICAL: LIVE DATABASE CALLS (Supabase) MUST NEVER BE STALE!
+  // Always fetch live from network so all devices sync instantly. Only fallback to cache when strictly offline.
+  if (url.hostname.includes('supabase.co')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const respClone = networkResponse.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => cache.put(event.request, respClone));
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          // Device is offline: return last known cached API snapshot if available
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+          return new Response(JSON.stringify({ error: 'Device is offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        })
+    );
+    return;
+  }
+
+  // 2. HTML / Document Navigation: Network First -> Cache Fallback
   if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
     event.respondWith(
       fetch(event.request)
@@ -72,7 +97,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. JS / CSS / Static Assets: Stale-While-Revalidate (Never return HTML for JS requests!)
+  // 3. JS / CSS / Static Assets: Network First with Cache Fallback for code bundles, Stale-While-Revalidate for icons
+  if (url.pathname.endsWith('app.bundle.js') || url.search.includes('v=')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const respClone = response.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => cache.put(event.request, respClone));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          return cached || fetch(event.request);
+        })
+    );
+    return;
+  }
+
+  // 4. Other static images/fonts: Stale-While-Revalidate
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
@@ -81,9 +125,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(DYNAMIC_CACHE).then((cache) => cache.put(event.request, respClone));
         }
         return networkResponse;
-      }).catch((err) => {
-        // Network offline or failed, rely on cache
-      });
+      }).catch(() => {});
 
       return cachedResponse || fetchPromise;
     })

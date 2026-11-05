@@ -5663,7 +5663,7 @@ ON CONFLICT (id) DO NOTHING;`;
             );
         };
         // ── Customer Portal ──
-        const CustomerPortal = ({ trucks, customers, complaints, categories, pmRecords = [], onSavePmRecord, commCerts = [], onSaveCommCert, setComplaints, feedbacks, setFeedbacks, user, initialPo = '', initialTicket = '', getQrImageUrl, onAdminLogin, onOpenMasterAuth, onOpenAgmAuth }) => {
+        const CustomerPortal = ({ trucks, customers, complaints, categories, pmRecords = [], onSavePmRecord, commCerts = [], onSaveCommCert, setComplaints, feedbacks, setFeedbacks, user, initialPo = '', initialTicket = '', getQrImageUrl, onAdminLogin, onOpenMasterAuth, onOpenAgmAuth, deliverySubmissions = [] }) => {
             const [selectedPmMilestone, setSelectedPmMilestone] = useState(null);
             const [selectedCommissioningTruck, setSelectedCommissioningTruck] = useState(null);
             const [customerViewSoftCopyCert, setCustomerViewSoftCopyCert] = useState(null);
@@ -5802,7 +5802,7 @@ ON CONFLICT (id) DO NOTHING;`;
                 }
             }, [initialTicket, complaints]);
 
-            const handleLookup = () => {
+            const handleLookup = async () => {
                 setLookupError(''); setFoundTruck(null); setShowComplaintForm(false); setCompSubmitted(null);
                 const q = lookupQuery.trim().toUpperCase();
                 if (!q) { 
@@ -5822,14 +5822,36 @@ ON CONFLICT (id) DO NOTHING;`;
                     return;
                 }
 
-                // Look up by unique vehicle identifiers only
-                const found = trucks.find(t => 
+                // 1. Look up by unique vehicle identifiers in memory
+                let found = trucks.find(t => 
                     (t.poNo || '').trim().toUpperCase() === q || 
                     (t.pumpSrNo || '').trim().toUpperCase() === q ||
                     (t.ptoSrNo && (t.ptoSrNo || '').trim().toUpperCase() === q) ||
                     (t.chassisSrNo && (t.chassisSrNo || '').trim().toUpperCase() === q && (t.chassisSrNo || '').trim().length > 5) ||
                     (t.chassisNo && (t.chassisNo || '').trim().toUpperCase() === q && (t.chassisNo || '').trim().length > 5)
                 );
+
+                // 2. Direct Cloud Fallback: if not found in memory (e.g. newly added on PC, mobile hasn't refreshed), check Supabase directly
+                if (!found && window.SupabaseClient) {
+                    try {
+                        const sb = window.SupabaseClient;
+                        const { data: dbMatches } = await sb.from('trucks').select('*').or(`po_no.ilike.%${q}%,pump_sr_no.ilike.%${q}%`).limit(1);
+                        if (dbMatches && dbMatches.length > 0) {
+                            found = mapTruck(dbMatches[0]);
+                            setTrucks(prev => prev.some(t => t.id === found.id) ? prev : [found, ...prev]);
+                            if (!customers.some(c => c.id === found.customerId)) {
+                                const { data: custMatch } = await sb.from('customers').select('*').eq('id', found.customerId).single();
+                                if (custMatch) {
+                                    const mappedCust = mapCustomer(custMatch);
+                                    setCustomers(prev => prev.some(c => c.id === mappedCust.id) ? prev : [...prev, mappedCust]);
+                                }
+                            }
+                        }
+                    } catch(err) {
+                        console.warn("Live cloud lookup note:", err);
+                    }
+                }
+
                 if (found) { 
                     setFoundTruck(found); 
                 } else { 
@@ -6837,8 +6859,15 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         <div className="md:col-span-8 flex flex-col justify-center text-left">
                                                             <div className="grid grid-cols-2 gap-4">
                                                                 {(() => {
+                                                                    const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (foundTruck.poNo || '').trim().toUpperCase());
+                                                                    const siteAddress = subMatch?.address || foundTruck.address || cust?.address || cust?.location || 'Gujarat, India';
+                                                                    const siteOfficer = subMatch?.contactPerson || foundTruck.contactPerson || cust?.contactPerson || '';
+                                                                    const sitePhone = subMatch?.phone || foundTruck.phone || cust?.phone || '';
+
                                                                     const specs = [
                                                                         { l: 'Customer / Organization', v: cust?.name, i: 'building-2' },
+                                                                        { l: 'Unit / Plant Site', v: siteAddress, i: 'map-pin' },
+                                                                        ...(siteOfficer ? [{ l: 'Site Officer / In-Charge', v: siteOfficer + (sitePhone ? ' (' + sitePhone + ')' : ''), i: 'user' }] : []),
                                                                         { l: 'PO Number', v: foundTruck.poNo, i: 'hash' },
                                                                         { l: 'Tender Type / Model', v: foundTruck.tenderType || 'Fire Tender', i: 'shield' },
                                                                         { l: 'Delivery Date', v: formatDate(foundTruck.deliveryDate), i: 'calendar' },
@@ -6876,7 +6905,7 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                         specs.push({ l: 'DCP System & HPT Due', v: dcpDesc, i: 'shield' });
                                                                     }
 
-                                                                    specs.push({ l: 'Location / Plant', v: cust?.address || cust?.location || 'Gujarat, India', i: 'map-pin' });
+                                                                    // Site location already in specs above
 
                                                                     return specs.map((it, idx) => (
                                                                     <div key={idx} className="bg-slate-900/50 p-2.5 rounded-xl border border-white/5">
@@ -10911,6 +10940,11 @@ ON CONFLICT (id) DO NOTHING;`;
                     const cust = trk ? customers.find(cu => cu.id === trk.customerId) : null;
                     const q = compSearch.toLowerCase().trim();
 
+                    const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                    const siteAddress = subMatch?.address || t.address || '';
+                    const siteOfficer = subMatch?.contactPerson || t.contactPerson || '';
+                    const sitePhone = subMatch?.phone || t.phone || '';
+
                     const matchesSearch = !q ||
                         (c.complaintId || '').toLowerCase().includes(q) ||
                         (cust?.name || '').toLowerCase().includes(q) ||
@@ -11053,18 +11087,21 @@ ON CONFLICT (id) DO NOTHING;`;
                                         <span>{deliverySubmissions.filter(s => s.status === 'Pending Approval').length} Pending QR Request{deliverySubmissions.filter(s => s.status === 'Pending Approval').length > 1 ? 's' : ''}</span>
                                     </button>
                                 )}
-                                <div 
-                                    title="Data synchronized successfully • Last sync: 13-Sep-2026 13:40"
-                                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200/90 rounded-xl shadow-2xs cursor-default"
+                                <button 
+                                    type="button"
+                                    onClick={() => fetchAll()}
+                                    title="Click to force-sync live data from Supabase Cloud"
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 active:scale-95 border border-slate-200/90 rounded-xl shadow-2xs cursor-pointer transition-all"
                                 >
                                     <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isCloudSyncing ? 'bg-cyan-400' : 'bg-emerald-400'} opacity-75`}></span>
+                                        <span className={`relative inline-flex rounded-full h-2 w-2 ${isCloudSyncing ? 'bg-cyan-500' : 'bg-emerald-500'}`}></span>
                                     </span>
-                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider font-mono">
-                                        {user?'Live Connection':'Local Mode'}
+                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider font-mono flex items-center gap-1">
+                                        <span>{isCloudSyncing ? 'Syncing Cloud...' : (user ? 'Live Connection' : 'Local Mode')}</span>
+                                        <span className="text-slate-400 font-normal">↺</span>
                                     </span>
-                                </div>
+                                </button>
                             </div>
                         </header>
 
@@ -11579,15 +11616,19 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                     <thead>
                                                                         <tr className="bg-slate-100/70 text-[9px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-200">
                                                                             <th className="px-2.5 py-1.5">PO &amp; Delivery</th>
-                                                                            <th className="px-2.5 py-1.5">Tender Type</th>
-                                                                            <th className="px-2.5 py-1.5">Pump Serial</th>
-                                                                            <th className="px-2.5 py-1.5 text-center">Warranty Status</th>
+                                                                            <th className="px-2.5 py-1.5">Unit Site &amp; Contact</th>
+                                                                            <th className="px-2.5 py-1.5">Tender &amp; Specs</th>
+                                                                            <th className="px-2.5 py-1.5 text-center">Warranty</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody className="divide-y divide-slate-100 text-[11.5px]">
                                                                         {cTrucks.map(t => {
                                                                             const exp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
                                                                             const days = calculateDaysRemaining(exp);
+                                                                            const sub = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                                                                            const siteLoc = sub?.address || t.address || cust.address || '';
+                                                                            const sitePerson = sub?.contactPerson || t.contactPerson || cust.contactPerson || '';
+                                                                            const sitePhone = sub?.phone || t.phone || cust.phone || '';
                                                                             return (
                                                                                 <tr key={t.id} className="hover:bg-slate-50/60">
                                                                                     <td className="px-2.5 py-2 font-black text-slate-900">
@@ -11599,11 +11640,25 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                                             </div>
                                                                                         )}
                                                                                     </td>
-                                                                                    <td className="px-2.5 py-2 font-bold text-slate-700 truncate max-w-[120px]">{t.tenderType || '—'}</td>
-                                                                                    <td className="px-2.5 py-2 text-slate-600 font-mono text-[10.5px] truncate max-w-[100px]">{t.pumpSrNo || t.pumpMake || '—'}</td>
+                                                                                    <td className="px-2.5 py-2">
+                                                                                        <div className="font-bold text-slate-800 text-[11px] truncate max-w-[150px]" title={siteLoc}>
+                                                                                            📍 {siteLoc ? siteLoc.split(',')[0] : 'Plant Unit'}
+                                                                                        </div>
+                                                                                        {sitePerson ? (
+                                                                                            <div className="text-[10px] text-slate-600 truncate max-w-[150px]" title={sitePerson + (sitePhone ? ' (' + sitePhone + ')' : '')}>
+                                                                                                👤 {sitePerson}{sitePhone ? ' · ' + sitePhone : ''}
+                                                                                            </div>
+                                                                                        ) : (
+                                                                                            <div className="text-[10px] text-slate-400 italic">No site contact</div>
+                                                                                        )}
+                                                                                    </td>
+                                                                                    <td className="px-2.5 py-2 font-bold text-slate-700 truncate max-w-[110px]">
+                                                                                        <div>{t.tenderType || '—'}</div>
+                                                                                        <div className="text-[10px] font-normal text-slate-500 font-mono truncate">{t.pumpSrNo || t.pumpMake || '—'}</div>
+                                                                                    </td>
                                                                                     <td className="px-2.5 py-2 text-center">
                                                                                         <span className={`text-[9px] font-black px-2 py-0.5 rounded-md inline-block ${days > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
-                                                                                            {days > 0 ? `✓ ${days}d Left` : 'Expired'}
+                                                                                            {days > 0 ? `✓ ${days}d` : 'Expired'}
                                                                                         </span>
                                                                                     </td>
                                                                                 </tr>
@@ -13548,7 +13603,7 @@ ON CONFLICT (id) DO NOTHING;`;
             setEditingTruck,
             setNewTrk,
             setShowTruckModal
-        }) => {
+        , deliverySubmissions = []}) => {
             const [custViewMode, setCustViewMode] = useState('table'); // 'table' | 'grid'
             const [searchQuery, setSearchQuery] = useState('');
             const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'in_warranty' | 'out_warranty'
@@ -14089,15 +14144,19 @@ ON CONFLICT (id) DO NOTHING;`;
                                                         <thead>
                                                             <tr className="bg-slate-100/70 text-[9px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-200">
                                                                 <th className="px-2.5 py-1.5">PO &amp; Delivery</th>
-                                                                <th className="px-2.5 py-1.5">Tender Type</th>
-                                                                <th className="px-2.5 py-1.5">Pump Serial</th>
-                                                                <th className="px-2.5 py-1.5 text-center">Warranty Status</th>
+                                                                <th className="px-2.5 py-1.5">Unit Site &amp; Contact</th>
+                                                                <th className="px-2.5 py-1.5">Tender &amp; Specs</th>
+                                                                <th className="px-2.5 py-1.5 text-center">Warranty</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-slate-100 text-[11.5px]">
                                                             {cTrucks.map(t => {
                                                                 const exp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
                                                                 const days = calculateDaysRemaining(exp);
+                                                                const sub = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                                                                const siteLoc = sub?.address || t.address || cust.address || '';
+                                                                const sitePerson = sub?.contactPerson || t.contactPerson || cust.contactPerson || '';
+                                                                const sitePhone = sub?.phone || t.phone || cust.phone || '';
                                                                 return (
                                                                     <tr key={t.id} className="hover:bg-slate-50/60">
                                                                         <td className="px-2.5 py-2 font-black text-slate-900">
@@ -14109,11 +14168,25 @@ ON CONFLICT (id) DO NOTHING;`;
                                                                                 </div>
                                                                             )}
                                                                         </td>
-                                                                        <td className="px-2.5 py-2 font-bold text-slate-700 truncate max-w-[120px]">{t.tenderType || '—'}</td>
-                                                                        <td className="px-2.5 py-2 text-slate-600 font-mono text-[10.5px] truncate max-w-[100px]">{t.pumpSrNo || t.pumpMake || '—'}</td>
+                                                                        <td className="px-2.5 py-2">
+                                                                            <div className="font-bold text-slate-800 text-[11px] truncate max-w-[150px]" title={siteLoc}>
+                                                                                📍 {siteLoc ? siteLoc.split(',')[0] : (cust.address ? cust.address.split(',')[0] : 'Plant Unit')}
+                                                                            </div>
+                                                                            {sitePerson ? (
+                                                                                <div className="text-[10px] text-slate-600 truncate max-w-[150px]" title={sitePerson + (sitePhone ? ' (' + sitePhone + ')' : '')}>
+                                                                                    👤 {sitePerson}{sitePhone ? ' · ' + sitePhone : ''}
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div className="text-[10px] text-slate-400 italic">No site contact</div>
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="px-2.5 py-2 font-bold text-slate-700 truncate max-w-[110px]">
+                                                                            <div>{t.tenderType || '—'}</div>
+                                                                            <div className="text-[10px] font-normal text-slate-500 font-mono truncate">{t.pumpSrNo || t.pumpMake || '—'}</div>
+                                                                        </td>
                                                                         <td className="px-2.5 py-2 text-center">
                                                                             <span className={`text-[9px] font-black px-2 py-0.5 rounded-md inline-block ${days > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
-                                                                                {days > 0 ? `✓ ${days}d Left` : 'Expired'}
+                                                                                {days > 0 ? `✓ ${days}d` : 'Expired'}
                                                                             </span>
                                                                         </td>
                                                                     </tr>
@@ -17054,286 +17127,323 @@ function App() {
                 localStorage.setItem('ff_cats', JSON.stringify(categories));
             }, [customers, trucks, complaints, feedbacks, categories]);
 
-            // Load from Supabase with Smart Sync
-            useEffect(() => {
+            // ── Live Supabase Master Sync Engine (Cross-Device Real-Time) ──
+            const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+            const [lastCloudSyncTime, setLastCloudSyncTime] = useState(null);
+
+            const fetchAll = useCallback(async (isSilent = false) => {
                 const sb = window.SupabaseClient;
                 if (!sb) { setLoading(false); return; }
+                if (!isSilent) setIsCloudSyncing(true);
                 setUser({ connected: true });
-                const fetchAll = async () => {
-                    try {
+                try {
+                    const [custRes, trkRes, compRes, catRes, fbRes, delivRes] = await Promise.all([
+                        sb.from('customers').select('*'),
+                        sb.from('trucks').select('*'),
+                        sb.from('complaints').select('*'),
+                        sb.from('categories').select('name'),
+                        sb.from('feedbacks').select('*'),
+                        sb.from('delivery_submissions').select('*').order('created_at', { ascending: false })
+                    ]);
 
-                        const [custRes, trkRes, compRes, catRes, fbRes, delivRes] = await Promise.all([
-                            sb.from('customers').select('*'),
-                            sb.from('trucks').select('*'),
-                            sb.from('complaints').select('*'),
-                            sb.from('categories').select('name'),
-                            sb.from('feedbacks').select('*'),
-                            sb.from('delivery_submissions').select('*').order('created_at', { ascending: false })
-                        ]);
+                    // Load local cache
+                    const localCust = JSON.parse(localStorage.getItem('ff_cust') || '[]');
+                    const localTrks = JSON.parse(localStorage.getItem('ff_trks') || '[]');
+                    const localCmps = JSON.parse(localStorage.getItem('ff_cmps') || '[]');
+                    const localFb = JSON.parse(localStorage.getItem('ff_fb') || '[]');
 
-                        // Load local cache
-                        const localCust = JSON.parse(localStorage.getItem('ff_cust') || '[]');
-                        const localTrks = JSON.parse(localStorage.getItem('ff_trks') || '[]');
-                        const localCmps = JSON.parse(localStorage.getItem('ff_cmps') || '[]');
-                        const localFb = JSON.parse(localStorage.getItem('ff_fb') || '[]');
+                    let dbCust = custRes.data ? custRes.data.map(mapCustomer) : [];
+                    let dbTrks = trkRes.data ? trkRes.data.map(mapTruck) : [];
+                    let dbCmps = compRes.data ? compRes.data.map(mapComplaint) : [];
+                    let dbFb = fbRes.data ? fbRes.data.map(mapFeedback) : [];
 
-                        let dbCust = custRes.data ? custRes.data.map(mapCustomer) : [];
-                        let dbTrks = trkRes.data ? trkRes.data.map(mapTruck) : [];
-                        let dbCmps = compRes.data ? compRes.data.map(mapComplaint) : [];
-                        let dbFb = fbRes.data ? fbRes.data.map(mapFeedback) : [];
-
-                        // ── Sync Customers ──
-                        const localOnlyCust = localCust.filter(lc => String(lc.id).startsWith('LOCAL-'));
-                        for (const c of localOnlyCust) {
-                            try {
-                                const { data: ins, error } = await sb.from('customers').insert({ name: c.name, address: c.address, contact_person: c.contactPerson, phone: c.phone, email: c.email }).select().single();
-                                if (ins) {
-                                    const mapped = mapCustomer(ins);
-                                    dbCust.push(mapped);
-                                    localTrks.forEach(t => { if (t.customerId === c.id) t.customerId = mapped.id; });
-                                } else {
-                                    dbCust.push(c);
-                                    if (error) setSyncErrors(prev => [...prev, { label: `Customer: ${c.name || 'N/A'}`, error: error.message }]);
-                                }
-                            } catch(err) {
+                    // ── Sync Customers ──
+                    const localOnlyCust = localCust.filter(lc => String(lc.id).startsWith('LOCAL-'));
+                    for (const c of localOnlyCust) {
+                        try {
+                            const { data: ins, error } = await sb.from('customers').insert({ name: c.name, address: c.address, contact_person: c.contactPerson, phone: c.phone, email: c.email }).select().single();
+                            if (ins) {
+                                const mapped = mapCustomer(ins);
+                                dbCust.push(mapped);
+                                localTrks.forEach(t => { if (t.customerId === c.id) t.customerId = mapped.id; });
+                            } else {
                                 dbCust.push(c);
-                                setSyncErrors(prev => [...prev, { label: `Customer: ${c.name || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                                if (error) setSyncErrors(prev => [...prev, { label: `Customer: ${c.name || 'N/A'}`, error: error.message }]);
                             }
+                        } catch(err) {
+                            dbCust.push(c);
+                            setSyncErrors(prev => [...prev, { label: `Customer: ${c.name || 'N/A'}`, error: err.message || 'System error during sync' }]);
                         }
+                    }
 
-                        // ── Sync Trucks ──
-                        const localOnlyTrks = localTrks.filter(lt => String(lt.id).startsWith('LOCAL-'));
-                        for (const t of localOnlyTrks) {
-                            try {
-                                const payload = { customer_id: t.customerId, po_no: t.poNo, tender_type: t.tenderType, pump_make: t.pumpMake, pump_lpm: t.pumpLpm || null, pump_sr_no: t.pumpSrNo || null, foam_capacity: t.foamCapacity || null, water_capacity: t.waterCapacity || null, chassis_make: t.chassisMake, model_no: t.modelNo, delivery_date: t.deliveryDate || null, warranty_months: parseInt(t.warrantyMonths)||12, insurance_policy_no: t.insurancePolicyNo || null, insurance_company: t.insuranceCompany || null, insurance_expiry_date: t.insuranceExpiryDate || null };
-                                let { data: ins, error } = await sb.from('trucks').insert(payload).select().single();
-                                if (error && isMissingColumnError(error)) {
-                                    const fallbackPayload = { ...payload };
-                                    delete fallbackPayload.insurance_policy_no;
-                                    delete fallbackPayload.insurance_company;
-                                    delete fallbackPayload.insurance_expiry_date;
-                                    const retry = await sb.from('trucks').insert(fallbackPayload).select().single();
-                                    ins = retry.data;
-                                    error = retry.error;
-                                }
-                                if (error) {
-                                    console.error("Sync error for truck PO:", t.poNo, error);
-                                    setSyncErrors(prev => [...prev, { label: `Delivery PO: ${t.poNo || 'N/A'}`, error: error.message }]);
-                                }
-                                if (ins) {
-                                    const mapped = mapTruck(ins);
-                                    // Preserve local insurance info if database dropped them
-                                    const finalRecord = {
-                                        ...mapped,
-                                        insurancePolicyNo: mapped.insurancePolicyNo || t.insurancePolicyNo,
-                                        insuranceCompany: mapped.insuranceCompany || t.insuranceCompany,
-                                        insuranceExpiryDate: mapped.insuranceExpiryDate || t.insuranceExpiryDate,
-                                        pumpSrNo: mapped.pumpSrNo || t.pumpSrNo
-                                    };
-                                    dbTrks.push(finalRecord);
-                                    localCmps.forEach(comp => { if (comp.truckId === t.id) comp.truckId = finalRecord.id; });
-                                } else {
-                                    dbTrks.push(t);
-                                }
-                            } catch(err) {
-                                console.error("Sync exception for truck PO:", t.poNo, err);
-                                setSyncErrors(prev => [...prev, { label: `Delivery PO: ${t.poNo || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                    // ── Sync Trucks ──
+                    const localOnlyTrks = localTrks.filter(lt => String(lt.id).startsWith('LOCAL-'));
+                    for (const t of localOnlyTrks) {
+                        try {
+                            const payload = { customer_id: t.customerId, po_no: t.poNo, tender_type: t.tenderType, pump_make: t.pumpMake, pump_lpm: t.pumpLpm || null, pump_sr_no: t.pumpSrNo || null, foam_capacity: t.foamCapacity || null, water_capacity: t.waterCapacity || null, chassis_make: t.chassisMake, model_no: t.modelNo, delivery_date: t.deliveryDate || null, warranty_months: parseInt(t.warrantyMonths)||12, insurance_policy_no: t.insurancePolicyNo || null, insurance_company: t.insuranceCompany || null, insurance_expiry_date: t.insuranceExpiryDate || null };
+                            let { data: ins, error } = await sb.from('trucks').insert(payload).select().single();
+                            if (error && isMissingColumnError(error)) {
+                                const fallbackPayload = { ...payload };
+                                delete fallbackPayload.insurance_policy_no;
+                                delete fallbackPayload.insurance_company;
+                                delete fallbackPayload.insurance_expiry_date;
+                                const retry = await sb.from('trucks').insert(fallbackPayload).select().single();
+                                ins = retry.data;
+                                error = retry.error;
+                            }
+                            if (error) {
+                                console.error("Sync error for truck PO:", t.poNo, error);
+                                setSyncErrors(prev => [...prev, { label: `Delivery PO: ${t.poNo || 'N/A'}`, error: error.message }]);
+                            }
+                            if (ins) {
+                                const mapped = mapTruck(ins);
+                                const finalRecord = {
+                                    ...mapped,
+                                    insurancePolicyNo: mapped.insurancePolicyNo || t.insurancePolicyNo,
+                                    insuranceCompany: mapped.insuranceCompany || t.insuranceCompany,
+                                    insuranceExpiryDate: mapped.insuranceExpiryDate || t.insuranceExpiryDate,
+                                    pumpSrNo: mapped.pumpSrNo || t.pumpSrNo
+                                };
+                                dbTrks.push(finalRecord);
+                                localCmps.forEach(comp => { if (comp.truckId === t.id) comp.truckId = finalRecord.id; });
+                            } else {
                                 dbTrks.push(t);
                             }
+                        } catch(err) {
+                            console.error("Sync exception for truck PO:", t.poNo, err);
+                            setSyncErrors(prev => [...prev, { label: `Delivery PO: ${t.poNo || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                            dbTrks.push(t);
                         }
-
-                        // ── Sync existing Trucks with missing pumpSrNo in DB ──
-                        for (let dt of dbTrks) {
-                            if (!dt.pumpSrNo) {
-                                const localMatch = localTrks.find(lt => (lt.poNo||'').trim().toUpperCase() === (dt.poNo||'').trim().toUpperCase());
-                                if (localMatch && localMatch.pumpSrNo) {
-                                    try {
-                                        const upP = { pump_sr_no: localMatch.pumpSrNo };
-                                        let { error } = await sb.from('trucks').update(upP).eq('id', dt.id);
-                                        if (!error) {
-                                            dt.pumpSrNo = localMatch.pumpSrNo;
-                                        }
-                                    } catch (err) {
-                                        console.error(`Failed to sync serial number to DB for PO ${dt.poNo}:`, err);
-                                    }
-                                }
-                            }
-                        }
-
-                        // ── Sync Complaints ──
-                        // A. Handle new local complaints
-                        const localOnlyCmps = localCmps.filter(lc => String(lc.id).startsWith('LOCAL-'));
-                        for (const c of localOnlyCmps) {
-                            try {
-                                const payload = { truck_id: c.truckId, complaint_id: c.complaintId, category: c.category, description: c.description, date_received: c.dateReceived, mode: c.mode||'Customer Portal', reported_by: c.reportedBy, status: c.status };
-                                if (c.status === 'Resolved') {
-                                    payload.diagnosis = c.diagnosis;
-                                    payload.closed_by = c.closedBy;
-                                    payload.closed_date = c.closedDate;
-                                    payload.remarks = c.remarks;
-                                    payload.resolved_at = c.resolvedAt || new Date().toISOString();
-                                    payload.delay_reason = c.delayReason;
-                                } else if (c.closedBy) {
-                                    payload.closed_by = c.closedBy;
-                                    payload.closed_date = c.closedDate;
-                                    payload.delay_reason = c.delayReason;
-                                }
-                                let { data: ins, error } = await sb.from('complaints').insert(payload).select().single();
-                                if (error && isMissingColumnError(error)) {
-                                    const fallbackPayload = { ...payload };
-                                    delete fallbackPayload.delay_reason;
-                                    const retry = await sb.from('complaints').insert(fallbackPayload).select().single();
-                                    ins = retry.data;
-                                    error = retry.error;
-                                }
-                                if (ins) {
-                                    dbCmps.push(mapComplaint(ins));
-                                } else {
-                                    dbCmps.push(c);
-                                    if (error) setSyncErrors(prev => [...prev, { label: `Ticket: ${c.complaintId || 'N/A'}`, error: error.message }]);
-                                }
-                            } catch(err) {
-                                dbCmps.push(c);
-                                setSyncErrors(prev => [...prev, { label: `Ticket: ${c.complaintId || 'N/A'}`, error: err.message || 'System error during sync' }]);
-                            }
-                        }
-
-                        // B. Handle local resolutions or assignments of existing DB complaints
-                        for (const c of localCmps.filter(lc => !String(lc.id).startsWith('LOCAL-'))) {
-                            const dbMatch = dbCmps.find(dc => dc.id === c.id);
-                            if (dbMatch) {
-                                if (c.status === 'Resolved' && dbMatch.status === 'Open') {
-                                    try {
-                                        const upP = { status: 'Resolved', diagnosis: c.diagnosis, closed_by: c.closedBy, closed_date: c.closedDate, remarks: c.remarks, resolved_at: c.resolvedAt || new Date().toISOString(), delay_reason: c.delayReason };
-                                        let { error } = await sb.from('complaints').update(upP).eq('id', c.id);
-                                        if (error && isMissingColumnError(error)) {
-                                            const fallbackPayload = { ...upP };
-                                            delete fallbackPayload.delay_reason;
-                                            const retry = await sb.from('complaints').update(fallbackPayload).eq('id', c.id);
-                                            error = retry.error;
-                                        }
-                                        if (!error) {
-                                            dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, remarks: c.remarks, delayReason: c.delayReason } : item);
-                                        } else {
-                                            setSyncErrors(prev => [...prev, { label: `Ticket Update: ${c.complaintId || 'N/A'}`, error: error.message }]);
-                                        }
-                                    } catch(err) {
-                                        setSyncErrors(prev => [...prev, { label: `Ticket Update: ${c.complaintId || 'N/A'}`, error: err.message || 'System error during sync' }]);
-                                    }
-                                } else if (c.status === 'Open' && c.closedBy && (c.closedBy !== dbMatch.closedBy || c.closedDate !== dbMatch.closedDate || c.delayReason !== dbMatch.delayReason)) {
-                                    try {
-                                        const upP = { closed_by: c.closedBy, closed_date: c.closedDate, delay_reason: c.delayReason };
-                                        let { error } = await sb.from('complaints').update(upP).eq('id', c.id);
-                                        if (error && isMissingColumnError(error)) {
-                                            const fallbackPayload = { ...upP };
-                                            delete fallbackPayload.delay_reason;
-                                            const retry = await sb.from('complaints').update(fallbackPayload).eq('id', c.id);
-                                            error = retry.error;
-                                        }
-                                        if (!error) {
-                                            dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, delayReason: c.delayReason } : item);
-                                        } else {
-                                            setSyncErrors(prev => [...prev, { label: `Ticket Assign: ${c.complaintId || 'N/A'}`, error: error.message }]);
-                                        }
-                                    } catch(err) {
-                                        setSyncErrors(prev => [...prev, { label: `Ticket Assign: ${c.complaintId || 'N/A'}`, error: err.message || 'System error during sync' }]);
-                                    }
-                                }
-                            }
-                        }
-
-                        // ── Sync Feedbacks (Reviews) ──
-                        const localOnlyFb = localFb.filter(lf => String(lf.id).startsWith('LOCAL-'));
-                        for (const f of localOnlyFb) {
-                            try {
-                                const payload = { customer_id: f.customerId, feedback_text: f.feedbackText, feedback_date: f.feedbackDate || null, person_name: f.personName, contact_number: f.contactNumber, mode: f.mode||'Customer Portal', rating: f.rating||5 };
-                                let { data: ins, error } = await sb.from('feedbacks').insert(payload).select().single();
-                                if (error && isMissingColumnError(error)) {
-                                    const fallbackPayload = { ...payload };
-                                    delete fallbackPayload.rating;
-                                    const retry = await sb.from('feedbacks').insert(fallbackPayload).select().single();
-                                    ins = retry.data;
-                                    error = retry.error;
-                                }
-                                if (ins) {
-                                    const mapped = mapFeedback(ins);
-                                    dbFb.push({
-                                        ...mapped,
-                                        rating: mapped.rating || f.rating || 5
-                                    });
-                                } else {
-                                    dbFb.push(f);
-                                    if (error) setSyncErrors(prev => [...prev, { label: `Feedback Review`, error: error.message }]);
-                                }
-                            } catch(err) {
-                                dbFb.push(f);
-                                setSyncErrors(prev => [...prev, { label: `Feedback Review`, error: err.message || 'System error during sync' }]);
-                            }
-                        }
-
-                        // Merge local cache insurance info if missing in DB
-                        dbTrks = dbTrks.map(dt => {
-                            const localMatch = localTrks.find(lt => lt.poNo === dt.poNo);
-                            if (localMatch) {
-                                return {
-                                    ...dt,
-                                    insurancePolicyNo: dt.insurancePolicyNo || localMatch.insurancePolicyNo,
-                                    insuranceCompany: dt.insuranceCompany || localMatch.insuranceCompany,
-                                    insuranceExpiryDate: dt.insuranceExpiryDate || localMatch.insuranceExpiryDate,
-                                    pumpSrNo: dt.pumpSrNo || localMatch.pumpSrNo
-                                };
-                            }
-                            return dt;
-                        });
-
-                        setCustomers(dbCust);
-                        setTrucks(dbTrks);
-                        setComplaints(dbCmps);
-                        setFeedbacks(dbFb);
-                        if (catRes.data?.length > 0) setCategories(catRes.data.map(c => c.name));
-                        // Sync Delivery Submissions from Supabase (Filtering out already added Solar vehicles)
-                        let dbSubs = delivRes?.data ? delivRes.data.map(mapDeliverySubmission) : [];
-                        const validSubs = dbSubs.filter(s => !(s.customerName || s.customer_name || '').toUpperCase().includes('SOLAR'));
-                        setDeliverySubmissions(validSubs);
-                        try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(validSubs)); } catch(e){}
-
-
-                        // ── Fetch CAPA Tables ──
-                        try {
-                            const [capasRes, capaCmpsRes, whyRes, m51eRes, actRes, auditRes] = await Promise.allSettled([
-                                sb.from('capas').select('*').order('created_at', { ascending: false }),
-                                sb.from('capa_complaints').select('*'),
-                                sb.from('capa_5why').select('*'),
-                                sb.from('capa_5m1e').select('*'),
-                                sb.from('capa_actions').select('*'),
-                                sb.from('capa_audit_log').select('*').order('changed_at', { ascending: false })
-                            ]);
-
-                            if (capasRes.status === 'fulfilled' && capasRes.value.data) setCapas(capasRes.value.data.map(mapCapa));
-                            if (capaCmpsRes.status === 'fulfilled' && capaCmpsRes.value.data) setCapaComplaints(capaCmpsRes.value.data.map(mapCapaComplaint));
-                            if (whyRes.status === 'fulfilled' && whyRes.value.data) setCapa5Why(whyRes.value.data.map(mapCapa5Why));
-                            if (m51eRes.status === 'fulfilled' && m51eRes.value.data) setCapa5m1e(m51eRes.value.data.map(mapCapa5M1E));
-                            if (actRes.status === 'fulfilled' && actRes.value.data) setCapaActions(actRes.value.data.map(mapCapaAction));
-                            if (auditRes.status === 'fulfilled' && auditRes.value.data) setCapaAuditLog(auditRes.value.data.map(mapCapaAudit));
-                        } catch(e) {
-                            console.warn("CAPA tables read warning, using local cache:", e);
-                        }
-
-                    } catch(e) {
-                        console.error("DB fallback to local data", e);
-                        const localCust = JSON.parse(localStorage.getItem('ff_cust') || '[]');
-                        const localTrks = JSON.parse(localStorage.getItem('ff_trks') || '[]');
-                        const localCmps = JSON.parse(localStorage.getItem('ff_cmps') || '[]');
-                        const localFb = JSON.parse(localStorage.getItem('ff_fb') || '[]');
-                        setCustomers(localCust);
-                        setTrucks(localTrks);
-                        setComplaints(localCmps);
-                        setFeedbacks(localFb);
                     }
-                    finally { setLoading(false); }
-                };
-                fetchAll();
+
+                    // ── Sync existing Trucks with missing pumpSrNo in DB ──
+                    for (let dt of dbTrks) {
+                        if (!dt.pumpSrNo) {
+                            const localMatch = localTrks.find(lt => (lt.poNo||'').trim().toUpperCase() === (dt.poNo||'').trim().toUpperCase());
+                            if (localMatch && localMatch.pumpSrNo) {
+                                try {
+                                    const upP = { pump_sr_no: localMatch.pumpSrNo };
+                                    let { error } = await sb.from('trucks').update(upP).eq('id', dt.id);
+                                    if (!error) {
+                                        dt.pumpSrNo = localMatch.pumpSrNo;
+                                    }
+                                } catch (err) {
+                                    console.error(`Failed to sync serial number to DB for PO ${dt.poNo}:`, err);
+                                }
+                            }
+                        }
+                    }
+
+                    // ── Sync Complaints ──
+                    const localOnlyCmps = localCmps.filter(lc => String(lc.id).startsWith('LOCAL-'));
+                    for (const c of localOnlyCmps) {
+                        try {
+                            const payload = { truck_id: c.truckId, complaint_id: c.complaintId, category: c.category, description: c.description, date_received: c.dateReceived, mode: c.mode||'Customer Portal', reported_by: c.reportedBy, status: c.status };
+                            if (c.status === 'Resolved') {
+                                payload.diagnosis = c.diagnosis;
+                                payload.closed_by = c.closedBy;
+                                payload.closed_date = c.closedDate;
+                                payload.remarks = c.remarks;
+                                payload.resolved_at = c.resolvedAt || new Date().toISOString();
+                                payload.delay_reason = c.delayReason;
+                            } else if (c.closedBy) {
+                                payload.closed_by = c.closedBy;
+                                payload.closed_date = c.closedDate;
+                                payload.delay_reason = c.delayReason;
+                            }
+                            let { data: ins, error } = await sb.from('complaints').insert(payload).select().single();
+                            if (error && isMissingColumnError(error)) {
+                                const fallbackPayload = { ...payload };
+                                delete fallbackPayload.delay_reason;
+                                const retry = await sb.from('complaints').insert(fallbackPayload).select().single();
+                                ins = retry.data;
+                                error = retry.error;
+                            }
+                            if (ins) {
+                                dbCmps.push(mapComplaint(ins));
+                            } else {
+                                dbCmps.push(c);
+                                if (error) setSyncErrors(prev => [...prev, { label: `Ticket: ${c.complaintId || 'N/A'}`, error: error.message }]);
+                            }
+                        } catch(err) {
+                            dbCmps.push(c);
+                            setSyncErrors(prev => [...prev, { label: `Ticket: ${c.complaintId || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                        }
+                    }
+
+                    // Handle local resolutions or assignments of existing DB complaints
+                    for (const c of localCmps.filter(lc => !String(lc.id).startsWith('LOCAL-'))) {
+                        const dbMatch = dbCmps.find(dc => dc.id === c.id);
+                        if (dbMatch) {
+                            if (c.status === 'Resolved' && dbMatch.status === 'Open') {
+                                try {
+                                    const upP = { status: 'Resolved', diagnosis: c.diagnosis, closed_by: c.closedBy, closed_date: c.closedDate, remarks: c.remarks, resolved_at: c.resolvedAt || new Date().toISOString(), delay_reason: c.delayReason };
+                                    let { error } = await sb.from('complaints').update(upP).eq('id', c.id);
+                                    if (error && isMissingColumnError(error)) {
+                                        const fallbackPayload = { ...upP };
+                                        delete fallbackPayload.delay_reason;
+                                        const retry = await sb.from('complaints').update(fallbackPayload).eq('id', c.id);
+                                        error = retry.error;
+                                    }
+                                    if (!error) {
+                                        dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, remarks: c.remarks, delayReason: c.delayReason } : item);
+                                    } else {
+                                        setSyncErrors(prev => [...prev, { label: `Ticket Update: ${c.complaintId || 'N/A'}`, error: error.message }]);
+                                    }
+                                } catch(err) {
+                                    setSyncErrors(prev => [...prev, { label: `Ticket Update: ${c.complaintId || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                                }
+                            } else if (c.status === 'Open' && c.closedBy && (c.closedBy !== dbMatch.closedBy || c.closedDate !== dbMatch.closedDate || c.delayReason !== dbMatch.delayReason)) {
+                                try {
+                                    const upP = { closed_by: c.closedBy, closed_date: c.closedDate, delay_reason: c.delayReason };
+                                    let { error } = await sb.from('complaints').update(upP).eq('id', c.id);
+                                    if (error && isMissingColumnError(error)) {
+                                        const fallbackPayload = { ...upP };
+                                        delete fallbackPayload.delay_reason;
+                                        const retry = await sb.from('complaints').update(fallbackPayload).eq('id', c.id);
+                                        error = retry.error;
+                                    }
+                                    if (!error) {
+                                        dbCmps = dbCmps.map(item => item.id === c.id ? { ...item, ...upP, closedBy: c.closedBy, closedDate: c.closedDate, delayReason: c.delayReason } : item);
+                                    } else {
+                                        setSyncErrors(prev => [...prev, { label: `Ticket Assign: ${c.complaintId || 'N/A'}`, error: error.message }]);
+                                    }
+                                } catch(err) {
+                                    setSyncErrors(prev => [...prev, { label: `Ticket Assign: ${c.complaintId || 'N/A'}`, error: err.message || 'System error during sync' }]);
+                                }
+                            }
+                        }
+                    }
+
+                    // ── Sync Feedbacks (Reviews) ──
+                    const localOnlyFb = localFb.filter(lf => String(lf.id).startsWith('LOCAL-'));
+                    for (const f of localOnlyFb) {
+                        try {
+                            const payload = { customer_id: f.customerId, feedback_text: f.feedbackText, feedback_date: f.feedbackDate || null, person_name: f.personName, contact_number: f.contactNumber, mode: f.mode||'Customer Portal', rating: f.rating||5 };
+                            let { data: ins, error } = await sb.from('feedbacks').insert(payload).select().single();
+                            if (error && isMissingColumnError(error)) {
+                                const fallbackPayload = { ...payload };
+                                delete fallbackPayload.rating;
+                                const retry = await sb.from('feedbacks').insert(fallbackPayload).select().single();
+                                ins = retry.data;
+                                error = retry.error;
+                            }
+                            if (ins) {
+                                const mapped = mapFeedback(ins);
+                                dbFb.push({
+                                    ...mapped,
+                                    rating: mapped.rating || f.rating || 5
+                                });
+                            } else {
+                                dbFb.push(f);
+                                if (error) setSyncErrors(prev => [...prev, { label: `Feedback Review`, error: error.message }]);
+                            }
+                        } catch(err) {
+                            dbFb.push(f);
+                            setSyncErrors(prev => [...prev, { label: `Feedback Review`, error: err.message || 'System error during sync' }]);
+                        }
+                    }
+
+                    // Merge local cache insurance info if missing in DB
+                    dbTrks = dbTrks.map(dt => {
+                        const localMatch = localTrks.find(lt => lt.poNo === dt.poNo);
+                        if (localMatch) {
+                            return {
+                                ...dt,
+                                insurancePolicyNo: dt.insurancePolicyNo || localMatch.insurancePolicyNo,
+                                insuranceCompany: dt.insuranceCompany || localMatch.insuranceCompany,
+                                insuranceExpiryDate: dt.insuranceExpiryDate || localMatch.insuranceExpiryDate,
+                                pumpSrNo: dt.pumpSrNo || localMatch.pumpSrNo
+                            };
+                        }
+                        return dt;
+                    });
+
+                    setCustomers(dbCust);
+                    setTrucks(dbTrks);
+                    setComplaints(dbCmps);
+                    setFeedbacks(dbFb);
+                    if (catRes.data?.length > 0) setCategories(catRes.data.map(c => c.name));
+                    
+                    let dbSubs = delivRes?.data ? delivRes.data.map(mapDeliverySubmission) : [];
+                    const validSubs = dbSubs.filter(s => !(s.customerName || s.customer_name || '').toUpperCase().includes('SOLAR'));
+                    setDeliverySubmissions(validSubs);
+                    try { localStorage.setItem('ff_delivery_submissions', JSON.stringify(validSubs)); } catch(e){}
+
+                    // ── Fetch CAPA Tables ──
+                    try {
+                        const [capasRes, capaCmpsRes, whyRes, m51eRes, actRes, auditRes] = await Promise.allSettled([
+                            sb.from('capas').select('*').order('created_at', { ascending: false }),
+                            sb.from('capa_complaints').select('*'),
+                            sb.from('capa_5why').select('*'),
+                            sb.from('capa_5m1e').select('*'),
+                            sb.from('capa_actions').select('*'),
+                            sb.from('capa_audit_log').select('*').order('changed_at', { ascending: false })
+                        ]);
+
+                        if (capasRes.status === 'fulfilled' && capasRes.value.data) setCapas(capasRes.value.data.map(mapCapa));
+                        if (capaCmpsRes.status === 'fulfilled' && capaCmpsRes.value.data) setCapaComplaints(capaCmpsRes.value.data.map(mapCapaComplaint));
+                        if (whyRes.status === 'fulfilled' && whyRes.value.data) setCapa5Why(whyRes.value.data.map(mapCapa5Why));
+                        if (m51eRes.status === 'fulfilled' && m51eRes.value.data) setCapa5m1e(m51eRes.value.data.map(mapCapa5M1E));
+                        if (actRes.status === 'fulfilled' && actRes.value.data) setCapaActions(actRes.value.data.map(mapCapaAction));
+                        if (auditRes.status === 'fulfilled' && auditRes.value.data) setCapaAuditLog(auditRes.value.data.map(mapCapaAudit));
+                    } catch(e) {
+                        console.warn("CAPA tables read warning, using local cache:", e);
+                    }
+
+                    setLastCloudSyncTime(new Date());
+
+                } catch(e) {
+                    console.error("DB fallback to local data", e);
+                    const localCust = JSON.parse(localStorage.getItem('ff_cust') || '[]');
+                    const localTrks = JSON.parse(localStorage.getItem('ff_trks') || '[]');
+                    const localCmps = JSON.parse(localStorage.getItem('ff_cmps') || '[]');
+                    const localFb = JSON.parse(localStorage.getItem('ff_fb') || '[]');
+                    setCustomers(localCust);
+                    setTrucks(localTrks);
+                    setComplaints(localCmps);
+                    setFeedbacks(localFb);
+                }
+                finally {
+                    setLoading(false);
+                    setTimeout(() => setIsCloudSyncing(false), 300);
+                }
             }, []);
+
+            // Initial Mount and Cross-Device Event Listeners
+            useEffect(() => {
+                fetchAll();
+
+                // 1. Mobile & Background Tab Auto-Sync on Focus / Resume
+                const handleVisibility = () => {
+                    if (document.visibilityState === 'visible') {
+                        console.log('[FireFlow Cloud] App resumed on device, syncing live data...');
+                        fetchAll(true);
+                    }
+                };
+                const handleOnline = () => {
+                    console.log('[FireFlow Cloud] Device reconnected to internet, syncing live data...');
+                    fetchAll(true);
+                };
+
+                document.addEventListener('visibilitychange', handleVisibility);
+                window.addEventListener('online', handleOnline);
+                window.addEventListener('focus', handleVisibility);
+
+                // 2. Periodic Live Sync (Every 45 seconds when tab is active)
+                const syncInterval = setInterval(() => {
+                    if (document.visibilityState === 'visible') {
+                        fetchAll(true);
+                    }
+                }, 45000);
+
+                return () => {
+                    document.removeEventListener('visibilitychange', handleVisibility);
+                    window.removeEventListener('online', handleOnline);
+                    window.removeEventListener('focus', handleVisibility);
+                    clearInterval(syncInterval);
+                };
+            }, [fetchAll]);
 
             // Refs to access latest state from subscription closure
             const trucksRef = useRef(trucks);
@@ -17346,62 +17456,114 @@ function App() {
                 accessModeRef.current = accessMode;
             }, [trucks, customers, accessMode]);
 
-            // Real-time subscription to complaints table
+            // Real-time live multi-device WebSocket subscription (Trucks, Customers, Submissions, Complaints)
             useEffect(() => {
                 const sb = window.SupabaseClient;
                 if (!sb) return;
 
-                const channel = sb.channel('complaints-realtime')
+                const channel = sb.channel('cloud-realtime-sync')
                     .on(
                         'postgres_changes',
-                        { event: 'INSERT', schema: 'public', table: 'complaints' },
+                        { event: '*', schema: 'public', table: 'trucks' },
                         (payload) => {
-                            const newCompRec = mapComplaint(payload.new);
-                            
-                            // Add complaint to state (ignore if already added locally)
-                            setComplaints(prev => {
-                                if (prev.some(c => c.id === newCompRec.id || c.complaintId === newCompRec.complaintId)) {
-                                    return prev;
+                            console.log('[Realtime] Truck event received:', payload.eventType);
+                            if (payload.eventType === 'INSERT') {
+                                const newTrk = mapTruck(payload.new);
+                                setTrucks(prev => prev.some(t => t.id === newTrk.id) ? prev : [newTrk, ...prev]);
+                            } else if (payload.eventType === 'UPDATE') {
+                                const updatedTrk = mapTruck(payload.new);
+                                setTrucks(prev => prev.map(t => t.id === updatedTrk.id ? { ...t, ...updatedTrk } : t));
+                            } else if (payload.eventType === 'DELETE') {
+                                setTrucks(prev => prev.filter(t => t.id !== payload.old?.id));
+                            }
+                        }
+                    )
+                    .on(
+                        'postgres_changes',
+                        { event: '*', schema: 'public', table: 'customers' },
+                        (payload) => {
+                            console.log('[Realtime] Customer event received:', payload.eventType);
+                            if (payload.eventType === 'INSERT') {
+                                const newCust = mapCustomer(payload.new);
+                                setCustomers(prev => prev.some(c => c.id === newCust.id) ? prev : [...prev, newCust]);
+                            } else if (payload.eventType === 'UPDATE') {
+                                const updatedCust = mapCustomer(payload.new);
+                                setCustomers(prev => prev.map(c => c.id === updatedCust.id ? { ...c, ...updatedCust } : c));
+                            } else if (payload.eventType === 'DELETE') {
+                                setCustomers(prev => prev.filter(c => c.id !== payload.old?.id));
+                            }
+                        }
+                    )
+                    .on(
+                        'postgres_changes',
+                        { event: '*', schema: 'public', table: 'delivery_submissions' },
+                        (payload) => {
+                            console.log('[Realtime] Delivery submission event:', payload.eventType);
+                            if (payload.eventType === 'INSERT') {
+                                const mapped = mapDeliverySubmission(payload.new);
+                                if (!(mapped.customerName || '').toUpperCase().includes('SOLAR')) {
+                                    setDeliverySubmissions(prev => prev.some(s => s.id === mapped.id) ? prev : [mapped, ...prev]);
                                 }
-                                return [newCompRec, ...prev];
-                            });
+                            } else if (payload.eventType === 'UPDATE') {
+                                const mapped = mapDeliverySubmission(payload.new);
+                                setDeliverySubmissions(prev => prev.map(s => s.id === mapped.id ? { ...s, ...mapped } : s));
+                            } else if (payload.eventType === 'DELETE') {
+                                setDeliverySubmissions(prev => prev.filter(s => s.id !== payload.old?.id));
+                            }
+                        }
+                    )
+                    .on(
+                        'postgres_changes',
+                        { event: '*', schema: 'public', table: 'complaints' },
+                        (payload) => {
+                            if (payload.eventType === 'INSERT') {
+                                const newCompRec = mapComplaint(payload.new);
+                                setComplaints(prev => {
+                                    if (prev.some(c => c.id === newCompRec.id || c.complaintId === newCompRec.complaintId)) {
+                                        return prev;
+                                    }
+                                    return [newCompRec, ...prev];
+                                });
 
-                            // If we are currently in admin view, show alert & sound
-                            if (accessModeRef.current === 'master_admin') {
-                                const trk = trucksRef.current.find(t => t.id === newCompRec.truckId);
-                                const cust = trk ? customersRef.current.find(c => c.id === trk.customerId) : null;
-                                
-                                const toastId = Date.now();
-                                const newToast = {
-                                    id: toastId,
-                                    title: `New Complaint: ${newCompRec.complaintId}`,
-                                    body: `${cust ? cust.name : 'Unknown Client'} · ${trk ? trk.tenderType : 'Fire Tender'} (${newCompRec.category})`,
-                                    description: newCompRec.description,
-                                    complaint: newCompRec
-                                };
+                                if (accessModeRef.current === 'master_admin') {
+                                    const trk = trucksRef.current.find(t => t.id === newCompRec.truckId);
+                                    const cust = trk ? customersRef.current.find(c => c.id === trk.customerId) : null;
+                                    
+                                    const toastId = Date.now();
+                                    const newToast = {
+                                        id: toastId,
+                                        title: `New Complaint: ${newCompRec.complaintId}`,
+                                        body: `${cust ? cust.name : 'Unknown Client'} · ${trk ? trk.tenderType : 'Fire Tender'} (${newCompRec.category})`,
+                                        description: newCompRec.description,
+                                        complaint: newCompRec
+                                    };
 
-                                setNotifications(prev => [newToast, ...prev]);
+                                    setNotifications(prev => [newToast, ...prev]);
 
-                                // Auto dismiss toast after 8 seconds
-                                setTimeout(() => {
-                                    setNotifications(prev => prev.filter(n => n.id !== toastId));
-                                }, 8000);
+                                    setTimeout(() => {
+                                        setNotifications(prev => prev.filter(n => n.id !== toastId));
+                                    }, 8000);
 
-                                // Audio Alert (Web Audio API)
-                                try {
-                                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                                    const osc = audioCtx.createOscillator();
-                                    const gain = audioCtx.createGain();
-                                    osc.connect(gain);
-                                    gain.connect(audioCtx.destination);
-                                    osc.type = 'sine';
-                                    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
-                                    osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
-                                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
-                                    osc.start(audioCtx.currentTime);
-                                    osc.stop(audioCtx.currentTime + 0.45);
-                                } catch (err) {}
+                                    try {
+                                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                                        const osc = audioCtx.createOscillator();
+                                        const gain = audioCtx.createGain();
+                                        osc.connect(gain);
+                                        gain.connect(audioCtx.destination);
+                                        osc.type = 'sine';
+                                        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                                        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1);
+                                        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                                        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
+                                        osc.start(audioCtx.currentTime);
+                                        osc.stop(audioCtx.currentTime + 0.45);
+                                    } catch (err) {}
+                                }
+                            } else if (payload.eventType === 'UPDATE') {
+                                const updated = mapComplaint(payload.new);
+                                setComplaints(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
+                            } else if (payload.eventType === 'DELETE') {
+                                setComplaints(prev => prev.filter(c => c.id !== payload.old?.id));
                             }
                         }
                     )
@@ -17471,7 +17633,10 @@ function App() {
                         (t.pumpMake || '').toLowerCase().includes(q) ||
                         (t.pumpSrNo || '').toLowerCase().includes(q) ||
                         (t.insuranceCompany || '').toLowerCase().includes(q) ||
-                        (t.insurancePolicyNo || '').toLowerCase().includes(q);
+                        (t.insurancePolicyNo || '').toLowerCase().includes(q) ||
+                        siteAddress.toLowerCase().includes(q) ||
+                        siteOfficer.toLowerCase().includes(q) ||
+                        sitePhone.toLowerCase().includes(q);
 
                     if (!matchesSearch) return false;
 
@@ -17492,7 +17657,7 @@ function App() {
 
                     return true;
                 });
-            }, [trucks, customers, commCerts, fleetSearch, fleetWarrantyFilter, fleetCustomerFilter, fleetTypeFilter, fleetCommissionFilter]);
+            }, [trucks, customers, commCerts, fleetSearch, fleetWarrantyFilter, fleetCustomerFilter, fleetTypeFilter, fleetCommissionFilter, deliverySubmissions]);
 
             // Export Fleet Registry to Excel/CSV (Strictly exports currently filtered dataset)
             const exportFleetToCsv = useCallback(() => {
@@ -19041,6 +19206,7 @@ function App() {
                     )}
 
                     <CustomerPortal 
+                        deliverySubmissions={deliverySubmissions}
                         trucks={trucks} 
                         customers={customers} 
                         complaints={complaints} 
@@ -19284,18 +19450,21 @@ function App() {
                                 )}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                                <div 
-                                    title="Data synchronized successfully • Last sync: 13-Sep-2026 13:40"
-                                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200/90 rounded-xl shadow-2xs cursor-default"
+                                <button 
+                                    type="button"
+                                    onClick={() => fetchAll()}
+                                    title="Click to force-sync live data from Supabase Cloud"
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 active:scale-95 border border-slate-200/90 rounded-xl shadow-2xs cursor-pointer transition-all"
                                 >
                                     <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isCloudSyncing ? 'bg-cyan-400' : 'bg-emerald-400'} opacity-75`}></span>
+                                        <span className={`relative inline-flex rounded-full h-2 w-2 ${isCloudSyncing ? 'bg-cyan-500' : 'bg-emerald-500'}`}></span>
                                     </span>
-                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider font-mono">
-                                        {user?'Live Connection':'Local Mode'}
+                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider font-mono flex items-center gap-1">
+                                        <span>{isCloudSyncing ? 'Syncing Cloud...' : (user ? 'Live Connection' : 'Local Mode')}</span>
+                                        <span className="text-slate-400 font-normal">↺</span>
                                     </span>
-                                </div>
+                                </button>
                             </div>
                         </header>
 
@@ -20081,6 +20250,7 @@ function App() {
                             <CustomerDirectorySection
                                 customers={customers}
                                 trucks={trucks}
+                                deliverySubmissions={deliverySubmissions}
                                 activeUnits={activeUnits}
                                 setEditingCustomer={setEditingCustomer}
                                 setNewCust={setNewCust}
@@ -20105,6 +20275,11 @@ function App() {
                             // Helper: Download Individual Vehicle Specification to Excel/CSV
                             const downloadVehicleExcel = (t) => {
                                 const cust = customers.find(c => c.id === t.customerId);
+                                const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                                const siteAddress = subMatch?.address || t.address || cust?.address || 'Site address on file';
+                                const siteOfficer = subMatch?.contactPerson || t.contactPerson || cust?.contactPerson || 'N/A';
+                                const sitePhone = subMatch?.phone || t.phone || cust?.phone || 'N/A';
+                                const siteEmail = subMatch?.email || t.email || cust?.email || 'N/A';
                                 const wExp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
                                 const wRem = calculateDaysRemaining(wExp);
                                 const iRem = calculateDaysRemaining(t.insuranceExpiryDate);
@@ -20118,10 +20293,10 @@ function App() {
                                     [''],
                                     ['SECTION 1: CLIENT & OPERATIONAL LOCATION'],
                                     ['Company / Client Name', cust?.name || 'Client Not Linked'],
-                                    ['Site / Delivery Address', cust?.address || 'Site address on file'],
-                                    ['Contact Person', cust?.contactPerson || 'N/A'],
-                                    ['Contact Phone', cust?.phone || 'N/A'],
-                                    ['Contact Email', cust?.email || 'N/A'],
+                                    ['Unit / Plant Site Address', siteAddress],
+                                    ['Site Officer / Contact Person', siteOfficer],
+                                    ['Site Contact Phone', sitePhone],
+                                    ['Site Contact Email', siteEmail],
                                     ['Cost Center Number', t.costCenterNo || 'Pending Creation'],
                                     ['Cost Center Status', t.costCenterStatus || 'Not Generated'],
                                     [''],
@@ -20249,10 +20424,10 @@ function App() {
     <div class="grid-2">
         <div class="card">
             <div class="card-title">1. Client &amp; Operational Location</div>
-            <div class="row"><span class="label">Organization:</span><span class="val">${cust?.name || 'N/A'}</span></div>
-            <div class="row"><span class="label">Site Address:</span><span class="val">${cust?.address || 'Site address on file'}</span></div>
-            <div class="row"><span class="label">Contact Person:</span><span class="val">${cust?.contactPerson || 'N/A'}</span></div>
-            <div class="row"><span class="label">Phone / Email:</span><span class="val">${cust?.phone || cust?.email || 'N/A'}</span></div>
+            <div class="row"><span class="label">Parent Company:</span><span class="val">${cust?.name || 'N/A'}</span></div>
+            <div class="row"><span class="label">Unit / Plant Site:</span><span class="val">${subMatch?.address || t.address || cust?.address || 'Site address on file'}</span></div>
+            <div class="row"><span class="label">Site Officer:</span><span class="val">${subMatch?.contactPerson || t.contactPerson || cust?.contactPerson || 'N/A'}</span></div>
+            <div class="row"><span class="label">Site Contact:</span><span class="val">${[subMatch?.phone || t.phone || cust?.phone, subMatch?.email || t.email || cust?.email].filter(Boolean).join(' / ') || 'N/A'}</span></div>
             <div class="row"><span class="label">Cost Center Code:</span><span class="val">${t.costCenterNo || 'Pending Creation'}</span></div>
             <div class="row"><span class="label">Cost Center Status:</span><span class="val">${t.costCenterStatus || 'Not Generated'}</span></div>
         </div>
@@ -20655,6 +20830,33 @@ function App() {
                                                             </div>
                                                         </div>
 
+                                                        {/* Unit / Plant Location & Site Contact Line */}
+                                                        {(() => {
+                                                            const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                                                            const siteAddress = subMatch?.address || t.address || custObj?.address || '';
+                                                            const siteOfficer = subMatch?.contactPerson || t.contactPerson || custObj?.contactPerson || '';
+                                                            const sitePhone = subMatch?.phone || t.phone || custObj?.phone || '';
+                                                            if (!siteAddress && !siteOfficer) return null;
+                                                            return (
+                                                                <div className="flex items-center gap-2 text-[11px] text-slate-600 bg-slate-50/80 px-2 py-1 rounded-md border border-slate-100/90 min-w-0 flex-wrap">
+                                                                    {siteAddress && (
+                                                                        <span className="flex items-center gap-1 min-w-0 truncate" title={siteAddress}>
+                                                                            <Icon name="map-pin" size={11} className="text-[#0B6B63] shrink-0"/>
+                                                                            <span className="font-semibold text-slate-800 truncate">{siteAddress.split(',')[0]}</span>
+                                                                            {siteAddress.split(',')[1] && <span className="text-slate-400 truncate">({siteAddress.split(',')[1].trim()})</span>}
+                                                                        </span>
+                                                                    )}
+                                                                    {siteOfficer && (
+                                                                        <span className="flex items-center gap-1 min-w-0 shrink-0 text-slate-600 border-l border-slate-200 pl-2">
+                                                                            <Icon name="user" size={11} className="text-slate-400 shrink-0"/>
+                                                                            <span className="font-medium text-slate-700">{siteOfficer}</span>
+                                                                            {sitePhone && <span className="font-mono text-slate-500">· {sitePhone}</span>}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
+
                                                         {/* Row 2: Tender Type & Engineering Specs */}
                                                         <div className="flex items-center justify-between gap-2 min-w-0 text-xs">
                                                             <div className="flex items-center gap-2 min-w-0 truncate">
@@ -20833,10 +21035,26 @@ function App() {
                                                                                     <p className="font-semibold text-slate-900 text-xs leading-tight truncate hover:text-[#0B6B63] transition-colors font-heading" title={custObj?.name}>
                                                                                         {custObj?.name || 'Client Not Linked'}
                                                                                     </p>
-                                                                                    <p className="text-[10.5px] font-normal text-slate-400 flex items-center gap-1 mt-0.5 truncate" title={custObj?.address}>
-                                                                                        <Icon name="map-pin" size={10} className="text-slate-400 shrink-0"/>
-                                                                                        <span className="truncate">{custObj?.address || 'Site address on file'}</span>
-                                                                                    </p>
+                                                                                    {(() => {
+                                                                                        const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                                                                                        const siteAddress = subMatch?.address || t.address || custObj?.address || 'Site address on file';
+                                                                                        const siteOfficer = subMatch?.contactPerson || t.contactPerson || custObj?.contactPerson || '';
+                                                                                        const sitePhone = subMatch?.phone || t.phone || custObj?.phone || '';
+                                                                                        return (
+                                                                                            <>
+                                                                                                <p className="text-[10.5px] font-normal text-slate-500 flex items-center gap-1 mt-0.5 truncate" title={siteAddress}>
+                                                                                                    <Icon name="map-pin" size={10} className="text-[#0B6B63] shrink-0"/>
+                                                                                                    <span className="truncate">{siteAddress}</span>
+                                                                                                </p>
+                                                                                                {siteOfficer && (
+                                                                                                    <p className="text-[10px] font-medium text-slate-500 flex items-center gap-1 mt-0.5 truncate" title={siteOfficer + (sitePhone ? ' (' + sitePhone + ')' : '')}>
+                                                                                                        <Icon name="user" size={9.5} className="text-slate-400 shrink-0"/>
+                                                                                                        <span className="truncate">{siteOfficer}{sitePhone ? ' · ' + sitePhone : ''}</span>
+                                                                                                    </p>
+                                                                                                )}
+                                                             </>
+                                                                                        );
+                                                                                    })()}
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -21138,32 +21356,41 @@ function App() {
                                                                     <Icon name="map-pin" size={13} className="text-[#0B6B63]"/>
                                                                     <span>Client &amp; Operational Location</span>
                                                                 </div>
-                                                                <div className="space-y-1.5">
-                                                                    <div className="flex justify-between gap-2">
-                                                                        <span className="text-slate-400">Company Name</span>
-                                                                        <span className="font-semibold text-slate-800 text-right">{cust?.name || 'N/A'}</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between gap-2">
-                                                                        <span className="text-slate-400">Site Address</span>
-                                                                        <span className="font-medium text-slate-700 text-right">{cust?.address || 'Site address on file'}</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between gap-2">
-                                                                        <span className="text-slate-400">Contact Person</span>
-                                                                        <span className="font-medium text-slate-700 text-right">{cust?.contactPerson || 'N/A'}</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between gap-2">
-                                                                        <span className="text-slate-400">Phone / Email</span>
-                                                                        <span className="font-mono text-slate-700 text-right">{cust?.phone || cust?.email || 'N/A'}</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between gap-2 pt-1 border-t border-slate-100">
-                                                                        <span className="text-slate-400">Cost Center (CC)</span>
-                                                                        <span className="font-mono font-bold text-slate-800 text-right">{t.costCenterNo || 'Pending Creation'}</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between gap-2">
-                                                                        <span className="text-slate-400">CC Status</span>
-                                                                        <span className="font-mono text-slate-600 text-right">{t.costCenterStatus || 'Not Generated'}</span>
-                                                                    </div>
-                                                                </div>
+                                                                {(() => {
+                                                                    const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                                                                    const siteAddress = subMatch?.address || t.address || cust?.address || 'Site address on file';
+                                                                    const siteOfficer = subMatch?.contactPerson || t.contactPerson || cust?.contactPerson || 'N/A';
+                                                                    const sitePhone = subMatch?.phone || t.phone || cust?.phone || '';
+                                                                    const siteEmail = subMatch?.email || t.email || cust?.email || '';
+                                                                    return (
+                                                                        <div className="space-y-1.5">
+                                                                            <div className="flex justify-between gap-2">
+                                                                                <span className="text-slate-400">Parent Company</span>
+                                                                                <span className="font-semibold text-slate-800 text-right">{cust?.name || 'N/A'}</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between gap-2">
+                                                                                <span className="text-slate-400">Unit / Plant Site</span>
+                                                                                <span className="font-medium text-slate-700 text-right">{siteAddress}</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between gap-2">
+                                                                                <span className="text-slate-400">Site Officer</span>
+                                                                                <span className="font-medium text-slate-700 text-right">{siteOfficer}</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between gap-2">
+                                                                                <span className="text-slate-400">Site Phone / Email</span>
+                                                                                <span className="font-mono text-slate-700 text-right">{[sitePhone, siteEmail].filter(Boolean).join(' / ') || 'N/A'}</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between gap-2 pt-1 border-t border-slate-100">
+                                                                                <span className="text-slate-400">Cost Center (CC)</span>
+                                                                                <span className="font-mono font-bold text-slate-800 text-right">{t.costCenterNo || 'Pending Creation'}</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between gap-2">
+                                                                                <span className="text-slate-400">CC Status</span>
+                                                                                <span className="font-mono text-slate-600 text-right">{t.costCenterStatus || 'Not Generated'}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                             </div>
 
                                                             {/* 2. Procurement & Order */}
