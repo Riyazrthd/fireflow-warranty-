@@ -6094,7 +6094,7 @@ ON CONFLICT (id) DO NOTHING;`;
                 const existingCert = (commCerts || []).find(c => c.truckId === foundTruck.id);
 
                 return (
-                    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col justify-start select-none relative overflow-y-auto w-full pb-20 font-sans">
+                    <div className="fixed inset-0 z-[9999] bg-[#070b14] text-slate-100 flex flex-col justify-start select-none overflow-y-auto w-full pb-20 font-sans">
                         {/* STICKY TOP MOBILE APP BAR */}
                         <header className="sticky top-0 z-50 bg-[#0e1629]/95 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex items-center justify-between shadow-xl">
                             <div className="flex items-center gap-2.5">
@@ -6519,7 +6519,7 @@ ON CONFLICT (id) DO NOTHING;`;
                 const siteAddress = subMatch?.address || linkedTruck?.address || linkedCust?.address || 'Site on file';
 
                 return (
-                    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col justify-start select-none relative overflow-y-auto w-full pb-20 font-sans">
+                    <div className="fixed inset-0 z-[9999] bg-[#070b14] text-slate-100 flex flex-col justify-start select-none overflow-y-auto w-full pb-20 font-sans">
                         <header className="sticky top-0 z-50 bg-[#0e1629]/95 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex items-center justify-between shadow-xl">
                             <div className="flex items-center gap-2.5">
                                 <img src="./logo.png" alt="Indus Fire Safety" className="w-8 h-8 rounded-full object-contain bg-white p-0.5 border border-amber-400 shadow-sm shrink-0" />
