@@ -6056,6 +6056,559 @@ ON CONFLICT (id) DO NOTHING;`;
 
             const wState = foundTruck ? getWarrantyState(dRem) : null;
 
+
+            const handleCloseVehicleApp = () => {
+                setFoundTruck(null);
+                setShowComplaintForm(false);
+                setCompSubmitted(null);
+                setLookupQuery('');
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('po');
+                    if (url.hash && url.hash.includes('po=')) {
+                        url.hash = '';
+                    }
+                    window.history.replaceState({}, document.title, url.pathname + (url.search || ''));
+                } catch(e) {}
+            };
+
+            const handleCloseTicketApp = () => {
+                setFoundTicket(null);
+                setTicketQuery('');
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('ticket');
+                    if (url.hash && url.hash.includes('ticket=')) {
+                        url.hash = '';
+                    }
+                    window.history.replaceState({}, document.title, url.pathname + (url.search || ''));
+                } catch(e) {}
+            };
+
+            // ── 1. DEDICATED FULL-SCREEN MOBILE APP VIEW (ON QR SCAN / VEHICLE REPORT) ──
+            if (foundTruck) {
+                const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (foundTruck.poNo || '').trim().toUpperCase());
+                const siteAddress = subMatch?.address || foundTruck.address || cust?.address || cust?.location || 'Gujarat, India';
+                const siteOfficer = subMatch?.contactPerson || foundTruck.contactPerson || cust?.contactPerson || '';
+                const sitePhone = subMatch?.phone || foundTruck.phone || cust?.phone || '';
+                const existingCert = (commCerts || []).find(c => c.truckId === foundTruck.id);
+
+                return (
+                    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col justify-start select-none relative overflow-y-auto w-full pb-20 font-sans">
+                        {/* STICKY TOP MOBILE APP BAR */}
+                        <header className="sticky top-0 z-50 bg-[#0e1629]/95 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex items-center justify-between shadow-xl">
+                            <div className="flex items-center gap-2.5">
+                                <img src="./logo.png" alt="Indus Fire Safety" className="w-8 h-8 rounded-full object-contain bg-white p-0.5 border border-amber-400 shadow-sm shrink-0" />
+                                <div>
+                                    <div className="flex items-center gap-1.5">
+                                        <h1 className="text-xs font-black uppercase tracking-wider text-white">FireFlow Passport</h1>
+                                        <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            Verified Asset
+                                        </span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-400 font-semibold tracking-tight">Technical Vehicle Telemetry &amp; Warranty</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const shareUrl = window.location.origin + window.location.pathname + '?po=' + encodeURIComponent(foundTruck.poNo);
+                                        if (navigator.clipboard) {
+                                            navigator.clipboard.writeText(shareUrl);
+                                            alert('✓ Direct Vehicle Link copied to clipboard!');
+                                        } else {
+                                            prompt('Copy vehicle link:', shareUrl);
+                                        }
+                                    }}
+                                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-slate-300 hover:text-white transition-all cursor-pointer border border-white/10"
+                                    title="Share Vehicle Link"
+                                >
+                                    <Icon name="share-2" size={14} />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCloseVehicleApp}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md"
+                                    title="Return to Customer Portal"
+                                >
+                                    <Icon name="arrow-left" size={13} />
+                                    <span>Portal</span>
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* NATIVE APP SCROLLABLE BODY */}
+                        <main className="max-w-2xl mx-auto w-full px-3.5 sm:px-6 py-4 sm:py-6 space-y-4">
+                            {/* HERO APPARATUS & STATUS CARD */}
+                            <div className="relative bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 rounded-3xl border border-white/10 p-5 sm:p-6 shadow-2xl overflow-hidden">
+                                <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                                <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                                <div className="relative z-10 flex flex-col gap-3">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 block mb-1">
+                                                Indus OEM Fire Apparatus
+                                            </span>
+                                            <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight">
+                                                {foundTruck.tenderType || 'Fire Tender'}
+                                            </h2>
+                                        </div>
+                                        <div className="bg-slate-800/80 border border-white/10 px-3 py-1.5 rounded-xl text-right shrink-0">
+                                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 block">PO Number</span>
+                                            <span className="font-mono text-xs font-black text-teal-300">{foundTruck.poNo || 'N/A'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* STATUS HERO BANNER */}
+                                    <div className={`p-4 rounded-2xl border ${wState.bgClass} flex items-center justify-between gap-3 mt-1`}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-2xl bg-slate-900/80 border border-white/10 flex items-center justify-center shrink-0 shadow-inner">
+                                                <Icon name={wState.icon} size={24} className={wState.colorClass} />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={`text-xs font-black uppercase tracking-wider ${wState.colorClass}`}>
+                                                        {wState.status === 'EXPIRED' ? 'Post-Warranty Expired' : 'Active OEM Warranty'}
+                                                    </span>
+                                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                                </div>
+                                                <p className="text-lg font-black text-white tracking-tight mt-0.5">
+                                                    {dRem > 0 ? `${dRem} Days Remaining` : `Expired ${Math.abs(dRem)} Days Ago`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right text-[10px] font-mono text-slate-300 space-y-0.5 shrink-0 hidden sm:block">
+                                            <div>Delivered: <span className="text-white font-bold">{formatDate(foundTruck.deliveryDate)}</span></div>
+                                            <div>Expires: <span className="text-white font-bold">{formatDate(warrantyExp)}</span></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Progress Track */}
+                                    <div className="w-full bg-slate-800/80 h-2 rounded-full overflow-hidden mt-1 shadow-inner">
+                                        <div 
+                                            className={`h-full rounded-full transition-all duration-1000 ${wState.fillColor}`} 
+                                            style={{ width: `${Math.max(0, Math.min(100, (dRem / totalDays) * 100))}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="flex justify-between text-[9px] font-mono text-slate-400 px-0.5">
+                                        <span>Delivered: {formatDate(foundTruck.deliveryDate)}</span>
+                                        <span>Expiry: {formatDate(warrantyExp)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* OPTION 2 CLIENT & OPERATING PLANT SITE CARD */}
+                            <div className="bg-slate-900/90 rounded-2xl border border-white/10 p-4 sm:p-5 shadow-xl space-y-3">
+                                <div className="flex items-center gap-2 border-b border-white/5 pb-2.5">
+                                    <Icon name="building-2" size={16} className="text-teal-400" />
+                                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">
+                                        Enterprise Client &amp; Plant Site Location
+                                    </h3>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                                    <div className="bg-slate-950/60 p-3 rounded-xl border border-white/5">
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block mb-1">Parent Organization</span>
+                                        <span className="text-xs font-bold text-white block">{cust?.name || 'Organization on file'}</span>
+                                    </div>
+                                    <div className="bg-slate-950/60 p-3 rounded-xl border border-white/5">
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block mb-1">Operating Plant Site (Option 2)</span>
+                                        <span className="text-xs font-bold text-teal-300 block">📍 {siteAddress}</span>
+                                    </div>
+                                </div>
+
+                                {siteOfficer && (
+                                    <div className="bg-slate-950/60 p-3 rounded-xl border border-white/5 flex items-center justify-between gap-3">
+                                        <div>
+                                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block mb-0.5">Site Officer / In-Charge</span>
+                                            <span className="text-xs font-bold text-white">{siteOfficer}</span>
+                                        </div>
+                                        {sitePhone && (
+                                            <a 
+                                                href={`tel:${sitePhone}`} 
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-[10.5px] font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0"
+                                            >
+                                                <Icon name="phone" size={12} />
+                                                <span>Call Officer</span>
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* TECHNICAL SPECIFICATIONS TILES */}
+                            <div className="bg-slate-900/90 rounded-2xl border border-white/10 p-4 sm:p-5 shadow-xl space-y-3">
+                                <div className="flex items-center gap-2 border-b border-white/5 pb-2.5">
+                                    <Icon name="settings" size={16} className="text-amber-400" />
+                                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">
+                                        Verified Apparatus Technical Passport
+                                    </h3>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-left">
+                                    <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                        <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">Chassis Make &amp; Model</span>
+                                        <span className="text-xs font-bold text-white mt-0.5 block">{foundTruck.chassisMake || 'Tata'} {foundTruck.chassisModel || ''}</span>
+                                    </div>
+                                    <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                        <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">Fire Pump OEM</span>
+                                        <span className="text-xs font-bold text-white mt-0.5 block">{foundTruck.pumpMake || 'Godiva'}</span>
+                                    </div>
+                                    <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                        <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">Pump LPM &amp; Serial</span>
+                                        <span className="text-xs font-bold text-white mt-0.5 block">{foundTruck.pumpLpm ? `${foundTruck.pumpLpm} LPM` : 'Std'} {foundTruck.pumpSrNo ? `(${foundTruck.pumpSrNo})` : ''}</span>
+                                    </div>
+                                    {(foundTruck.ptoMake || foundTruck.ptoRatio || foundTruck.ptoSrNo) && (
+                                        <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                            <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">PTO Unit</span>
+                                            <span className="text-xs font-bold text-white mt-0.5 block">{[foundTruck.ptoMake, foundTruck.ptoRatio ? `(1:${foundTruck.ptoRatio})` : '', foundTruck.ptoSrNo ? `Sr:${foundTruck.ptoSrNo}` : ''].filter(Boolean).join(' ')}</span>
+                                        </div>
+                                    )}
+                                    {(foundTruck.uhpPumpMake || foundTruck.uhpPumpLpm || foundTruck.uhpPumpSrNo) && (
+                                        <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                            <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">UHP Pump</span>
+                                            <span className="text-xs font-bold text-white mt-0.5 block">{[foundTruck.uhpPumpMake, foundTruck.uhpPumpLpm ? `(${foundTruck.uhpPumpLpm})` : '', foundTruck.uhpPumpSrNo ? `Sr:${foundTruck.uhpPumpSrNo}` : ''].filter(Boolean).join(' ')}</span>
+                                        </div>
+                                    )}
+                                    {(foundTruck.dcpCapacity || foundTruck.dcpHptDueDate) && (
+                                        <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                            <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">DCP System</span>
+                                            <span className="text-xs font-bold text-white mt-0.5 block">{foundTruck.dcpCapacity ? `${foundTruck.dcpCapacity} Kg` : 'DCP'} {foundTruck.dcpHptDueDate ? `• HPT: ${formatDate(foundTruck.dcpHptDueDate)}` : ''}</span>
+                                        </div>
+                                    )}
+                                    {(foundTruck.waterCapacity || foundTruck.foamCapacity) && (
+                                        <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                            <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">Tank Capacities</span>
+                                            <span className="text-xs font-bold text-white mt-0.5 block">{foundTruck.waterCapacity ? `Water: ${foundTruck.waterCapacity}L` : ''} {foundTruck.foamCapacity ? `• Foam: ${foundTruck.foamCapacity}L` : ''}</span>
+                                        </div>
+                                    )}
+                                    <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                        <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">Insurance Validity</span>
+                                        <span className="text-xs font-bold text-white mt-0.5 block">{foundTruck.insuranceExpiryDate ? formatDate(foundTruck.insuranceExpiryDate) : 'On File'}</span>
+                                    </div>
+                                    <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                        <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">Tally Cost Center</span>
+                                        <span className="text-xs font-bold text-emerald-400 mt-0.5 block">{foundTruck.costCenterStatus || 'Cost Center Created'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* OFFICIAL TRAINING SHEET & COMMISSIONING SOFT COPY */}
+                            <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-slate-900/60 rounded-2xl border border-amber-500/30 p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shrink-0 shadow-md">
+                                        📄
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-xs font-black text-amber-300 uppercase tracking-tight">
+                                                Training Sheet &amp; Commissioning Certificate
+                                            </span>
+                                            {existingCert ? (
+                                                <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500 text-slate-950">
+                                                    {existingCert.status === 'Finalized' ? '✓ Finalized Soft Copy Available' : 'Site Training in Progress'}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/10">
+                                                    Pending Site Clearance
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-[10.5px] font-medium text-slate-300 mt-1">
+                                            {existingCert 
+                                                ? `Cert No: ${existingCert.certNo || 'IFS/COMM'} • ${parseInt(existingCert.trainingDays)||3} Days Operator Program Complete with Site Attendance`
+                                                : 'Official training sheet and certificate soft copy will be available here once site training is completed.'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {existingCert && (
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => printCommissioningCertificatePdf(existingCert, foundTruck, cust)}
+                                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                                            title="Download PDF Certificate"
+                                        >
+                                            <Icon name="printer" size={13}/> Download PDF
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCustomerViewSoftCopyCert({ cert: existingCert, truck: foundTruck, customer: cust })}
+                                            className="bg-white/15 hover:bg-white/25 text-white border border-white/25 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
+                                            title="View Training Sheet"
+                                        >
+                                            <Icon name="eye" size={13}/> View Sheet
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* INTERACTIVE ACTION HUB: LOG COMPLAINT & HELPDESK */}
+                            <div className="bg-slate-900/90 rounded-2xl border border-white/10 p-4 sm:p-5 shadow-xl space-y-3 text-left">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-rose-400 block mb-0.5">Need Technical Assistance?</span>
+                                        <h3 className="text-xs font-black uppercase tracking-wider text-white">Log Complaint or Connect with Indus Engineers</h3>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowComplaintForm(!showComplaintForm)} 
+                                        className="inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer shrink-0"
+                                    >
+                                        <Icon name={showComplaintForm ? "x" : "message-square-plus"} size={14}/>
+                                        <span>{showComplaintForm ? "Cancel Form" : "Log a Support Ticket"}</span>
+                                    </button>
+                                </div>
+
+                                {/* INLINE COMPLAINT FORM */}
+                                {showComplaintForm && (
+                                    <div className="bg-slate-950 rounded-2xl p-4 border border-rose-500/30 mt-3 space-y-3">
+                                        <h4 className="text-xs font-black uppercase tracking-wider text-rose-300">
+                                            Log Official Support Ticket for PO: {foundTruck.poNo}
+                                        </h4>
+                                        <form onSubmit={handleSubmitComplaint} className="space-y-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Issue Category *</label>
+                                                    <select 
+                                                        value={compForm.category} 
+                                                        onChange={e => setCompForm({...compForm, category: e.target.value})} 
+                                                        required 
+                                                        className="w-full bg-slate-900 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
+                                                    >
+                                                        <option value="">Select Category</option>
+                                                        {categories.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Reported By (Name) *</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={compForm.reportedBy} 
+                                                        onChange={e => setCompForm({...compForm, reportedBy: e.target.value})} 
+                                                        required 
+                                                        placeholder="Your full name" 
+                                                        className="w-full bg-slate-900 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Contact Phone *</label>
+                                                    <input 
+                                                        type="tel" 
+                                                        value={compForm.contactPhone} 
+                                                        onChange={e => setCompForm({...compForm, contactPhone: e.target.value})} 
+                                                        required 
+                                                        placeholder="Your phone number" 
+                                                        className="w-full bg-slate-900 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Contact Email</label>
+                                                    <input 
+                                                        type="email" 
+                                                        value={compForm.contactEmail} 
+                                                        onChange={e => setCompForm({...compForm, contactEmail: e.target.value})} 
+                                                        placeholder="Optional email" 
+                                                        className="w-full bg-slate-900 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Complaint Description *</label>
+                                                <textarea 
+                                                    value={compForm.description} 
+                                                    onChange={e => setCompForm({...compForm, description: e.target.value})} 
+                                                    required 
+                                                    rows={3} 
+                                                    placeholder="Describe the issue observed in detail..." 
+                                                    className="w-full bg-slate-900 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
+                                                ></textarea>
+                                            </div>
+                                            <button 
+                                                type="submit" 
+                                                className="w-full bg-rose-600 hover:bg-rose-500 text-white py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md cursor-pointer transition-all"
+                                            >
+                                                Submit Support Ticket →
+                                            </button>
+                                        </form>
+                                    </div>
+                                )}
+
+                                {/* TICKET SUBMISSION SUCCESS BANNER */}
+                                {compSubmitted && (
+                                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-left space-y-2 mt-3">
+                                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wide">
+                                            <Icon name="check-circle" size={16} />
+                                            <span>Ticket Logged Successfully: #{compSubmitted.complaintId}</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-300">
+                                            Our technical service engineer will respond within 24 hours. Send ticket details directly to our WhatsApp desk:
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                openDirectWhatsApp('complaint_logged', {
+                                                    complaintId: compSubmitted.complaintId,
+                                                    tenderType: foundTruck?.tenderType || 'Fire Tender',
+                                                    chassisMake: foundTruck?.chassisMake || 'Standard Chassis',
+                                                    customerName: cust?.name || 'Valued Client',
+                                                    category: compSubmitted.category,
+                                                    description: compSubmitted.description,
+                                                    reportedBy: compSubmitted.reportedBy,
+                                                    phone: compForm.contactPhone || cust?.phone || ''
+                                                });
+                                            }}
+                                            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-all cursor-pointer"
+                                        >
+                                            <Icon name="message-circle" size={14}/> Send Ticket on WhatsApp (Free ₹0)
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* CONTACT CHANNELS */}
+                                <div className="pt-3 border-t border-white/5 flex flex-wrap gap-2.5">
+                                    <a 
+                                        href={`https://wa.me/919313927647?text=${encodeURIComponent(`Hello Indus Support Desk, I am inquiring about Vehicle PO: ${foundTruck.poNo || ''} (${foundTruck.tenderType || 'Fire Tender'}), Location: ${siteAddress}`)}`} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                                    >
+                                        <Icon name="message-circle" size={14} className="text-emerald-400" />
+                                        <span>WhatsApp Desk</span>
+                                    </a>
+                                    <a 
+                                        href="tel:+919313927647" 
+                                        className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                                    >
+                                        <Icon name="phone" size={14} className="text-amber-400" />
+                                        <span>+91 93139 27647</span>
+                                    </a>
+                                    <a 
+                                        href="mailto:customercare@indusfire.com" 
+                                        className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                                    >
+                                        <Icon name="mail" size={14} className="text-sky-400" />
+                                        <span>Email Care</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </main>
+
+                        {/* Customer Soft Copy Sheet Modal */}
+                        {customerViewSoftCopyCert && (
+                            <CustomerTrainingSoftCopyModal
+                                cert={customerViewSoftCopyCert.cert}
+                                truck={customerViewSoftCopyCert.truck}
+                                customer={customerViewSoftCopyCert.customer}
+                                onClose={() => setCustomerViewSoftCopyCert(null)}
+                            />
+                        )}
+                    </div>
+                );
+            }
+
+            // ── 2. DEDICATED FULL-SCREEN MOBILE TICKET TRACKER VIEW ──
+            if (foundTicket) {
+                const linkedTruck = trucks.find(t => t.id === foundTicket.truckId || (foundTicket.poNo && t.poNo && (t.poNo || '').trim().toUpperCase() === (foundTicket.poNo || '').trim().toUpperCase()));
+                const linkedCust = customers.find(c => c.id === (linkedTruck?.customerId || foundTicket.customerId));
+                const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (linkedTruck?.poNo || foundTicket.poNo || '').trim().toUpperCase());
+                const siteAddress = subMatch?.address || linkedTruck?.address || linkedCust?.address || 'Site on file';
+
+                return (
+                    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col justify-start select-none relative overflow-y-auto w-full pb-20 font-sans">
+                        <header className="sticky top-0 z-50 bg-[#0e1629]/95 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex items-center justify-between shadow-xl">
+                            <div className="flex items-center gap-2.5">
+                                <img src="./logo.png" alt="Indus Fire Safety" className="w-8 h-8 rounded-full object-contain bg-white p-0.5 border border-amber-400 shadow-sm shrink-0" />
+                                <div>
+                                    <div className="flex items-center gap-1.5">
+                                        <h1 className="text-xs font-black uppercase tracking-wider text-white">Ticket Tracker</h1>
+                                        <span className={`inline-flex items-center gap-1 text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${foundTicket.status === 'Resolved' || foundTicket.status === 'Closed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
+                                            ● {foundTicket.status || 'Open'}
+                                        </span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-400 font-semibold tracking-tight">Real-Time Service Resolution Status</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCloseTicketApp}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md"
+                            >
+                                <Icon name="arrow-left" size={13} />
+                                <span>Portal</span>
+                            </button>
+                        </header>
+
+                        <main className="max-w-2xl mx-auto w-full px-3.5 sm:px-6 py-4 sm:py-6 space-y-4">
+                            <div className="bg-slate-900/90 rounded-2xl border border-white/10 p-5 shadow-xl space-y-3 text-left">
+                                <div className="flex justify-between items-start gap-2 border-b border-white/5 pb-3">
+                                    <div>
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block mb-0.5">Complaint Ticket</span>
+                                        <h2 className="text-lg font-black font-mono text-white">#{foundTicket.complaintId || foundTicket.ticketNo}</h2>
+                                    </div>
+                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${foundTicket.status === 'Resolved' || foundTicket.status === 'Closed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'}`}>
+                                        {foundTicket.status || 'Open'}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 text-left">
+                                    <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                        <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">Logged Date</span>
+                                        <span className="text-xs font-bold text-white mt-0.5 block">{formatDate(foundTicket.dateReceived || foundTicket.createdAt)}</span>
+                                    </div>
+                                    <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                                        <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">Issue Category</span>
+                                        <span className="text-xs font-bold text-amber-400 mt-0.5 block">{foundTicket.category || 'General'}</span>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-950/60 p-3 rounded-xl border border-white/5">
+                                    <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block mb-1">Issue Description</span>
+                                    <p className="text-xs font-medium text-slate-200 leading-relaxed">{foundTicket.description || 'No description recorded.'}</p>
+                                </div>
+
+                                <div className="bg-slate-950/60 p-3 rounded-xl border border-white/5">
+                                    <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block mb-1">Client &amp; Operating Plant Site</span>
+                                    <p className="text-xs font-bold text-white">{linkedCust?.name || foundTicket.customerName || 'Client'}</p>
+                                    <p className="text-[10px] text-teal-300 mt-0.5">📍 {siteAddress}</p>
+                                </div>
+
+                                {(foundTicket.status === 'Resolved' || foundTicket.status === 'Closed') && (
+                                    <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/30 text-emerald-300">
+                                        <span className="text-[8.5px] font-black uppercase tracking-wider block mb-1">Resolution Summary</span>
+                                        <p className="text-xs font-bold">{foundTicket.diagnosis || 'Maintenance and service completed per OEM standard procedures.'}</p>
+                                    </div>
+                                )}
+
+                                <div className="pt-2 flex flex-wrap gap-2.5">
+                                    <a 
+                                        href={`https://wa.me/919313927647?text=${encodeURIComponent(`Hello Indus Support Desk, I am following up on Ticket #${foundTicket.complaintId || ''}`)}`}
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="flex-1 inline-flex items-center justify-center gap-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl text-xs font-bold uppercase tracking-wider"
+                                    >
+                                        <Icon name="message-circle" size={13} />
+                                        <span>WhatsApp Desk</span>
+                                    </a>
+                                    <a 
+                                        href="tel:+919313927647" 
+                                        className="flex-1 inline-flex items-center justify-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl text-xs font-bold uppercase tracking-wider"
+                                    >
+                                        <Icon name="phone" size={13} />
+                                        <span>Call Helpline</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </main>
+                    </div>
+                );
+            }
+
+
             const tabs = [
                 { id:'lookup', icon:'search', label:'Warranty Lookup' },
                 { id:'tracker', icon:'activity', label:'Track Ticket' },
@@ -6063,7 +6616,7 @@ ON CONFLICT (id) DO NOTHING;`;
             ];
 
             return (
-                <div className="h-screen max-h-screen overflow-hidden bg-slate-50 text-slate-800 px-3 sm:px-6 py-2.5 sm:py-3.5 flex flex-col justify-between select-none relative">
+                <div className="min-h-screen bg-slate-50 text-slate-800 px-3 sm:px-6 py-3 sm:py-4 flex flex-col justify-between select-none relative overflow-y-auto">
                     {/* ── HIGH-TECH LIVING ANIMATED BACKGROUND ── */}
                     <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
                         <style dangerouslySetInnerHTML={{__html: `
