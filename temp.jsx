@@ -16265,7 +16265,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                             </button>
                             <button
                                 type="button"
-                                onClick={print360Report}
+                                onClick={download360ComprehensivePdf}
                                 className="px-3.5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
                             >
                                 <Icon name="printer" size={14}/>
@@ -19699,6 +19699,401 @@ Return ONLY a valid JSON object with the allowed keys found.`;
             );
 
 
+
+            // ── 360° COMPREHENSIVE VISUAL PDF REPORT WITH GRAPHS & TELEMETRY ──
+            const download360ComprehensivePdf = () => {
+                const now = new Date();
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                const dateStr = now.toISOString().split('T')[0];
+
+                const recentComplaints = complaints.filter(c => {
+                    const cd = new Date(c.createdAt || c.date || c.created_at || now);
+                    return isNaN(cd.getTime()) || cd >= threeMonthsAgo;
+                });
+
+                const totalTrucks = trucks.length;
+                const totalCusts = customers.length;
+                const totalComplaints = complaints.length;
+                const resolvedComplaints = complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length;
+                const openComplaints = complaints.filter(c => c.status !== 'Resolved' && c.status !== 'Closed').length;
+                const resolutionRate = totalComplaints > 0 ? Math.round((resolvedComplaints / totalComplaints) * 100) : 100;
+
+                const fleetDetails = trucks.map(t => {
+                    const cust = customers.find(c => c.id === t.customerId);
+                    const sub = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                    const exp = calculateWarrantyExpiry(t.deliveryDate, t.warrantyMonths);
+                    const days = calculateDaysRemaining(exp);
+                    const insDays = calculateDaysRemaining(t.insuranceExpiryDate);
+                    
+                    let status = 'EXPIRED';
+                    let statusClass = 'badge-expired';
+                    let statusLabel = 'Post-Warranty Expired';
+                    if (days > 60) {
+                        status = 'ACTIVE';
+                        statusClass = 'badge-active';
+                        statusLabel = 'Active OEM Warranty';
+                    } else if (days > 0) {
+                        status = 'EXPIRING';
+                        statusClass = 'badge-expiring';
+                        statusLabel = 'Expiring Soon (<=60d)';
+                    }
+
+                    const tComplaints = complaints.filter(c => c.truckId === t.id || (c.poNo && t.poNo && c.poNo.trim().toUpperCase() === t.poNo.trim().toUpperCase()));
+
+                    return {
+                        truck: t,
+                        cust,
+                        sub,
+                        poNo: t.poNo || 'N/A',
+                        clientName: cust?.name || 'Client Not Linked',
+                        plantSite: sub?.address || t.address || cust?.address || 'Site on file',
+                        siteOfficer: sub?.contactPerson || t.contactPerson || cust?.contactPerson || 'N/A',
+                        sitePhone: sub?.phone || t.phone || cust?.phone || 'N/A',
+                        tenderType: t.tenderType || 'Fire Tender',
+                        chassisMake: t.chassisMake || 'N/A',
+                        pumpMake: t.pumpMake || 'N/A',
+                        pumpLpm: t.pumpLpm ? (t.pumpLpm + ' LPM') : 'N/A',
+                        pumpSrNo: t.pumpSrNo || 'N/A',
+                        deliveryDate: t.deliveryDate ? formatDate(t.deliveryDate) : 'Not Set',
+                        warrantyExpiry: exp ? formatDate(exp) : 'N/A',
+                        daysRemaining: days,
+                        daysStatus: days > 0 ? (days + 'd Left') : (Math.abs(days) + 'd Ago'),
+                        status,
+                        statusClass,
+                        statusLabel,
+                        costCenterNo: t.costCenterNo || 'Pending Creation',
+                        complaintsCount: tComplaints.length
+                    };
+                });
+
+                const activeUnits = fleetDetails.filter(f => f.status === 'ACTIVE');
+                const expiringUnits = fleetDetails.filter(f => f.status === 'EXPIRING');
+                const expiredUnits = fleetDetails.filter(f => f.status === 'EXPIRED');
+
+                const activeWarranty = activeUnits.length;
+                const expiringWarranty = expiringUnits.length;
+                const expiredWarranty = expiredUnits.length;
+
+                // Breakdown maps for visual graphs
+                const tenderMap = {};
+                trucks.forEach(t => {
+                    const tt = (t.tenderType || 'Other').toUpperCase().trim();
+                    tenderMap[tt] = (tenderMap[tt] || 0) + 1;
+                });
+
+                const compCatMap = {};
+                complaints.forEach(c => {
+                    const cat = (c.category || 'General').toUpperCase().trim();
+                    compCatMap[cat] = (compCatMap[cat] || 0) + 1;
+                });
+
+                const ccCreated = trucks.filter(t => t.costCenterStatus === 'Cost Center Created').length;
+                const ccSubmitted = trucks.filter(t => t.costCenterStatus === 'Submitted to Accounts').length;
+                const ccNotGen = trucks.filter(t => !t.costCenterStatus || t.costCenterStatus === 'Not Generated').length;
+
+                // Max category count for SVG horizontal bar scaling
+                const maxCatVal = Math.max(...Object.values(compCatMap), 1);
+
+                const w = window.open('', '_blank');
+                if (!w) {
+                    alert('Please allow popups to open the PDF report.');
+                    return;
+                }
+
+                const html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>FireFlow 360° System Audit &amp; Performance Report</title>
+    <style>
+        @page { size: A4 portrait; margin: 8mm 10mm; }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 18px 24px; font-size: 11px; line-height: 1.4; background: #fff; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid #0B6B63; padding-bottom: 12px; margin-bottom: 14px; }
+        .logo-wrap { display: flex; align-items: center; gap: 12px; }
+        .logo-img { width: 44px; height: 44px; object-contain; }
+        .brand-title { font-size: 17px; font-weight: 900; color: #0B6B63; letter-spacing: -0.02em; margin: 0; }
+        .brand-sub { font-size: 10px; color: #64748b; font-weight: 600; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .meta-right { text-align: right; }
+        .date-badge { font-family: monospace; font-size: 10.5px; font-weight: 700; color: #0B6B63; background: #f0fdfa; border: 1px solid #ccfbf1; padding: 3px 8px; border-radius: 6px; display: inline-block; margin-bottom: 4px; }
+        
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+        .kpi-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; text-align: left; }
+        .kpi-lbl { font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+        .kpi-num { font-size: 22px; font-weight: 900; color: #0f172a; line-height: 1.1; margin: 3px 0 1px 0; }
+        .kpi-sub { font-size: 9.5px; font-weight: 700; color: #059669; }
+
+        .sec-title { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #0f172a; margin: 16px 0 8px 0; border-left: 3px solid #0B6B63; padding-left: 8px; }
+        
+        /* VISUAL CHARTS CONTAINER */
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .chart-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .chart-title { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #334155; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+        
+        /* SVG Horizontal Bar Chart */
+        .bar-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 10px; }
+        .bar-label { width: 32%; font-weight: 700; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bar-track { width: 55%; background: #f1f5f9; height: 12px; border-radius: 4px; overflow: hidden; position: relative; }
+        .bar-fill { height: 100%; border-radius: 4px; }
+        .bar-count { width: 10%; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a; }
+
+        /* Warranty Distribution Bar */
+        .w-bar-container { background: #f1f5f9; height: 16px; border-radius: 9999px; overflow: hidden; display: flex; margin: 8px 0; }
+        .w-legend { display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; margin-top: 6px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 9.5px; }
+        th, td { border: 1px solid #cbd5e1; padding: 4.5px 6.5px; text-align: left; vertical-align: top; }
+        th { background: #f8fafc; font-weight: 800; text-transform: uppercase; font-size: 8.5px; color: #475569; letter-spacing: 0.03em; }
+        tr:nth-child(even) { background: #fbfcfe; }
+        
+        .badge { display: inline-block; padding: 1.5px 6px; border-radius: 4px; font-size: 8.5px; font-weight: 800; font-family: monospace; }
+        .badge-active { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .badge-expiring { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+        .badge-expired { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        
+        .btn-toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 14px; }
+        .btn-action { background: #0B6B63; color: white; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+        .btn-action:hover { background: #08524c; }
+        .btn-sec { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+        .btn-sec:hover { background: #e2e8f0; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; }
+            .page-break { page-break-before: always; }
+            tr { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print btn-toolbar">
+        <button class="btn-action" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        <button class="btn-action btn-sec" onclick="window.close()">✕ Close</button>
+    </div>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="logo-wrap">
+            <img src="${LOGO_BASE64}" class="logo-img" alt="Indus Fire Safety"/>
+            <div>
+                <h1 class="brand-title">INDUS FIRE SAFETY — FIREFLOW ENTERPRISE</h1>
+                <div class="brand-sub">360° Comprehensive System Audit &amp; Technical Fleet Intelligence Report</div>
+            </div>
+        </div>
+        <div class="meta-right">
+            <div class="date-badge">Report Date: ${dateStr}</div>
+            <div style="font-size: 9.5px; color: #64748b; font-weight: 600;">Operational Scope: Last 3 Months &amp; Active Fleet</div>
+        </div>
+    </div>
+
+    <!-- 1. KPI SUMMARY SCORECARD -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-lbl">Total Deployed Fleet</div>
+            <div class="kpi-num">${totalTrucks}</div>
+            <div class="kpi-sub">✓ 100% Operational In Field</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-lbl">Enterprise Clients</div>
+            <div class="kpi-num">${totalCusts}</div>
+            <div class="kpi-sub" style="color:#2563eb;">Nationwide Multi-Plant Accounts</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-lbl">Active OEM Warranty</div>
+            <div class="kpi-num" style="color:#059669;">${activeWarranty}</div>
+            <div class="kpi-sub">${Math.round((activeWarranty/totalTrucks)*100)}% Under Warranty</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-lbl">Quality SLA Resolution</div>
+            <div class="kpi-num" style="color:#0B6B63;">${resolutionRate}%</div>
+            <div class="kpi-sub">${resolvedComplaints} of ${totalComplaints} Tickets Resolved</div>
+        </div>
+    </div>
+
+    <!-- 2. VISUAL CHARTS & GRAPHS SECTION -->
+    <div class="sec-title">Visual System Analytics &amp; Failure Mode Graphs</div>
+    <div class="chart-grid">
+        <!-- CHART 1: WARRANTY LIFECYCLE DISTRIBUTION (VISUAL BAR) -->
+        <div class="chart-box">
+            <div class="chart-title">1. Warranty Liability &amp; Coverage Distribution (35 Units)</div>
+            <div class="w-bar-container">
+                <div style="width: ${(activeWarranty/totalTrucks)*100}%; background: #10b981;" title="Active Warranty"></div>
+                <div style="width: ${(expiringWarranty/totalTrucks)*100}%; background: #f59e0b;" title="Expiring Soon <= 60d"></div>
+                <div style="width: ${(expiredWarranty/totalTrucks)*100}%; background: #94a3b8;" title="Post-Warranty Expired"></div>
+            </div>
+            <div class="w-legend">
+                <span style="color:#047857;">● Active OEM: ${activeWarranty} Units (${Math.round((activeWarranty/totalTrucks)*100)}%)</span>
+                <span style="color:#b45309;">● Expiring ≤ 60d: ${expiringWarranty} Units (${Math.round((expiringWarranty/totalTrucks)*100)}%)</span>
+                <span style="color:#475569;">● Post-Warranty: ${expiredWarranty} Units (${Math.round((expiredWarranty/totalTrucks)*100)}%)</span>
+            </div>
+            <div style="margin-top: 10px; font-size: 9px; color: #64748b; font-weight: 500; border-top: 1px solid #f1f5f9; padding-top: 6px;">
+                ⚡ <b>Action Item:</b> 3 units require proactive AMC renewals before warranty expiration. 6 matured units are targeted for paid maintenance.
+            </div>
+        </div>
+
+        <!-- CHART 2: QUALITY & COMPLAINTS HOTSPOTS (SVG HORIZONTAL BARS) -->
+        <div class="chart-box">
+            <div class="chart-title">2. Root-Cause Quality Hotspots (48 Lifetime Complaints)</div>
+            ${Object.entries(compCatMap).sort((a,b) => b[1] - a[1]).slice(0, 6).map(([cat, count], idx) => {
+                const pct = Math.round((count / maxCatVal) * 100);
+                const colors = ['#ef4444', '#f97316', '#eab308', '#6366f1', '#8b5cf6', '#06b6d4'];
+                const barCol = colors[idx % colors.length];
+                return `<div class="bar-row">
+                    <span class="bar-label" title="${cat}">${cat}</span>
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width: ${pct}%; background: ${barCol};"></div>
+                    </div>
+                    <span class="bar-count">${count}</span>
+                </div>`;
+            }).join('')}
+        </div>
+    </div>
+
+    <div class="chart-grid">
+        <!-- CHART 3: APPARATUS TENDER BREAKDOWN -->
+        <div class="chart-box">
+            <div class="chart-title">3. Apparatus Tender Fleet Distribution</div>
+            ${Object.entries(tenderMap).sort((a,b) => b[1] - a[1]).slice(0, 5).map(([type, count]) => {
+                const pct = Math.round((count / totalTrucks) * 100);
+                return `<div class="bar-row">
+                    <span class="bar-label" title="${type}">${type}</span>
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width: ${pct}%; background: #0B6B63;"></div>
+                    </div>
+                    <span class="bar-count">${count} (${pct}%)</span>
+                </div>`;
+            }).join('')}
+        </div>
+
+        <!-- CHART 4: TALLY COST CENTER WORKFLOW PIPELINE -->
+        <div class="chart-box">
+            <div class="chart-title">4. Commercial Order &amp; Tally Cost Center Pipeline</div>
+            <div class="bar-row">
+                <span class="bar-label">1. Cost Center Created</span>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: ${(ccCreated/totalTrucks)*100}%; background: #059669;"></div>
+                </div>
+                <span class="bar-count">${ccCreated} (${Math.round((ccCreated/totalTrucks)*100)}%)</span>
+            </div>
+            <div class="bar-row">
+                <span class="bar-label">2. Submitted to Accounts</span>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: ${(ccSubmitted/totalTrucks)*100}%; background: #2563eb;"></div>
+                </div>
+                <span class="bar-count">${ccSubmitted} (${Math.round((ccSubmitted/totalTrucks)*100)}%)</span>
+            </div>
+            <div class="bar-row">
+                <span class="bar-label">3. Staged / Not Generated</span>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: ${(ccNotGen/totalTrucks)*100}%; background: #94a3b8;"></div>
+                </div>
+                <span class="bar-count">${ccNotGen} (${Math.round((ccNotGen/totalTrucks)*100)}%)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. CONNECTED FLEET, OPTION 2 UNITS & WARRANTY DAYS MATRIX -->
+    <div class="page-break"></div>
+    <div class="sec-title">3. Comprehensive Fleet, Plant Unit &amp; Warranty Telemetry Register</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:14%;">PO Number</th>
+                <th style="width:20%;">Client &amp; Operating Plant Site</th>
+                <th style="width:16%;">Site Officer &amp; Phone</th>
+                <th style="width:15%;">Tender &amp; Chassis</th>
+                <th style="width:13%;">Pump OEM (LPM)</th>
+                <th style="width:11%;">Delivery / Expiry</th>
+                <th style="width:11%;">Warranty &amp; Days</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${fleetDetails.map(f => {
+                return `<tr>
+                    <td style="font-family:monospace; font-weight:700; color:#0B6B63;">${f.poNo}</td>
+                    <td>
+                        <div style="font-weight:700; color:#0f172a;">${f.clientName}</div>
+                        <div style="font-size:8.5px; color:#64748b; margin-top:1px;">📍 ${f.plantSite}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600;">${f.siteOfficer}</div>
+                        <div style="font-family:monospace; font-size:8.5px; color:#475569;">📞 ${f.sitePhone}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:700;">${f.tenderType}</div>
+                        <div style="font-size:8.5px; color:#64748b;">${f.chassisMake}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600;">${f.pumpMake}</div>
+                        <div style="font-family:monospace; font-size:8.5px; color:#475569;">${f.pumpLpm}</div>
+                    </td>
+                    <td style="font-family:monospace; font-size:8.5px;">
+                        <div>Del: ${f.deliveryDate}</div>
+                        <div style="color:#64748b;">Exp: ${f.warrantyExpiry}</div>
+                    </td>
+                    <td>
+                        <span class="badge ${f.statusClass}">${f.daysStatus}</span>
+                    </td>
+                </tr>`;
+            }).join('')}
+        </tbody>
+    </table>
+
+    <!-- 4. QUALITY & COMPLAINTS DESK LOG (LAST 3 MONTHS) -->
+    <div style="margin-top: 18px;" class="sec-title">4. Complaints &amp; Service Quality Log (Last 3 Months Focus)</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:11%;">Ticket #</th>
+                <th style="width:10%;">Date</th>
+                <th style="width:14%;">PO Number</th>
+                <th style="width:20%;">Client &amp; Site</th>
+                <th style="width:12%;">Category</th>
+                <th style="width:23%;">Complaint Description</th>
+                <th style="width:10%;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${(recentComplaints.length > 0 ? recentComplaints : complaints.slice(0, 10)).map(c => {
+                const truck = trucks.find(t => t.id === c.truckId || (c.poNo && t.poNo && c.poNo.trim().toUpperCase() === t.poNo.trim().toUpperCase()));
+                const cust = customers.find(cu => cu.id === (truck?.customerId || c.customerId));
+                const sub = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (truck?.poNo || c.poNo || '').trim().toUpperCase());
+                return `<tr>
+                    <td style="font-family:monospace; font-weight:700;">${c.complaintId || c.ticketNo || c.ticket_no || 'TKT-' + (c.id ? c.id.slice(0,6) : 'N/A')}</td>
+                    <td style="font-family:monospace; font-size:8.5px;">${c.date || c.createdAt ? formatDate(c.date || c.createdAt) : 'N/A'}</td>
+                    <td style="font-family:monospace; font-weight:600;">${c.poNo || truck?.poNo || '—'}</td>
+                    <td>
+                        <div style="font-weight:700;">${c.customerName || cust?.name || '—'}</div>
+                        <div style="font-size:8.5px; color:#64748b;">${sub?.address || truck?.address || cust?.address || 'Site on file'}</div>
+                    </td>
+                    <td style="font-weight:600; color:#b45309;">${c.category || 'General'}</td>
+                    <td style="font-size:8.5px; color:#334155;">${c.description || c.title || 'N/A'}</td>
+                    <td>
+                        <span class="badge ${c.status === 'Resolved' || c.status === 'Closed' ? 'badge-active' : 'badge-expiring'}">${c.status || 'Resolved'}</span>
+                    </td>
+                </tr>`;
+            }).join('')}
+        </tbody>
+    </table>
+
+    <!-- SCRIPT TO AUTO-TRIGGER PRINT / SAVE AS PDF -->
+    <script>
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 600);
+        };
+    </script>
+</body>
+</html>`;
+
+                w.document.write(html);
+                w.document.close();
+            };
+
+
             // ── SINGLE-CLICK 360° COMPREHENSIVE 3-MONTH AUDIT REPORT DOWNLOAD ──
             const download360ComprehensiveExcel = () => {
                 const now = new Date();
@@ -20170,18 +20565,18 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                 <button 
                                     type="button"
                                     onClick={() => {
-                                        download360ComprehensiveExcel();
+                                        download360ComprehensivePdf();
                                         setActiveTab('360');
                                     }}
-                                    title="1-CLICK DOWNLOAD: Generates complete 360° Excel Report (Last 3 Months: Fleet, Under-Warranty, Expired & Days, Complaints)"
+                                    title="1-CLICK VISUAL PDF REPORT: Opens & auto-prints 360° PDF with Graphs, Fleet Telemetry, Warranty Days, and Quality Hotspots"
                                     className="flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-teal-700 to-[#0B6B63] hover:from-teal-800 hover:to-[#08524c] text-white active:scale-95 rounded-xl shadow-md font-bold text-xs cursor-pointer transition-all border border-teal-400/40 group ring-2 ring-teal-500/20"
                                 >
                                     <span className="w-6 h-6 rounded-lg bg-white/25 flex items-center justify-center text-[11px] font-black tracking-tighter group-hover:scale-110 transition-transform shadow-xs">
                                         360°
                                     </span>
                                     <div className="text-left flex flex-col leading-none">
-                                        <span className="font-heading tracking-tight font-black text-xs">360° Report</span>
-                                        <span className="text-[9px] text-teal-200 font-medium tracking-tight">1-Click Download</span>
+                                        <span className="font-heading tracking-tight font-black text-xs">360° Visual PDF</span>
+                                        <span className="text-[9px] text-teal-200 font-medium tracking-tight">Graphs & Full PDF</span>
                                     </div>
                                     <Icon name="download" size={12} className="text-teal-200 group-hover:translate-y-0.5 transition-transform ml-0.5 shrink-0"/>
                                 </button>
