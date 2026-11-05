@@ -21709,8 +21709,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                 { id: 'qr-requests', icon: 'qr-code', label: 'QR Code Requests', count: pendingSubsCount, badgeColor: 'bg-amber-100 text-amber-900 border border-amber-300 font-bold' },
                                 { id: 'customers', icon: 'users', label: 'Customers & Assets', count: customers.length },
                                 { id: 'trucks', icon: 'shield-check', label: 'Fleet Inventory', count: trucks.length },
-                                { id: 'po-glance', icon: 'file-text', label: 'PO At Glance' },
-                                { id: '360', icon: 'globe', label: '360° System Audit', badge: '360°' }
+                                { id: 'po-glance', icon: 'file-text', label: 'PO At Glance' }
                             ];
                             const serviceNav = [
                                 { id: 'complaints', icon: 'alert-circle', label: 'Complaints Desk', count: complaints.filter(c=>c.status==='Open').length, badgeColor: 'bg-rose-50 text-rose-700 border border-rose-200' },
@@ -21856,24 +21855,15 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                 )}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                                {/* 360° EXECUTIVE AUDIT REPORT BUTTON */}
+                                {/* COMPACT ATTRACTIVE 360° BUTTON */}
                                 <button 
                                     type="button"
-                                    onClick={() => {
-                                        download360ComprehensivePdf();
-                                        setActiveTab('360');
-                                    }}
-                                    title="1-CLICK VISUAL PDF REPORT: Opens & auto-prints 360° PDF with Graphs, Fleet Telemetry, Warranty Days, and Quality Hotspots"
-                                    className="flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-teal-700 to-[#0B6B63] hover:from-teal-800 hover:to-[#08524c] text-white active:scale-95 rounded-xl shadow-md font-bold text-xs cursor-pointer transition-all border border-teal-400/40 group ring-2 ring-teal-500/20"
+                                    onClick={() => download360ComprehensivePdf()}
+                                    title="1-Click FireFlow 360° System Audit & Performance Report (PDF)"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-700 to-[#0B6B63] hover:from-teal-800 hover:to-[#08524c] text-white active:scale-95 rounded-xl shadow-sm hover:shadow-md font-black text-xs cursor-pointer transition-all border border-teal-400/40 group ring-2 ring-teal-500/20"
                                 >
-                                    <span className="w-6 h-6 rounded-lg bg-white/25 flex items-center justify-center text-[11px] font-black tracking-tighter group-hover:scale-110 transition-transform shadow-xs">
-                                        360°
-                                    </span>
-                                    <div className="text-left flex flex-col leading-none">
-                                        <span className="font-heading tracking-tight font-black text-xs">360° Visual PDF</span>
-                                        <span className="text-[9px] text-teal-200 font-medium tracking-tight">Graphs & Full PDF</span>
-                                    </div>
-                                    <Icon name="download" size={12} className="text-teal-200 group-hover:translate-y-0.5 transition-transform ml-0.5 shrink-0"/>
+                                    <span className="font-heading font-black tracking-tight text-xs">360°</span>
+                                    <Icon name="download" size={12} className="text-teal-200 group-hover:translate-y-0.5 transition-transform shrink-0" />
                                 </button>
 
                                 <button 
