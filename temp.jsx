@@ -7891,26 +7891,6 @@ ON CONFLICT (id) DO NOTHING;`;
                             onClose={() => setSelectedCommissioningTruck(null)}
                         />
                     )}
-                
-                    {/* Discreet Bottom Lock Buttons */}
-                    <button
-                        type="button"
-                        onClick={() => setPortalMode('login')}
-                        title=""
-                        aria-label="Staff Login"
-                        className="fixed bottom-3 right-3 z-30 w-6 h-6 rounded-full flex items-center justify-center opacity-20 hover:opacity-70 transition-opacity cursor-pointer"
-                    >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setPortalMode('login')}
-                        title=""
-                        aria-label="Staff Login"
-                        className="fixed bottom-3 left-3 z-30 w-6 h-6 rounded-full flex items-center justify-center opacity-20 hover:opacity-70 transition-opacity cursor-pointer"
-                    >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    </button>
                 </div>
             );
         };
@@ -20285,23 +20265,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
             // ── CUSTOMER PORTAL & LOGIN PAGE (STRICT ZERO-SCROLL SINGLE SCREEN) ──
             if (accessMode === 'customer') return (
                 <div className="h-screen max-h-screen overflow-hidden relative bg-[#f8fafc]">
-                    {/* LOCK 1: EXISTING LOCATION (BOTTOM-RIGHT) — FOR AGM READ-ONLY VIEW */}
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setAuthPasswordInput('');
-                            setAuthPasswordError(false);
-                            setShowAgmAuthModal(true);
-                        }}
-                        title=""
-                        aria-label="AGM Portal Access"
-                        className="fixed bottom-4 right-4 z-50 w-7 h-7 rounded-full flex items-center justify-center opacity-10 hover:opacity-40 transition-opacity duration-300 cursor-pointer"
-                        style={{ background: 'transparent' }}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    </button>
-
-                    {/* LOCK 2: LH SIDE BOTTOM (BOTTOM-LEFT) — FOR MASTER ADMIN FULL ACCESS */}
+                    {/* DISCREET SECURE PORTAL ACCESS (BOTTOM-RIGHT ONLY) */}
                     <button
                         type="button"
                         onClick={() => {
@@ -20310,11 +20274,11 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                             setShowMasterAuthModal(true);
                         }}
                         title=""
-                        aria-label="Master Admin Portal Access"
-                        className="fixed bottom-4 left-4 z-50 w-7 h-7 rounded-full flex items-center justify-center opacity-10 hover:opacity-40 transition-opacity duration-300 cursor-pointer"
+                        aria-label="Secure Portal Access"
+                        className="fixed bottom-4 right-4 z-50 w-8 h-8 rounded-full flex items-center justify-center opacity-20 hover:opacity-80 transition-opacity duration-300 cursor-pointer"
                         style={{ background: 'transparent' }}
                     >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     </button>
 
                     {/* AGM SECURE ACCESS MODAL ROUTED THROUGH HI-TECH SMART LOGIN TERMINAL */}
