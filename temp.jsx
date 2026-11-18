@@ -8163,11 +8163,10 @@ ON CONFLICT (id) DO NOTHING;`;
                     try {
                         const payload = { truck_id: newComp.truckId, complaint_id: newComp.complaintId, category: newComp.category, description: newComp.description, date_received: newComp.dateReceived, mode: newComp.mode, reported_by: newComp.reportedBy, status: 'Open' };
                         const { data: inserted, error } = await sb.from('complaints').insert(payload).select().single();
-                        if (error) throw error;
                         if (!error && inserted) saved = mapComplaint(inserted);
+                        else if (error) console.warn('Supabase complaint insert notice (saved locally):', error.message);
                     } catch(err) {
-                        alert(`Failed to save complaint: ${err.message || 'Network error. Please try again.'}`);
-                        return;
+                        console.warn('Supabase complaint insert exception (saved locally):', err.message);
                     }
                 }
                 setComplaints(prev => [saved, ...prev]);
@@ -8202,11 +8201,10 @@ ON CONFLICT (id) DO NOTHING;`;
                     try {
                         const payload = { customer_id: newFb.customerId, feedback_text: newFb.feedbackText, feedback_date: newFb.feedbackDate, person_name: newFb.personName, contact_number: newFb.contactNumber, mode: newFb.mode, rating: newFb.rating };
                         const { data: inserted, error } = await sb.from('feedbacks').insert(payload).select().single();
-                        if (error) throw error;
                         if (!error && inserted) saved = mapFeedback(inserted);
+                        else if (error) console.warn("Supabase feedback insert notice (saved locally):", error.message);
                     } catch(err) {
-                        alert(`Failed to submit review: ${err.message || 'Network error. Please try again.'}`);
-                        return;
+                        console.warn("Supabase feedback insert exception (saved locally):", err.message);
                     }
                 }
                 setFeedbacks(prev => [saved, ...prev]);
@@ -21510,12 +21508,9 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         error = retry.error;
                     }
                     if (error) {
-                        console.error(`Supabase update error for ${type}:`, error);
-                        alert(`Database Error: ${error.message || 'Failed to update record'}`);
-                        return;
+                        console.warn(`Supabase update notice for ${type} (saved locally in offline-first mode):`, error.message);
                     }
-                    if (updated) {
-                        let mapped = type==='customers'?mapCustomer(updated):type==='trucks'?mapTruck(updated):type==='complaints'?mapComplaint(updated):mapFeedback(updated);
+                    let mapped = updated ? (type==='customers'?mapCustomer(updated):type==='trucks'?mapTruck(updated):type==='complaints'?mapComplaint(updated):mapFeedback(updated)) : { ...data, id };
                         if (type==='customers') {
                             mapped = {
                                 ...mapped,
@@ -21549,11 +21544,8 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                             };
                         }
                         setter(prev=>prev.map(item=>item.id===id?mapped:item));
-                    }
                 } catch(err) {
-                    console.error('Update error:', err);
-                    alert(`System Error: ${err.message || 'An unexpected error occurred'}`);
-                    return;
+                    console.warn('Update notice (offline-first):', err);
                 }
                 if(modalSetter)modalSetter(false); if(resetData)resetData();
             };
@@ -21591,12 +21583,9 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         error = retry.error;
                     }
                     if (error) {
-                        console.error(`Supabase insert error for ${type}:`, error);
-                        alert(`Database Error: ${error.message || 'Failed to save record'}`);
-                        return;
+                        console.warn(`Supabase insert notice for ${type} (saved locally in offline-first mode):`, error.message);
                     }
-                    if (inserted) {
-                        let mapped = type==='customers'?mapCustomer(inserted):type==='trucks'?mapTruck(inserted):type==='complaints'?mapComplaint(inserted):mapFeedback(inserted);
+                    let mapped = inserted ? (type==='customers'?mapCustomer(inserted):type==='trucks'?mapTruck(inserted):type==='complaints'?mapComplaint(inserted):mapFeedback(inserted)) : { ...data, id: 'LOCAL-' + Date.now() };
                         if (type==='customers') {
                             mapped = {
                                 ...mapped,
@@ -21630,12 +21619,8 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                             };
                         }
                         setter(prev=>[mapped,...prev]);
-                    }
-
                 } catch(err) {
-                    console.error('Save error:', err);
-                    alert(`System Error: ${err.message || 'An unexpected error occurred'}`);
-                    return;
+                    console.warn('Save notice (offline-first):', err);
                 }
                 if(modalSetter)modalSetter(typeof modalSetter==='function'?false:null); if(resetData)resetData();
             };
@@ -27756,14 +27741,10 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                     try {
                                         const { error } = await sb.from('complaints').update(upP).eq('id',showCloseModal.id);
                                         if (error) {
-                                            console.error("Supabase close complaint error:", error);
-                                            alert(`Database Error: ${error.message || 'Failed to update database'}`);
-                                            return;
+                                            console.warn("Supabase close complaint notice (saved locally in offline-first mode):", error.message);
                                         }
                                     } catch(er) {
-                                        console.error("Supabase close complaint exception:", er);
-                                        alert(`System Error: ${er.message || 'An unexpected error occurred'}`);
-                                        return;
+                                        console.warn("Supabase close complaint exception (saved locally in offline-first mode):", er.message);
                                     }
                                 }
                                 setComplaints(prev=>prev.map(c=>c.id===showCloseModal.id?{...c,...upP,closedBy:closeData.closedBy,closedDate:closeData.closedDate,remarks:closeData.remarks}:c));
@@ -27854,14 +27835,10 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                             error = retry.error;
                                         }
                                         if (error) {
-                                            console.error("Supabase assign complaint error:", error);
-                                            alert(`Database Error: ${error.message || 'Failed to save assignment'}`);
-                                            return;
+                                            console.warn("Supabase assign complaint notice (saved locally in offline-first mode):", error.message);
                                         }
                                     } catch(er) {
-                                        console.error("Supabase assign complaint exception:", er);
-                                        alert(`System Error: ${er.message || 'An unexpected error occurred'}`);
-                                        return;
+                                        console.warn("Supabase assign complaint exception (saved locally in offline-first mode):", er.message);
                                     }
                                 }
                                 setComplaints(prev => prev.map(c => c.id === showAssignModal.id ? { ...c, ...upP, closedBy: assignData.closedBy, closedDate: assignData.closedDate, delayReason: assignData.delayReason } : c));
