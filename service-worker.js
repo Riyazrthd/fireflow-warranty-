@@ -1,11 +1,11 @@
-const CACHE_NAME = 'fireflow-pwa-v11';
-const DYNAMIC_CACHE = 'fireflow-dynamic-v11';
+const CACHE_NAME = 'fireflow-pwa-v12';
+const DYNAMIC_CACHE = 'fireflow-dynamic-v12';
 
 // Relative assets without leading slashes for perfect GitHub Pages & Custom Domain compatibility
 const PRECACHE_ASSETS = [
   './',
   './index.html',
-  './app.bundle.js?v=5.3.4',
+  './app.bundle.js?v=5.3.5',
   './manifest.json',
   './icons/favicon.png'
 ];

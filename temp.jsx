@@ -845,6 +845,8 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
         "id": "7660b50c-a959-4e86-91b3-bc1676b327d7",
         "customerId": "016e3c4b-1ab2-4795-8992-56cd2761463a",
         "poNo": "GEMC-511687762312621",
+        "plantLocation": "PD Administrative Building, Udyogamandal, Ernakulam, Kerala",
+        "address": "PD Administrative Building, Udyogamandal, Ernakulam, Kerala",
         "poDate": null,
         "tenderType": "MFT",
         "pumpMake": "FIREFLY",
@@ -1296,6 +1298,8 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
         "id": "ca3077ed-c091-4a5a-9389-1e9e951ad063",
         "customerId": "016e3c4b-1ab2-4795-8992-56cd2761463a",
         "poNo": "GEMC-511687771938366",
+        "plantLocation": "FACT-UDYOGMANDAL COMPLEX, UDYOGAMANDAL(PO), ERNAKULAM, KERALA-683501",
+        "address": "FACT-UDYOGMANDAL COMPLEX, UDYOGAMANDAL(PO), ERNAKULAM, KERALA-683501",
         "poDate": null,
         "tenderType": "FOAM TENDER",
         "pumpMake": "FIREFLY",
@@ -2428,6 +2432,8 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
             customerId: r.customer_id,
             poNo: r.po_no,
             poDate: r.po_date || null,
+            plantLocation: r.plant_location || r.plant_site || r.site_address || r.address || null,
+            address: r.address || r.plant_location || r.plant_site || r.site_address || null,
             tenderType: r.tender_type,
             pumpMake: r.pump_make,
             pumpLpm: r.pump_lpm,
@@ -19698,11 +19704,11 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                             try { localStorage.setItem('ff_cust', JSON.stringify(next)); } catch(e){}
                             return next;
                         });
-                    } else if (sub.address || sub.phone || sub.email || sub.contactPerson) {
+                    } else if (sub.phone || sub.email || sub.contactPerson || (!existingCust.address && sub.address)) {
                         setCustomers(prev => {
                             const next = prev.map(c => c.id === custId ? {
                                 ...c,
-                                address: sub.address || c.address,
+                                address: c.address || sub.address,
                                 phone: sub.phone || c.phone,
                                 email: sub.email || c.email,
                                 contactPerson: sub.contactPerson || c.contactPerson
@@ -19722,6 +19728,8 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         id: trkId,
                         customerId: custId,
                         poNo: sub.poNo || sub.po_no || '',
+                        plantLocation: sub.address || '',
+                        address: sub.address || '',
                         poDate: sub.poDate || sub.po_date || null,
                         tenderType: sub.tenderType || sub.tender_type || 'FIRE TENDER',
                         chassisMake: sub.chassisMake || sub.chassis_make || '',
@@ -19853,7 +19861,25 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                 } 
             };
             const [customers, setCustomers] = useState(() => safeLocalGet('ff_cust', INITIAL_CUSTOMERS));
-            const [trucks, setTrucks] = useState(() => safeLocalGet('ff_trks', INITIAL_TRUCKS));
+            const [trucks, setTrucks] = useState(() => {
+                let trks = safeLocalGet('ff_trks', INITIAL_TRUCKS);
+                let modified = false;
+                trks = trks.map(t => {
+                    if (t.poNo === 'GEMC-511687762312621' && (!t.plantLocation || t.plantLocation.includes('UDYOGMANDAL COMPLEX'))) {
+                        modified = true;
+                        return { ...t, plantLocation: 'PD Administrative Building, Udyogamandal, Ernakulam, Kerala', address: 'PD Administrative Building, Udyogamandal, Ernakulam, Kerala' };
+                    }
+                    if (t.poNo === 'GEMC-511687771938366' && (!t.plantLocation || !t.plantLocation.includes('UDYOGMANDAL COMPLEX'))) {
+                        modified = true;
+                        return { ...t, plantLocation: 'FACT-UDYOGMANDAL COMPLEX, UDYOGAMANDAL(PO), ERNAKULAM, KERALA-683501', address: 'FACT-UDYOGMANDAL COMPLEX, UDYOGAMANDAL(PO), ERNAKULAM, KERALA-683501' };
+                    }
+                    return t;
+                });
+                if (modified) {
+                    try { localStorage.setItem('ff_trks', JSON.stringify(trks)); } catch(e){}
+                }
+                return trks;
+            });
             const [complaints, setComplaints] = useState(() => {
                 const cached = safeLocalGet('ff_cmps', INITIAL_COMPLAINTS);
                 // Auto-heal: If cached complaints contain old dummy 2026-06-15 dates, replace with authentic master data
@@ -20277,7 +20303,9 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                 }
                 const tenderType = truck.tenderType || '';
                 const custName = customer?.name || truck.customerName || '';
-                const custAddr = customer?.address || truck.customerAddress || '';
+                const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (truck.poNo || '').trim().toUpperCase());
+                const plantSiteAddr = truck.plantLocation || truck.address || subMatch?.address || customer?.address || truck.customerAddress || '';
+                const custAddr = customer?.address || '';
                 const custContactPerson = customer?.contactPerson || '';
                 const custPhone = customer?.phone || '';
                 const custEmail = customer?.email || '';
@@ -20441,10 +20469,11 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                 <td class="val" style="width: 25%;">${formatDateDDMMYYYY(truck.ocDate)}</td>
                             </tr>
                             <tr>
-                                <td class="lbl" style="width: 25%;">Client Name & Address</td>
+                                <td class="lbl" style="width: 25%;">Client Name &amp; Plant Location</td>
                                 <td class="val" style="width: 50%;">
                                     <div style="font-weight: bold; font-size: 11px; text-transform: uppercase; color: #1e3a8a;">${custName || ''}</div>
-                                    ${custAddr ? `<div style="font-size: 10px; font-weight: normal; color: #0f172a; margin-top: 2px; text-transform: uppercase;">${custAddr}</div>` : ''}
+                                    ${plantSiteAddr ? `<div style="font-size: 10px; font-weight: 600; color: #0B6B63; margin-top: 2px; text-transform: uppercase;">📍 Plant Site: ${plantSiteAddr}</div>` : ''}
+                                    ${custAddr && custAddr !== plantSiteAddr ? `<div style="font-size: 9.5px; font-weight: normal; color: #64748b; margin-top: 1px; text-transform: uppercase;">HQ: ${custAddr}</div>` : ''}
                                 </td>
                                 <td class="lbl" colspan="2" style="width: 25%; vertical-align: middle;">Whether SEZ: <span class="val" style="color: #0f172a;">${opts.sez || poGlanceSez || 'No'}</span></td>
                             </tr>
@@ -21153,7 +21182,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                     const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
 
                     const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
-                    const siteAddress = subMatch?.address || t.address || cust?.address || '';
+                    const siteAddress = t.plantLocation || t.address || subMatch?.address || cust?.address || '';
                     const siteOfficer = subMatch?.contactPerson || t.contactPerson || cust?.contactPerson || '';
                     const sitePhone = subMatch?.phone || t.phone || cust?.phone || '';
 
@@ -21485,7 +21514,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                 try {
                     let payload = {};
                     if (type==='customers') payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email,po_no:data.poNo || null,po_date:data.poDate || null};
-                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate || null,oc_no:data.ocNo || null,oc_date:data.ocDate || null,cost_center_no:data.costCenterNo || null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,pto_make:data.ptoMake || null,pto_ratio:data.ptoRatio || null,pto_sr_no:data.ptoSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null,cost_center_status:data.costCenterStatus || 'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt || null,submitted_to_accounts_at:data.submittedToAccountsAt || null,cost_center_created_at:data.costCenterCreatedAt || null};
+                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate || null,oc_no:data.ocNo || null,oc_date:data.ocDate || null,cost_center_no:data.costCenterNo || null,plant_location:data.plantLocation || data.address || null,address:data.address || data.plantLocation || null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,pto_make:data.ptoMake || null,pto_ratio:data.ptoRatio || null,pto_sr_no:data.ptoSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null,cost_center_status:data.costCenterStatus || 'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt || null,submitted_to_accounts_at:data.submittedToAccountsAt || null,cost_center_created_at:data.costCenterCreatedAt || null};
                     else if (type==='complaints') payload={truck_id:data.truckId,category:data.category,description:data.description,date_received:data.dateReceived || null,mode:data.mode||'Mail',reported_by:data.reportedBy};
                     else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate || null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
                     
@@ -21498,6 +21527,8 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         delete fallbackPayload.insurance_policy_no;
                         delete fallbackPayload.insurance_company;
                         delete fallbackPayload.insurance_expiry_date;
+                        delete fallbackPayload.plant_location;
+                        delete fallbackPayload.address;
                         delete fallbackPayload.po_no;
                         delete fallbackPayload.po_date;
                         delete fallbackPayload.cost_center_status;
@@ -21526,6 +21557,8 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         if (type==='trucks') {
                             mapped = {
                                 ...mapped,
+                                plantLocation: mapped.plantLocation || data.plantLocation || data.address || null,
+                                address: mapped.address || data.address || data.plantLocation || null,
                                 poDate: mapped.poDate || data.poDate,
                                 ocNo: mapped.ocNo || data.ocNo,
                                 ocDate: mapped.ocDate || data.ocDate,
@@ -21562,7 +21595,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                 try {
                     let payload = {};
                     if (type==='customers') payload={name:data.name,address:data.address,contact_person:data.contactPerson,phone:data.phone,email:data.email,po_no:data.poNo || null,po_date:data.poDate || null};
-                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate || null,oc_no:data.ocNo || null,oc_date:data.ocDate || null,cost_center_no:data.costCenterNo || null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,pto_make:data.ptoMake || null,pto_ratio:data.ptoRatio || null,pto_sr_no:data.ptoSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null,cost_center_status:data.costCenterStatus || 'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt || null,submitted_to_accounts_at:data.submittedToAccountsAt || null,cost_center_created_at:data.costCenterCreatedAt || null};
+                    else if (type==='trucks') payload={customer_id:data.customerId,po_no:data.poNo,po_date:data.poDate || null,oc_no:data.ocNo || null,oc_date:data.ocDate || null,cost_center_no:data.costCenterNo || null,plant_location:data.plantLocation || data.address || null,address:data.address || data.plantLocation || null,tender_type:data.tenderType,pump_make:data.pumpMake,pump_lpm:data.pumpLpm || null,pump_sr_no:data.pumpSrNo || null,pto_make:data.ptoMake || null,pto_ratio:data.ptoRatio || null,pto_sr_no:data.ptoSrNo || null,foam_capacity:data.foamCapacity || null,water_capacity:data.waterCapacity || null,chassis_make:data.chassisMake,model_no:data.modelNo,delivery_date:data.deliveryDate || null,warranty_months:parseInt(data.warrantyMonths)||12,insurance_policy_no:data.insurancePolicyNo || null,insurance_company:data.insuranceCompany || null,insurance_expiry_date:data.insuranceExpiryDate || null,cost_center_status:data.costCenterStatus || 'Not Generated',po_at_glance_generated_at:data.poAtGlanceGeneratedAt || null,submitted_to_accounts_at:data.submittedToAccountsAt || null,cost_center_created_at:data.costCenterCreatedAt || null};
                     else if (type==='complaints') payload={truck_id:data.truckId,complaint_id:data.complaintId,category:data.category,description:data.description,date_received:data.dateReceived || null,mode:data.mode||'Mail',reported_by:data.reportedBy,status:data.status||'Open'};
                     else if (type==='feedbacks') payload={customer_id:data.customerId,feedback_text:data.feedbackText,feedback_date:data.feedbackDate || null,person_name:data.personName,contact_number:data.contactNumber,mode:data.mode,rating:data.rating||5};
                     
@@ -21573,6 +21606,8 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         delete fallbackPayload.insurance_policy_no;
                         delete fallbackPayload.insurance_company;
                         delete fallbackPayload.insurance_expiry_date;
+                        delete fallbackPayload.plant_location;
+                        delete fallbackPayload.address;
                         delete fallbackPayload.po_no;
                         delete fallbackPayload.po_date;
                         delete fallbackPayload.cost_center_status;
@@ -21601,6 +21636,8 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         if (type==='trucks') {
                             mapped = {
                                 ...mapped,
+                                plantLocation: mapped.plantLocation || data.plantLocation || data.address || null,
+                                address: mapped.address || data.address || data.plantLocation || null,
                                 poDate: mapped.poDate || data.poDate,
                                 ocNo: mapped.ocNo || data.ocNo,
                                 ocDate: mapped.ocDate || data.ocDate,
@@ -25500,7 +25537,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                                         {/* Unit / Plant Location & Site Contact Line */}
                                                         {(() => {
                                                             const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
-                                                            const siteAddress = subMatch?.address || t.address || custObj?.address || '';
+                                                            const siteAddress = t.plantLocation || t.address || subMatch?.address || custObj?.address || '';
                                                             const siteOfficer = subMatch?.contactPerson || t.contactPerson || custObj?.contactPerson || '';
                                                             const sitePhone = subMatch?.phone || t.phone || custObj?.phone || '';
                                                             if (!siteAddress && !siteOfficer) return null;
@@ -25704,7 +25741,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                                                                     </p>
                                                                                     {(() => {
                                                                                         const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
-                                                                                        const siteAddress = subMatch?.address || t.address || custObj?.address || 'Site address on file';
+                                                                                        const siteAddress = t.plantLocation || t.address || subMatch?.address || custObj?.address || 'Site address on file';
                                                                                         const siteOfficer = subMatch?.contactPerson || t.contactPerson || custObj?.contactPerson || '';
                                                                                         const sitePhone = subMatch?.phone || t.phone || custObj?.phone || '';
                                                                                         return (
@@ -26271,11 +26308,14 @@ Return ONLY a valid JSON object with the allowed keys found.`;
 
                             const filteredGlanceTrucks = trucks.filter(t => {
                                 const cust = customers.find(c => c.id === t.customerId);
+                                const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                                const plantSiteAddr = t.plantLocation || t.address || subMatch?.address || cust?.address || '';
                                 const q = poGlanceSearch.toLowerCase().trim();
                                 const matchesSearch = !q || 
                                     (t.poNo && t.poNo.toLowerCase().includes(q)) || 
                                     (t.tenderType && t.tenderType.toLowerCase().includes(q)) || 
-                                    (cust && cust.name && cust.name.toLowerCase().includes(q));
+                                    (cust && cust.name && cust.name.toLowerCase().includes(q)) ||
+                                    plantSiteAddr.toLowerCase().includes(q);
 
                                 if (!matchesSearch) return false;
 
@@ -26436,9 +26476,16 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                                                                 <p className="font-semibold text-slate-800 text-[12.5px] tracking-[-0.1px] truncate font-heading group-hover:text-[#0B6B63] transition-colors" title={cust?.name}>
                                                                                     {cust?.name || 'Unknown Client'}
                                                                                 </p>
-                                                                                <p className="text-[11px] font-normal text-slate-400 truncate mt-0.5">
-                                                                                    {cust?.address || 'Site location not recorded'}
-                                                                                </p>
+                                                                                {(() => {
+                                                                                    const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                                                                                    const plantSiteAddr = t.plantLocation || t.address || subMatch?.address || cust?.address || 'Site location not recorded';
+                                                                                    return (
+                                                                                        <p className="text-[11px] font-normal text-slate-500 truncate mt-0.5 flex items-center gap-1" title={plantSiteAddr}>
+                                                                                            <Icon name="map-pin" size={10} className="text-[#0B6B63] shrink-0"/>
+                                                                                            <span className="truncate">{plantSiteAddr}</span>
+                                                                                        </p>
+                                                                                    );
+                                                                                })()}
                                                                             </div>
                                                                         </div>
                                                                     </td>
@@ -26802,11 +26849,42 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                                             <span className="font-mono text-slate-700 font-medium">{poDateFormatted || 'Not Specified'}</span>
                                                         </div>
 
-                                                        <div className="bg-white p-2 rounded-lg border border-slate-100 space-y-0.5">
-                                                            <span className="text-[10px] text-slate-400 font-medium">Client Organization</span>
-                                                            <p className="font-semibold text-slate-800 truncate" title={cust?.name}>{cust?.name || 'Unknown Client'}</p>
-                                                            <p className="text-[10.5px] text-slate-400 truncate">{cust?.address || 'Site location not recorded'}</p>
-                                                        </div>
+                                                        {(() => {
+                                                            const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                                                            const plantSiteAddr = t.plantLocation || t.address || subMatch?.address || cust?.address || 'Site location not recorded';
+                                                            return (
+                                                                <div className="bg-white p-2.5 rounded-lg border border-slate-100 space-y-2">
+                                                                    <div>
+                                                                        <span className="text-[10px] text-slate-400 font-medium block">Client Organization</span>
+                                                                        <p className="font-semibold text-slate-800 truncate text-xs" title={cust?.name}>{cust?.name || 'Unknown Client'}</p>
+                                                                        {cust?.address && cust?.address !== plantSiteAddr && (
+                                                                            <p className="text-[10px] text-slate-400 truncate mt-0.5">HQ: {cust.address}</p>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="pt-1.5 border-t border-slate-100 flex items-start justify-between gap-2">
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <span className="text-[10px] text-[#0B6B63] font-bold uppercase tracking-wider block">Plant / Site Location (This PO)</span>
+                                                                            <p className="text-[11px] font-semibold text-slate-700 mt-0.5 truncate" title={plantSiteAddr}>
+                                                                                📍 {plantSiteAddr}
+                                                                            </p>
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setEditingTruck(t);
+                                                                                setNewTrk({ ...t, plantLocation: t.plantLocation || t.address || plantSiteAddr, address: t.address || t.plantLocation || plantSiteAddr });
+                                                                                setShowTruckModal(true);
+                                                                            }}
+                                                                            className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline shrink-0 pt-0.5 cursor-pointer"
+                                                                            title="Edit Plant Location for this PO"
+                                                                        >
+                                                                            Edit Site
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
 
                                                         <div className="grid grid-cols-2 gap-2">
                                                             <div className="bg-white p-2 rounded-lg border border-slate-100">
@@ -27192,7 +27270,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                 const captured = {...newTrk};
                                 const isNew = !editingTruck;
                                 const resetFn = () => {
-                                    setNewTrk({customerId:'',poNo:'',poDate:'',ocNo:'',ocDate:'',costCenterNo:'',tenderType:'',pumpMake:'',pumpLpm:'',pumpSrNo:'',ptoMake:'',ptoRatio:'',ptoSrNo:'',foamCapacity:'',waterCapacity:'',chassisMake:'',modelNo:'',deliveryDate:'',warrantyMonths:12,insurancePolicyNo:'',insuranceCompany:'',insuranceExpiryDate:'',costCenterStatus:'Not Generated',poAtGlanceGeneratedAt:null,submittedToAccountsAt:null,costCenterCreatedAt:null});
+                                    setNewTrk({customerId:'',poNo:'',poDate:'',ocNo:'',ocDate:'',costCenterNo:'',plantLocation:'',address:'',tenderType:'',pumpMake:'',pumpLpm:'',pumpSrNo:'',ptoMake:'',ptoRatio:'',ptoSrNo:'',foamCapacity:'',waterCapacity:'',chassisMake:'',modelNo:'',deliveryDate:'',warrantyMonths:12,insurancePolicyNo:'',insuranceCompany:'',insuranceExpiryDate:'',costCenterStatus:'Not Generated',poAtGlanceGeneratedAt:null,submittedToAccountsAt:null,costCenterCreatedAt:null});
                                     if (isNew && captured.poNo) { setQrTruck(captured); setShowQrModal(true); }
                                 };
                                 saveRecord('trucks',newTrk,setTrucks,setShowTruckModal,resetFn,editingTruck?.id);
@@ -27207,13 +27285,27 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                             ...prev,
                                             customerId: v,
                                             poNo: (selectedCust?.poNo ? selectedCust.poNo : prev.poNo) || '',
-                                            poDate: (selectedCust?.poDate ? selectedCust.poDate : prev.poDate) || ''
+                                            poDate: (selectedCust?.poDate ? selectedCust.poDate : prev.poDate) || '',
+                                            plantLocation: prev.plantLocation || prev.address || selectedCust?.address || '',
+                                            address: prev.address || prev.plantLocation || selectedCust?.address || ''
                                         }));
                                     }}
                                     getOptionLabel={c=>c.name}
                                     getOptionValue={c=>c.id}
                                     required
                                 />
+                                <div className="space-y-1">
+                                    <Input 
+                                        label="Operating Plant / Site Location (Specific to this PO / Vehicle) *" 
+                                        value={newTrk.plantLocation || newTrk.address || ''} 
+                                        onChange={v => setNewTrk({ ...newTrk, plantLocation: v, address: v })} 
+                                        placeholder="e.g. Udyogamandal Complex or Site Plant Address (if different from Client HQ)" 
+                                        required
+                                    />
+                                    <p className="text-[10px] text-slate-400 font-medium">
+                                        Enter the specific plant / site delivery address for this vehicle so multi-plant clients display their exact individual site locations.
+                                    </p>
+                                </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <Input label="PO / WO Number *" value={newTrk.poNo} onChange={v=>setNewTrk({...newTrk,poNo:v})} required/>
                                     <Input label="PO Date *" type="date" value={newTrk.poDate} onChange={v=>setNewTrk({...newTrk,poDate:v})} required/>
@@ -27335,7 +27427,9 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         const cust = customers.find(c => c.id === poAtGlanceTruck.customerId);
                         const tenderType = poAtGlanceTruck.tenderType || '';
                         const custName = cust?.name || poAtGlanceTruck.customerName || '';
-                        const custAddr = cust?.address || poAtGlanceTruck.customerAddress || '';
+                        const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (poAtGlanceTruck.poNo || '').trim().toUpperCase());
+                        const plantSiteAddr = poAtGlanceTruck.plantLocation || poAtGlanceTruck.address || subMatch?.address || cust?.address || poAtGlanceTruck.customerAddress || '';
+                        const custAddr = cust?.address || '';
                         const custContactPerson = cust?.contactPerson || '';
                         const custPhone = cust?.phone || '';
                         const custEmail = cust?.email || '';
@@ -28544,8 +28638,20 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            try { localStorage.removeItem('ff_nav_tab'); } catch(e) {}
+                                        onClick={async () => {
+                                            try {
+                                                localStorage.removeItem('ff_nav_tab');
+                                                localStorage.removeItem('ff_search_query');
+                                                localStorage.removeItem('ff_fleet_filter');
+                                                if ('caches' in window) {
+                                                    const keys = await caches.keys();
+                                                    await Promise.all(keys.map(k => caches.delete(k)));
+                                                }
+                                                if ('serviceWorker' in navigator) {
+                                                    const registrations = await navigator.serviceWorker.getRegistrations();
+                                                    for (const r of registrations) { await r.update(); }
+                                                }
+                                            } catch(e) {}
                                             window.location.reload();
                                         }}
                                         className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
