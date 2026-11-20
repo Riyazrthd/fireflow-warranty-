@@ -21152,6 +21152,11 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                     const cert = (commCerts || []).find(c => c.truckId === t.id);
                     const isTrained = cert && (cert.status === 'Finalized' || cert.status === 'Completed' || cert.isFinalized);
 
+                    const subMatch = (deliverySubmissions || []).find(s => (s.poNo || '').trim().toUpperCase() === (t.poNo || '').trim().toUpperCase());
+                    const siteAddress = subMatch?.address || t.address || cust?.address || '';
+                    const siteOfficer = subMatch?.contactPerson || t.contactPerson || cust?.contactPerson || '';
+                    const sitePhone = subMatch?.phone || t.phone || cust?.phone || '';
+
                     // Comprehensive search match across all vehicle, commercial, and customer attributes
                     const matchesSearch = !q ||
                         (cust?.name || '').toLowerCase().includes(q) ||
