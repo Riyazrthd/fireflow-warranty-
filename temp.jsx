@@ -20235,10 +20235,14 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                     updatePayload.costCenterCreatedAt = now;
                 }
 
-                // Immediate optimistic state update to guarantee zero lag or UI freeze
-                setTrucks(prev => prev.map(item => item.id === truck.id ? { ...item, ...updatePayload } : item));
+                // Immediate optimistic state update to guarantee zero lag or UI freeze + immediate localStorage persistence
+                setTrucks(prev => {
+                    const next = prev.map(item => item.id === truck.id ? { ...item, ...updatePayload } : item);
+                    try { localStorage.setItem('ff_trks', JSON.stringify(next)); } catch(e){}
+                    return next;
+                });
                 if (selectedDrawerTruck && selectedDrawerTruck.id === truck.id) {
-                    setSelectedDrawerTruck({ ...selectedDrawerTruck, ...updatePayload });
+                    setSelectedDrawerTruck(prev => ({ ...(prev || selectedDrawerTruck), ...updatePayload }));
                 }
 
                 try {
@@ -20265,13 +20269,17 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                     updatePayload.costCenterCreatedAt = now;
                 }
 
-                // Immediate optimistic update
-                setTrucks(prev => prev.map(item => item.id === targetTruck.id ? { ...item, ...updatePayload } : item));
+                // Immediate optimistic update to memory and localStorage
+                setTrucks(prev => {
+                    const next = prev.map(item => item.id === targetTruck.id ? { ...item, ...updatePayload } : item);
+                    try { localStorage.setItem('ff_trks', JSON.stringify(next)); } catch(e){}
+                    return next;
+                });
                 if (selectedDrawerTruck && selectedDrawerTruck.id === targetTruck.id) {
-                    setSelectedDrawerTruck({
-                        ...selectedDrawerTruck,
+                    setSelectedDrawerTruck(prev => ({
+                        ...(prev || selectedDrawerTruck),
                         ...updatePayload
-                    });
+                    }));
                 }
 
                 setShowCcOcPromptModal(false);
@@ -20905,20 +20913,36 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         }
                     }
 
-                    // Merge local cache insurance info if missing in DB
+                    // Merge local cache info so local offline updates are never wiped out by DB
                     dbTrks = dbTrks.map(dt => {
-                        const localMatch = localTrks.find(lt => lt.poNo === dt.poNo);
+                        const localMatch = localTrks.find(lt => lt.id === dt.id || (lt.poNo && dt.poNo && lt.poNo.trim().toUpperCase() === dt.poNo.trim().toUpperCase()));
                         if (localMatch) {
                             return {
                                 ...dt,
+                                costCenterNo: localMatch.costCenterNo || dt.costCenterNo || null,
+                                costCenterStatus: (localMatch.costCenterStatus && localMatch.costCenterStatus !== 'Not Generated') ? localMatch.costCenterStatus : (dt.costCenterStatus || 'Not Generated'),
+                                costCenterCreatedAt: localMatch.costCenterCreatedAt || dt.costCenterCreatedAt || null,
+                                poAtGlanceGeneratedAt: localMatch.poAtGlanceGeneratedAt || dt.poAtGlanceGeneratedAt || null,
+                                submittedToAccountsAt: localMatch.submittedToAccountsAt || dt.submittedToAccountsAt || null,
+                                plantLocation: localMatch.plantLocation || dt.plantLocation || null,
+                                address: localMatch.address || dt.address || null,
+                                ocNo: localMatch.ocNo || dt.ocNo || null,
+                                ocDate: localMatch.ocDate || dt.ocDate || null,
+                                poDate: localMatch.poDate || dt.poDate || null,
                                 insurancePolicyNo: dt.insurancePolicyNo || localMatch.insurancePolicyNo,
                                 insuranceCompany: dt.insuranceCompany || localMatch.insuranceCompany,
                                 insuranceExpiryDate: dt.insuranceExpiryDate || localMatch.insuranceExpiryDate,
-                                pumpSrNo: dt.pumpSrNo || localMatch.pumpSrNo
+                                pumpSrNo: dt.pumpSrNo || localMatch.pumpSrNo,
+                                poGlanceLd: localMatch.poGlanceLd || dt.poGlanceLd,
+                                poGlanceSd: localMatch.poGlanceSd || dt.poGlanceSd,
+                                poGlanceEmd: localMatch.poGlanceEmd || dt.poGlanceEmd,
+                                poGlanceDlp: localMatch.poGlanceDlp || dt.poGlanceDlp,
+                                poGlanceSez: localMatch.poGlanceSez || dt.poGlanceSez
                             };
                         }
                         return dt;
                     });
+                    try { localStorage.setItem('ff_trks', JSON.stringify(dbTrks)); } catch(e){}
 
                     setCustomers(dbCust);
                     setTrucks(dbTrks);
@@ -21532,6 +21556,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         delete fallbackPayload.po_no;
                         delete fallbackPayload.po_date;
                         delete fallbackPayload.cost_center_status;
+                        delete fallbackPayload.cost_center_no;
                         delete fallbackPayload.po_at_glance_generated_at;
                         delete fallbackPayload.submitted_to_accounts_at;
                         delete fallbackPayload.cost_center_created_at;
@@ -21550,38 +21575,46 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         if (type==='customers') {
                             mapped = {
                                 ...mapped,
-                                poNo: mapped.poNo || data.poNo,
-                                poDate: mapped.poDate || data.poDate
+                                poNo: data.poNo !== undefined ? data.poNo : mapped.poNo,
+                                poDate: data.poDate !== undefined ? data.poDate : mapped.poDate
                             };
                         }
                         if (type==='trucks') {
                             mapped = {
                                 ...mapped,
-                                plantLocation: mapped.plantLocation || data.plantLocation || data.address || null,
-                                address: mapped.address || data.address || data.plantLocation || null,
-                                poDate: mapped.poDate || data.poDate,
-                                ocNo: mapped.ocNo || data.ocNo,
-                                ocDate: mapped.ocDate || data.ocDate,
-                                costCenterNo: mapped.costCenterNo || data.costCenterNo,
-                                insurancePolicyNo: mapped.insurancePolicyNo || data.insurancePolicyNo,
-                                insuranceCompany: mapped.insuranceCompany || data.insuranceCompany,
-                                insuranceExpiryDate: mapped.insuranceExpiryDate || data.insuranceExpiryDate,
-                                pumpSrNo: mapped.pumpSrNo || data.pumpSrNo,
-                                ptoMake: mapped.ptoMake || data.ptoMake,
-                                ptoRatio: mapped.ptoRatio || data.ptoRatio,
-                                ptoSrNo: mapped.ptoSrNo || data.ptoSrNo,
-                                costCenterStatus: mapped.costCenterStatus || data.costCenterStatus || 'Not Generated',
-                                poAtGlanceGeneratedAt: mapped.poAtGlanceGeneratedAt || data.poAtGlanceGeneratedAt,
-                                submittedToAccountsAt: mapped.submittedToAccountsAt || data.submittedToAccountsAt,
-                                costCenterCreatedAt: mapped.costCenterCreatedAt || data.costCenterCreatedAt,
-                                poGlanceLd: mapped.poGlanceLd || data.poGlanceLd,
-                                poGlanceSd: mapped.poGlanceSd || data.poGlanceSd,
-                                poGlanceEmd: mapped.poGlanceEmd || data.poGlanceEmd,
-                                poGlanceDlp: mapped.poGlanceDlp || data.poGlanceDlp,
-                                poGlanceSez: mapped.poGlanceSez || data.poGlanceSez
+                                plantLocation: data.plantLocation !== undefined ? data.plantLocation : (mapped.plantLocation || data.address || null),
+                                address: data.address !== undefined ? data.address : (mapped.address || data.plantLocation || null),
+                                poDate: data.poDate !== undefined ? data.poDate : mapped.poDate,
+                                ocNo: data.ocNo !== undefined ? data.ocNo : mapped.ocNo,
+                                ocDate: data.ocDate !== undefined ? data.ocDate : mapped.ocDate,
+                                costCenterNo: data.costCenterNo !== undefined ? data.costCenterNo : mapped.costCenterNo,
+                                costCenterStatus: data.costCenterStatus !== undefined ? data.costCenterStatus : mapped.costCenterStatus,
+                                costCenterCreatedAt: data.costCenterCreatedAt !== undefined ? data.costCenterCreatedAt : mapped.costCenterCreatedAt,
+                                poAtGlanceGeneratedAt: data.poAtGlanceGeneratedAt !== undefined ? data.poAtGlanceGeneratedAt : mapped.poAtGlanceGeneratedAt,
+                                submittedToAccountsAt: data.submittedToAccountsAt !== undefined ? data.submittedToAccountsAt : mapped.submittedToAccountsAt,
+                                insurancePolicyNo: data.insurancePolicyNo !== undefined ? data.insurancePolicyNo : mapped.insurancePolicyNo,
+                                insuranceCompany: data.insuranceCompany !== undefined ? data.insuranceCompany : mapped.insuranceCompany,
+                                insuranceExpiryDate: data.insuranceExpiryDate !== undefined ? data.insuranceExpiryDate : mapped.insuranceExpiryDate,
+                                pumpSrNo: data.pumpSrNo !== undefined ? data.pumpSrNo : mapped.pumpSrNo,
+                                ptoMake: data.ptoMake !== undefined ? data.ptoMake : mapped.ptoMake,
+                                ptoRatio: data.ptoRatio !== undefined ? data.ptoRatio : mapped.ptoRatio,
+                                ptoSrNo: data.ptoSrNo !== undefined ? data.ptoSrNo : mapped.ptoSrNo,
+                                poGlanceLd: data.poGlanceLd !== undefined ? data.poGlanceLd : mapped.poGlanceLd,
+                                poGlanceSd: data.poGlanceSd !== undefined ? data.poGlanceSd : mapped.poGlanceSd,
+                                poGlanceEmd: data.poGlanceEmd !== undefined ? data.poGlanceEmd : mapped.poGlanceEmd,
+                                poGlanceDlp: data.poGlanceDlp !== undefined ? data.poGlanceDlp : mapped.poGlanceDlp,
+                                poGlanceSez: data.poGlanceSez !== undefined ? data.poGlanceSez : mapped.poGlanceSez
                             };
                         }
-                        setter(prev=>prev.map(item=>item.id===id?mapped:item));
+                        setter(prev => {
+                            const next = prev.map(item => item.id === id ? mapped : item);
+                            if (type === 'trucks') {
+                                try { localStorage.setItem('ff_trks', JSON.stringify(next)); } catch(e){}
+                            } else if (type === 'customers') {
+                                try { localStorage.setItem('ff_cust', JSON.stringify(next)); } catch(e){}
+                            }
+                            return next;
+                        });
                 } catch(err) {
                     console.warn('Update notice (offline-first):', err);
                 }
@@ -21611,6 +21644,7 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         delete fallbackPayload.po_no;
                         delete fallbackPayload.po_date;
                         delete fallbackPayload.cost_center_status;
+                        delete fallbackPayload.cost_center_no;
                         delete fallbackPayload.po_at_glance_generated_at;
                         delete fallbackPayload.submitted_to_accounts_at;
                         delete fallbackPayload.cost_center_created_at;
@@ -21629,38 +21663,46 @@ Return ONLY a valid JSON object with the allowed keys found.`;
                         if (type==='customers') {
                             mapped = {
                                 ...mapped,
-                                poNo: mapped.poNo || data.poNo,
-                                poDate: mapped.poDate || data.poDate
+                                poNo: data.poNo !== undefined ? data.poNo : mapped.poNo,
+                                poDate: data.poDate !== undefined ? data.poDate : mapped.poDate
                             };
                         }
                         if (type==='trucks') {
                             mapped = {
                                 ...mapped,
-                                plantLocation: mapped.plantLocation || data.plantLocation || data.address || null,
-                                address: mapped.address || data.address || data.plantLocation || null,
-                                poDate: mapped.poDate || data.poDate,
-                                ocNo: mapped.ocNo || data.ocNo,
-                                ocDate: mapped.ocDate || data.ocDate,
-                                costCenterNo: mapped.costCenterNo || data.costCenterNo,
-                                insurancePolicyNo: mapped.insurancePolicyNo || data.insurancePolicyNo,
-                                insuranceCompany: mapped.insuranceCompany || data.insuranceCompany,
-                                insuranceExpiryDate: mapped.insuranceExpiryDate || data.insuranceExpiryDate,
-                                pumpSrNo: mapped.pumpSrNo || data.pumpSrNo,
-                                ptoMake: mapped.ptoMake || data.ptoMake,
-                                ptoRatio: mapped.ptoRatio || data.ptoRatio,
-                                ptoSrNo: mapped.ptoSrNo || data.ptoSrNo,
-                                costCenterStatus: mapped.costCenterStatus || data.costCenterStatus || 'Not Generated',
-                                poAtGlanceGeneratedAt: mapped.poAtGlanceGeneratedAt || data.poAtGlanceGeneratedAt,
-                                submittedToAccountsAt: mapped.submittedToAccountsAt || data.submittedToAccountsAt,
-                                costCenterCreatedAt: mapped.costCenterCreatedAt || data.costCenterCreatedAt,
-                                poGlanceLd: mapped.poGlanceLd || data.poGlanceLd,
-                                poGlanceSd: mapped.poGlanceSd || data.poGlanceSd,
-                                poGlanceEmd: mapped.poGlanceEmd || data.poGlanceEmd,
-                                poGlanceDlp: mapped.poGlanceDlp || data.poGlanceDlp,
-                                poGlanceSez: mapped.poGlanceSez || data.poGlanceSez
+                                plantLocation: data.plantLocation !== undefined ? data.plantLocation : (mapped.plantLocation || data.address || null),
+                                address: data.address !== undefined ? data.address : (mapped.address || data.plantLocation || null),
+                                poDate: data.poDate !== undefined ? data.poDate : mapped.poDate,
+                                ocNo: data.ocNo !== undefined ? data.ocNo : mapped.ocNo,
+                                ocDate: data.ocDate !== undefined ? data.ocDate : mapped.ocDate,
+                                costCenterNo: data.costCenterNo !== undefined ? data.costCenterNo : mapped.costCenterNo,
+                                costCenterStatus: data.costCenterStatus !== undefined ? data.costCenterStatus : mapped.costCenterStatus,
+                                costCenterCreatedAt: data.costCenterCreatedAt !== undefined ? data.costCenterCreatedAt : mapped.costCenterCreatedAt,
+                                poAtGlanceGeneratedAt: data.poAtGlanceGeneratedAt !== undefined ? data.poAtGlanceGeneratedAt : mapped.poAtGlanceGeneratedAt,
+                                submittedToAccountsAt: data.submittedToAccountsAt !== undefined ? data.submittedToAccountsAt : mapped.submittedToAccountsAt,
+                                insurancePolicyNo: data.insurancePolicyNo !== undefined ? data.insurancePolicyNo : mapped.insurancePolicyNo,
+                                insuranceCompany: data.insuranceCompany !== undefined ? data.insuranceCompany : mapped.insuranceCompany,
+                                insuranceExpiryDate: data.insuranceExpiryDate !== undefined ? data.insuranceExpiryDate : mapped.insuranceExpiryDate,
+                                pumpSrNo: data.pumpSrNo !== undefined ? data.pumpSrNo : mapped.pumpSrNo,
+                                ptoMake: data.ptoMake !== undefined ? data.ptoMake : mapped.ptoMake,
+                                ptoRatio: data.ptoRatio !== undefined ? data.ptoRatio : mapped.ptoRatio,
+                                ptoSrNo: data.ptoSrNo !== undefined ? data.ptoSrNo : mapped.ptoSrNo,
+                                poGlanceLd: data.poGlanceLd !== undefined ? data.poGlanceLd : mapped.poGlanceLd,
+                                poGlanceSd: data.poGlanceSd !== undefined ? data.poGlanceSd : mapped.poGlanceSd,
+                                poGlanceEmd: data.poGlanceEmd !== undefined ? data.poGlanceEmd : mapped.poGlanceEmd,
+                                poGlanceDlp: data.poGlanceDlp !== undefined ? data.poGlanceDlp : mapped.poGlanceDlp,
+                                poGlanceSez: data.poGlanceSez !== undefined ? data.poGlanceSez : mapped.poGlanceSez
                             };
                         }
-                        setter(prev=>[mapped,...prev]);
+                        setter(prev => {
+                            const next = [mapped, ...prev];
+                            if (type === 'trucks') {
+                                try { localStorage.setItem('ff_trks', JSON.stringify(next)); } catch(e){}
+                            } else if (type === 'customers') {
+                                try { localStorage.setItem('ff_cust', JSON.stringify(next)); } catch(e){}
+                            }
+                            return next;
+                        });
                 } catch(err) {
                     console.warn('Save notice (offline-first):', err);
                 }
